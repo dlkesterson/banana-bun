@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for running feedback loop analysis and learning
+ * Banana Bun CLI tool for running feedback loop analysis and learning
  * 
  * Usage:
  *   bun run src/cli/run-feedback-loop.ts
@@ -25,7 +25,7 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Feedback Loop Learning Tool
+Banana Bun Feedback Loop Learning Tool
 
 Usage: bun run src/cli/run-feedback-loop.ts [options]
 
@@ -302,7 +302,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('🔄 Atlas Feedback Loop Learning Tool');
+        console.log("🔄 Banana Bun Feedback Loop Learning Tool");
         console.log('====================================\n');
 
         // Initialize database

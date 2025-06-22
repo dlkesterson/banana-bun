@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for tracking user tag corrections and feedback
+ * Banana Bun CLI tool for tracking user tag corrections and feedback
  * 
  * Usage:
  *   bun run src/cli/track-tag-edits.ts --media 123 --tags "Action, Sci-fi"
@@ -28,7 +28,7 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Tag Edit Tracking Tool
+Banana Bun Tag Edit Tracking Tool
 
 Usage: bun run src/cli/track-tag-edits.ts [options]
 
@@ -331,7 +331,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('📝 Atlas Tag Edit Tracking Tool');
+        console.log("📝 Banana Bun Tag Edit Tracking Tool");
         console.log('===============================\n');
 
         // Initialize database

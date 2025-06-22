@@ -1,6 +1,6 @@
 # Whisper MCP Server
 
-The Whisper MCP (Model Context Protocol) Server enhances your Atlas transcription capabilities with intelligent optimization, quality learning, and performance analytics.
+The Whisper MCP (Model Context Protocol) Server enhances your Banana Bun transcription capabilities with intelligent optimization, quality learning, and performance analytics.
 
 ## 🚀 Features
 
@@ -287,7 +287,7 @@ bun run smart-transcribe --patterns
 
 ## 🚀 Integration with Existing Tools
 
-The Whisper MCP server seamlessly integrates with your existing Atlas tools:
+The Whisper MCP server seamlessly integrates with your existing Banana Bun tools:
 
 - **Media Ingestion**: Automatically transcribes new media with optimized settings
 - **Task Processing**: Learns from transcription task patterns for better scheduling

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { config, BASE_PATH } from '../src/config';
+import { config, BASE_PATH } from "../src/config.ts";
 
 describe('Configuration Management', () => {
     let originalEnv: Record<string, string | undefined>;
@@ -93,7 +93,7 @@ describe('Configuration Management', () => {
             expect(config.ollama).toBeDefined();
             expect(config.ollama.url).toBe('http://localhost:11434');
             expect(config.ollama.model).toBe('qwen3:8b');
-            expect(config.ollama.fastModel).toBe('llama3.2:3b');
+            expect(config.ollama.fastModel).toBe("qwen3:8b");
         });
 
         it('should use environment variables when provided', () => {

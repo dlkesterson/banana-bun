@@ -3,7 +3,7 @@
 /**
  * Media Intelligence CLI Tool
  * 
- * Advanced analytics and insights for your Atlas media collection:
+ * Advanced analytics and insights for your Banana Bun media collection:
  * - Content discovery pattern analysis
  * - Cross-modal correlation insights
  * - AI-powered tagging optimization

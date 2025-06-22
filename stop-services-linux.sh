@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Atlas Linux Services Stop Script
-# This script stops all Atlas external services
+# Banana Bun Linux Services Stop Script
+# This script stops all Banana Bun external services
 
 set -e
 
@@ -23,7 +23,7 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-print_status "🛑 Stopping Atlas external services..."
+print_status "🛑 Stopping Banana Bun external services..."
 
 # Stop MeiliSearch
 print_status "Stopping MeiliSearch..."

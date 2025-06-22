@@ -42,6 +42,46 @@ Banana Bun is a whimsical, developer-first project that uses **local AI models**
 
 ### Installation
 
+#### Quick Setup (Linux/macOS)
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/banana-bun.git
+cd banana-bun
+
+# Run the setup script
+chmod +x setup-linux.sh
+./setup-linux.sh
+
+# Initialize the database
+bun run migrate
+
+# Start the system
+bun run dev
+```
+
+#### Quick Setup (Windows)
+
+```powershell
+# Clone the repository
+git clone https://github.com/yourusername/banana-bun.git
+cd banana-bun
+
+# Run the setup script (PowerShell)
+.\setup-windows.ps1
+
+# Or use the batch file
+.\setup-windows.bat
+
+# Initialize the database
+bun run migrate
+
+# Start the system
+bun run dev
+```
+
+#### Manual Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/banana-bun.git
@@ -50,10 +90,12 @@ cd banana-bun
 # Install dependencies
 bun install
 
-# Set up environment
-cp .env.example .env
-# Edit .env with your configuration
+# Set up environment (choose your platform)
+cp .env.linux .env      # For Linux
+cp .env.windows .env    # For Windows
+cp .env.example .env    # For custom setup
 
+# Edit .env with your configuration
 # Initialize the database
 bun run migrate
 
@@ -105,28 +147,55 @@ banana-bun/
 
 ## 🔧 Configuration
 
-Key configuration options in `.env`:
+Banana Bun uses cross-platform configuration with sensible defaults. The setup scripts will create platform-appropriate `.env` files, but you can customize them as needed.
+
+### Platform-Specific Defaults
+
+**Linux/macOS:**
+- Data: `~/.local/share/banana-bun` (Linux) or `~/Library/Application Support/BananaBun` (macOS)
+- Media: `~/Media` (Linux) or `~/Movies` (macOS)
+
+**Windows:**
+- Data: `%USERPROFILE%\Documents\BananaBun`
+- Media: `%USERPROFILE%\Documents\Media`
+
+### Key Configuration Options
 
 ```bash
-# Core paths
+# Core paths (optional - uses platform defaults if not set)
 BASE_PATH=/path/to/banana-bun-data
+MEDIA_COLLECTION_PATH=/path/to/media
 
 # AI Services
 OPENAI_API_KEY=your_key_here  # Optional, for enhanced features
 OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=qwen3:8b
 
-# Media processing
+# Media processing tools (uses system PATH if not specified)
 YTDLP_PATH=yt-dlp
 FFPROBE_PATH=ffprobe
+MEDIAINFO_PATH=mediainfo
 
 # Search engines
 CHROMA_URL=http://localhost:8000
 MEILISEARCH_URL=http://localhost:7700
 
+# Media collection paths (optional - uses defaults if not set)
+MEDIA_COLLECTION_TV=/path/to/tv/shows
+MEDIA_COLLECTION_MOVIES=/path/to/movies
+MEDIA_COLLECTION_YOUTUBE=/path/to/youtube
+MEDIA_COLLECTION_CATCHALL=/path/to/downloads
+
 # RSS feeds (optional)
 RSS_ENABLED=true
 RSS_FEEDS=https://example.com/podcast.xml
 ```
+
+### Environment Templates
+
+- `.env.linux` - Linux-specific paths and settings
+- `.env.windows` - Windows-specific paths and settings
+- `.env.example` - Generic template with placeholders
 
 ## 🧪 Development
 

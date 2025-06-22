@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for audio analysis and music classification
+ * Banana Bun CLI tool for audio analysis and music classification
  * 
  * Usage:
- *   bun run src/cli/atlas-audio-analyze.ts --media 123
- *   bun run src/cli/atlas-audio-analyze.ts --media 123 --type classification
- *   bun run src/cli/atlas-audio-analyze.ts --search --genre rock --min-bpm 120
+ *   bun run src/cli/banana-audio-analyze.ts --media 123
+ *   bun run src/cli/banana-audio-analyze.ts --media 123 --type classification
+ *   bun run src/cli/banana-audio-analyze.ts --search --genre rock --min-bpm 120
  */
 
 import { parseArgs } from 'util';
@@ -37,9 +37,9 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Audio Analysis Tool
+Banana Bun Audio Analysis Tool
 
-Usage: bun run src/cli/atlas-audio-analyze.ts [options]
+Usage: bun run src/cli/banana-audio-analyze.ts [options]
 
 Options:
   --media <id>              Media ID to analyze (required for analysis)
@@ -63,22 +63,22 @@ Search Options (use with --search):
 
 Examples:
   # Analyze audio for media ID 123
-  bun run src/cli/atlas-audio-analyze.ts --media 123
+  bun run src/cli/banana-audio-analyze.ts --media 123
 
   # Quick classification only
-  bun run src/cli/atlas-audio-analyze.ts --media 123 --type classification
+  bun run src/cli/banana-audio-analyze.ts --media 123 --type classification
 
   # Force re-analysis
-  bun run src/cli/atlas-audio-analyze.ts --media 123 --force
+  bun run src/cli/banana-audio-analyze.ts --media 123 --force
 
   # Search for rock music with high energy
-  bun run src/cli/atlas-audio-analyze.ts --search --genre rock --min-energy 0.7
+  bun run src/cli/banana-audio-analyze.ts --search --genre rock --min-energy 0.7
 
   # Search for music between 120-140 BPM
-  bun run src/cli/atlas-audio-analyze.ts --search --is-music true --min-bpm 120 --max-bpm 140
+  bun run src/cli/banana-audio-analyze.ts --search --is-music true --min-bpm 120 --max-bpm 140
 
   # Show audio feature statistics
-  bun run src/cli/atlas-audio-analyze.ts --stats
+  bun run src/cli/banana-audio-analyze.ts --stats
 
 Audio Features:
   - Music vs Speech classification
@@ -362,7 +362,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('🎵 Atlas Audio Analysis Tool');
+        console.log('🎵 Banana Bun Audio Analysis Tool');
         console.log('============================\n');
 
         // Initialize database

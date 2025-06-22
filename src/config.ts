@@ -1,38 +1,32 @@
-// Cross-platform default paths
-const getDefaultBasePath = () => {
-  if (process.platform === "win32") {
-    return "C:/Users/dlkes/Sync/AI Drop Box";
-  } else {
-    return process.env.HOME
-      ? `${process.env.HOME}/atlas-data`
-      : "/tmp/atlas-data";
-  }
-};
+import {
+  getDefaultBasePath,
+  getDefaultMediaPath,
+  getDefaultMediaTypePaths,
+  getDefaultS3Paths,
+  getStandardDirectoryStructure,
+} from "./utils/cross-platform-paths.js";
 
-const getDefaultMediaPath = () => {
-  if (process.platform === "win32") {
-    return "E:/";
-  } else {
-    return process.env.HOME ? `${process.env.HOME}/media` : "/tmp/media";
-  }
-};
+// Cross-platform configuration using utility functions
+export const BASE_PATH = getDefaultBasePath();
+export const MEDIA_COLLECTION_PATH = getDefaultMediaPath();
 
-export const BASE_PATH = process.env.BASE_PATH || getDefaultBasePath();
-export const MEDIA_COLLECTION_PATH =
-  process.env.MEDIA_COLLECTION_PATH || getDefaultMediaPath();
+// Get cross-platform media type paths
+const mediaTypePaths = getDefaultMediaTypePaths();
+const s3Paths = getDefaultS3Paths();
+const standardDirs = getStandardDirectoryStructure(BASE_PATH);
 
 export const config = {
   paths: {
-    incoming: `${BASE_PATH}/incoming`,
-    processing: `${BASE_PATH}/processing`,
-    archive: `${BASE_PATH}/archive`,
-    error: `${BASE_PATH}/error`,
-    tasks: `${BASE_PATH}/tasks`,
-    outputs: `${BASE_PATH}/outputs`,
-    logs: `${BASE_PATH}/logs`,
-    dashboard: `${BASE_PATH}/dashboard`,
-    database: `${BASE_PATH}/tasks.sqlite`,
-    media: `${BASE_PATH}/media`,
+    incoming: standardDirs.incoming,
+    processing: standardDirs.processing,
+    archive: standardDirs.archive,
+    error: standardDirs.error,
+    tasks: standardDirs.tasks,
+    outputs: standardDirs.outputs,
+    logs: standardDirs.logs,
+    dashboard: standardDirs.dashboard,
+    database: standardDirs.database,
+    media: standardDirs.media,
     chroma: {
       host: "localhost",
       port: 8000,
@@ -77,17 +71,17 @@ export const config = {
     region: process.env.AWS_DEFAULT_REGION,
     endpoint: process.env.S3_ENDPOINT,
     defaultBucket: process.env.S3_DEFAULT_BUCKET,
-    defaultDownloadPath: process.env.S3_DEFAULT_DOWNLOAD_PATH,
-    syncLogPath: process.env.S3_SYNC_LOG_PATH,
+    defaultDownloadPath: s3Paths.downloadPath,
+    syncLogPath: s3Paths.syncLogPath,
   },
   media: {
-    collectionTv: process.env.MEDIA_COLLECTION_TV,
-    collectionMovies: process.env.MEDIA_COLLECTION_MOVIES,
-    collectionYouTube: process.env.MEDIA_COLLECTION_YOUTUBE,
-    collectionCatchAll: process.env.MEDIA_COLLECTION_CATCHALL,
+    collectionTv: mediaTypePaths.tv,
+    collectionMovies: mediaTypePaths.movies,
+    collectionYouTube: mediaTypePaths.youtube,
+    collectionCatchAll: mediaTypePaths.catchall,
     tools: {
-      ffprobe: process.env.FFPROBE_PATH,
-      mediainfo: process.env.MEDIAINFO_PATH,
+      ffprobe: process.env.FFPROBE_PATH || "ffprobe",
+      mediainfo: process.env.MEDIAINFO_PATH || "mediainfo",
       preferred: "ffprobe" as "ffprobe" | "mediainfo" | "auto",
     },
     extensions: {

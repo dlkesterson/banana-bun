@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for generating and storing media embeddings
+ * Banana Bun CLI tool for generating and storing media embeddings
  * 
  * Usage:
- *   bun run src/cli/atlas-embed-media.ts --media 123
- *   bun run src/cli/atlas-embed-media.ts --all
- *   bun run src/cli/atlas-embed-media.ts --batch 10
+ *   bun run src/cli/banana-embed-media.ts --media 123
+ *   bun run src/cli/banana-embed-media.ts --all
+ *   bun run src/cli/banana-embed-media.ts --batch 10
  */
 
 import { parseArgs } from 'util';
@@ -24,9 +24,9 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Media Embedding Tool
+Banana Bun Media Embedding Tool
 
-Usage: bun run src/cli/atlas-embed-media.ts [options]
+Usage: bun run src/cli/banana-embed-media.ts [options]
 
 Options:
   --media <id>              Generate embedding for specific media ID
@@ -37,16 +37,16 @@ Options:
 
 Examples:
   # Generate embedding for specific media
-  bun run src/cli/atlas-embed-media.ts --media 123
+  bun run src/cli/banana-embed-media.ts --media 123
 
   # Generate embeddings for all unprocessed media
-  bun run src/cli/atlas-embed-media.ts --all
+  bun run src/cli/banana-embed-media.ts --all
 
   # Process in smaller batches
-  bun run src/cli/atlas-embed-media.ts --all --batch 5
+  bun run src/cli/banana-embed-media.ts --all --batch 5
 
   # Force regenerate all embeddings
-  bun run src/cli/atlas-embed-media.ts --all --force
+  bun run src/cli/banana-embed-media.ts --all --force
 `);
 }
 
@@ -303,7 +303,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('🧠 Atlas Media Embedding Tool');
+        console.log('🧠 Banana Bun Media Embedding Tool');
         console.log('==============================\n');
 
         // Initialize database

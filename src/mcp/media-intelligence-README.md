@@ -1,6 +1,6 @@
 # Media Intelligence MCP Server
 
-The Media Intelligence MCP Server is the crown jewel of your Atlas media processing system, combining the power of MeiliSearch and Whisper MCP servers with advanced AI-powered insights and cross-modal learning capabilities.
+The Media Intelligence MCP Server is the crown jewel of your Banana Bun media processing system, combining the power of MeiliSearch and Whisper MCP servers with advanced AI-powered insights and cross-modal learning capabilities.
 
 ## 🧠 What is Media Intelligence?
 
@@ -272,7 +272,7 @@ The Media Intelligence server is configured via `src/mcp/mcp-config.json`:
 }
 ```
 
-## 🚀 Integration with Atlas Ecosystem
+## 🚀 Integration with Banana Bun Ecosystem
 
 The Media Intelligence MCP server seamlessly integrates with:
 
@@ -286,7 +286,7 @@ This creates a comprehensive, self-improving media intelligence system that cont
 
 ## 🎉 The Future of Media Intelligence
 
-With the Media Intelligence MCP server, your Atlas system becomes more than just a media processor—it becomes an intelligent content curator that:
+With the Media Intelligence MCP server, your Banana Bun system becomes more than just a media processor—it becomes an intelligent content curator that:
 
 - **Learns** from every user interaction
 - **Adapts** to changing content and user preferences

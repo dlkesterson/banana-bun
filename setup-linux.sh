@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Atlas Linux Setup Script
-# This script sets up Atlas for Linux environments
+# Banana Bun Linux Setup Script
+# This script sets up Banana Bun for Linux environments
 
 set -e
 
-echo "🚀 Setting up Atlas for Linux..."
+echo "🚀 Setting up Banana Bun for Linux..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -33,9 +33,9 @@ if [[ "$OSTYPE" != "linux-gnu"* ]]; then
 fi
 
 # Create necessary directories
-print_status "Creating Atlas directories..."
-mkdir -p ~/atlas-data/{incoming,processing,archive,error,tasks,outputs,logs,dashboard,media}
-mkdir -p ~/media/{Shows,Movies,YouTube,Downloads}
+print_status "Creating Banana directories..."
+mkdir -p ~/.local/share/banana-bun/{incoming,processing,archive,error,tasks,outputs,logs,dashboard,media}
+mkdir -p ~/Media/{TV\ Shows,Movies,YouTube,Downloads}
 
 # Copy environment configuration
 if [ ! -f .env ]; then
@@ -103,7 +103,7 @@ if ! command -v yt-dlp &> /dev/null; then
     pip3 install --user yt-dlp
 fi
 
-print_status "✅ Atlas Linux setup completed!"
+print_status "✅ Banana Bun Linux setup completed!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Edit .env file to customize paths and add API keys"
@@ -112,7 +112,7 @@ echo "   - Ollama: ollama serve"
 echo "   - ChromaDB: chroma run --path ./chroma_db"
 echo "   - MeiliSearch: meilisearch --db-path ./meilisearch_db --http-addr 127.0.0.1:7700"
 echo "3. Pull Ollama models: ollama pull qwen3:8b"
-echo "4. Start Atlas: bun run dev"
+echo "4. Start Banana Bun: bun run dev"
 echo ""
 echo "🔧 Service health checks:"
 echo "   curl http://localhost:11434/api/tags    # Ollama"

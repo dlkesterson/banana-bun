@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for analyzing task metrics and performance
+ * Banana Bun CLI tool for analyzing task metrics and performance
  * 
  * Usage:
  *   bun run src/cli/analyze-task-metrics.ts
@@ -27,7 +27,7 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Task Metrics Analysis Tool
+Banana Bun Task Metrics Analysis Tool
 
 Usage: bun run src/cli/analyze-task-metrics.ts [options]
 
@@ -248,7 +248,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('📊 Atlas Task Metrics Analysis Tool');
+        console.log("📊 Banana Bun Task Metrics Analysis Tool");
         console.log('====================================');
 
         // Initialize database

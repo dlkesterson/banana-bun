@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for video scene detection
+ * Banana Bun CLI tool for video scene detection
  * 
  * Usage:
- *   bun run src/cli/atlas-detect-scenes.ts --media 123
- *   bun run src/cli/atlas-detect-scenes.ts --video /path/to/video.mp4 --threshold 0.3
+ *   bun run src/cli/banana-detect-scenes.ts --media 123
+ *   bun run src/cli/banana-detect-scenes.ts --video /path/to/video.mp4 --threshold 0.3
  */
 
 import { parseArgs } from 'util';
@@ -25,9 +25,9 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Video Scene Detection Tool
+Banana Bun Video Scene Detection Tool
 
-Usage: bun run src/cli/atlas-detect-scenes.ts [options]
+Usage: bun run src/cli/banana-detect-scenes.ts [options]
 
 Options:
   --media <id>              Media ID to detect scenes for (required if not using --video)
@@ -39,16 +39,16 @@ Options:
 
 Examples:
   # Detect scenes for media in database
-  bun run src/cli/atlas-detect-scenes.ts --media 123
+  bun run src/cli/banana-detect-scenes.ts --media 123
 
   # Detect scenes with custom threshold
-  bun run src/cli/atlas-detect-scenes.ts --media 123 --threshold 0.3
+  bun run src/cli/banana-detect-scenes.ts --media 123 --threshold 0.3
 
   # Direct video file processing
-  bun run src/cli/atlas-detect-scenes.ts --video /path/to/video.mp4 --direct
+  bun run src/cli/banana-detect-scenes.ts --video /path/to/video.mp4 --direct
 
   # Force re-detection
-  bun run src/cli/atlas-detect-scenes.ts --media 123 --force
+  bun run src/cli/banana-detect-scenes.ts --media 123 --force
 
 Scene Detection:
   - Uses FFmpeg scene filter to detect scene changes
@@ -222,7 +222,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('🎬 Atlas Video Scene Detection Tool');
+        console.log('🎬 Banana Bun Video Scene Detection Tool');
         console.log('===================================\n');
 
         // Initialize database if using media ID

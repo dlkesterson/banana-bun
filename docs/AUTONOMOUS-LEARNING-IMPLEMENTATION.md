@@ -1,10 +1,10 @@
 # 🧠 Autonomous Learning and Optimization Implementation
 
-This document describes the implementation of Atlas's autonomous learning and optimization features as specified in PRD Part 3.
+This document describes the implementation of Banana Bun's autonomous learning and optimization features as specified in PRD Part 3.
 
 ## 📋 Overview
 
-The autonomous learning system enables Atlas to gradually become smarter over time through:
+The autonomous learning system enables Banana Bun to gradually become smarter over time through:
 - **Vector-based media similarity** using ChromaDB embeddings
 - **Task performance analytics** and bottleneck detection
 - **User feedback learning** from corrections and edits
@@ -88,31 +88,31 @@ CREATE TABLE learning_rules (
 #### Generate Media Embeddings
 ```bash
 # Generate embedding for specific media
-bun run atlas-embed-media --media 123
+bun run banana-embed-media --media 123
 
 # Generate embeddings for all unprocessed media
-bun run atlas-embed-media --all
+bun run banana-embed-media --all
 
 # Process in batches
-bun run atlas-embed-media --all --batch 10
+bun run banana-embed-media --all --batch 10
 
 # Force regenerate all embeddings
-bun run atlas-embed-media --all --force
+bun run banana-embed-media --all --force
 ```
 
 #### Search Similar Media
 ```bash
 # Find similar media by ID
-bun run atlas-search-similar --media 456 --top 10
+bun run banana-search-similar --media 456 --top 10
 
 # Search by text query
-bun run atlas-search-similar --query "action movie with robots"
+bun run banana-search-similar --query "action movie with robots"
 
 # Find similar with clustering
-bun run atlas-search-similar --media 123 --cluster
+bun run banana-search-similar --media 123 --cluster
 
 # Set similarity threshold
-bun run atlas-search-similar --media 456 --threshold 0.3
+bun run banana-search-similar --media 456 --threshold 0.3
 ```
 
 ### Phase 2: Analytics and Performance
@@ -180,10 +180,10 @@ bun run smart-transcribe --media 123
 bun run media-tags --media 123
 
 # Generate embeddings
-bun run atlas-embed-media --media 123
+bun run banana-embed-media --media 123
 
 # Search for similar content
-bun run atlas-search-similar --media 123 --top 5
+bun run banana-search-similar --media 123 --top 5
 ```
 
 ### 2. Monitoring System Performance
@@ -298,7 +298,7 @@ Run the autonomous learning features:
 bun run migrate
 
 # Test embedding generation
-bun run atlas-embed-media --media 1
+bun run banana-embed-media --media 1
 
 # Test analytics
 bun run analyze-task-metrics

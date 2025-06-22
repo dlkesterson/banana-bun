@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for object detection in video scenes
+ * Banana Bun CLI tool for object detection in video scenes
  * 
  * Usage:
- *   bun run src/cli/atlas-detect-objects.ts --scene 123
- *   bun run src/cli/atlas-detect-objects.ts --media 456 --all-scenes
+ *   bun run src/cli/banana-detect-objects.ts --scene 123
+ *   bun run src/cli/banana-detect-objects.ts --media 456 --all-scenes
  */
 
 import { parseArgs } from 'util';
@@ -26,9 +26,9 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Object Detection Tool
+Banana Bun Object Detection Tool
 
-Usage: bun run src/cli/atlas-detect-objects.ts [options]
+Usage: bun run src/cli/banana-detect-objects.ts [options]
 
 Options:
   --scene <id>              Scene ID to detect objects in (required if not using --media)
@@ -41,16 +41,16 @@ Options:
 
 Examples:
   # Detect objects in a specific scene
-  bun run src/cli/atlas-detect-objects.ts --scene 123
+  bun run src/cli/banana-detect-objects.ts --scene 123
 
   # Detect objects in all scenes of a media file
-  bun run src/cli/atlas-detect-objects.ts --media 456 --all-scenes
+  bun run src/cli/banana-detect-objects.ts --media 456 --all-scenes
 
   # Use custom confidence threshold
-  bun run src/cli/atlas-detect-objects.ts --scene 123 --confidence 0.7
+  bun run src/cli/banana-detect-objects.ts --scene 123 --confidence 0.7
 
   # Force re-detection
-  bun run src/cli/atlas-detect-objects.ts --scene 123 --force
+  bun run src/cli/banana-detect-objects.ts --scene 123 --force
 
 Object Detection:
   - Extracts keyframes from video scenes
@@ -284,7 +284,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('🔍 Atlas Object Detection Tool');
+        console.log('🔍 Banana Bun Object Detection Tool');
         console.log('==============================\n');
 
         // Initialize database

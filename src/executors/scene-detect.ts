@@ -188,14 +188,14 @@ export async function executeVideoObjectDetectTask(task: VideoObjectDetectTask):
 
         // Extract keyframes from the scene
         const keyframes = await sceneDetectorService.extractKeyframes(
-            sceneRow.file_path,
-            {
-                start_ms: sceneRow.start_ms,
-                end_ms: sceneRow.end_ms,
-                scene_index: sceneRow.scene_index
-            },
-            '/tmp/atlas_keyframes', // Temporary directory
-            3 // Extract 3 keyframes per scene
+          sceneRow.file_path,
+          {
+            start_ms: sceneRow.start_ms,
+            end_ms: sceneRow.end_ms,
+            scene_index: sceneRow.scene_index,
+          },
+          "/tmp/banana_keyframes", // Temporary directory
+          3 // Extract 3 keyframes per scene
         );
 
         if (keyframes.length === 0) {

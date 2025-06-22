@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 
 /**
- * Atlas CLI tool for finding similar media using vector embeddings
+ * Banana Bun CLI tool for finding similar media using vector embeddings
  * 
  * Usage:
- *   bun run src/cli/atlas-search-similar.ts --media 456 --top 10
- *   bun run src/cli/atlas-search-similar.ts --query "action movie with robots"
- *   bun run src/cli/atlas-search-similar.ts --media 123 --cluster
+ *   bun run src/cli/banana-search-similar.ts --media 456 --top 10
+ *   bun run src/cli/banana-search-similar.ts --query "action movie with robots"
+ *   bun run src/cli/banana-search-similar.ts --media 123 --cluster
  */
 
 import { parseArgs } from 'util';
@@ -25,9 +25,9 @@ interface CliOptions {
 
 function printUsage() {
     console.log(`
-Atlas Similar Media Search Tool
+Banana Bun Similar Media Search Tool
 
-Usage: bun run src/cli/atlas-search-similar.ts [options]
+Usage: bun run src/cli/banana-search-similar.ts [options]
 
 Options:
   --media <id>              Find media similar to this media ID
@@ -39,16 +39,16 @@ Options:
 
 Examples:
   # Find similar media by ID
-  bun run src/cli/atlas-search-similar.ts --media 456 --top 10
+  bun run src/cli/banana-search-similar.ts --media 456 --top 10
 
   # Search by text query
-  bun run src/cli/atlas-search-similar.ts --query "action movie with robots"
+  bun run src/cli/banana-search-similar.ts --query "action movie with robots"
 
   # Find similar with clustering
-  bun run src/cli/atlas-search-similar.ts --media 123 --cluster
+  bun run src/cli/banana-search-similar.ts --media 123 --cluster
 
   # Set similarity threshold
-  bun run src/cli/atlas-search-similar.ts --media 456 --threshold 0.3
+  bun run src/cli/banana-search-similar.ts --media 456 --threshold 0.3
 `);
 }
 
@@ -126,7 +126,7 @@ async function validateInputs(options: CliOptions): Promise<{ valid: boolean; er
         if (!indexStatus) {
             return { 
                 valid: false, 
-                error: `Media ${options.mediaId} has no embedding. Run: bun run src/cli/atlas-embed-media.ts --media ${options.mediaId}` 
+                error: `Media ${options.mediaId} has no embedding. Run: bun run src/cli/banana-embed-media.ts --media ${options.mediaId}` 
             };
         }
     }
@@ -286,7 +286,7 @@ async function main() {
             process.exit(0);
         }
 
-        console.log('🔍 Atlas Similar Media Search Tool');
+        console.log('🔍 Banana Bun Similar Media Search Tool');
         console.log('===================================\n');
 
         // Initialize database

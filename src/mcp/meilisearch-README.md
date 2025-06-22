@@ -1,6 +1,6 @@
 # MeiliSearch MCP Server
 
-The MeiliSearch MCP (Model Context Protocol) Server enhances your Atlas media search capabilities with intelligent optimization, learning, and analytics.
+The MeiliSearch MCP (Model Context Protocol) Server enhances your Banana Bun media search capabilities with intelligent optimization, learning, and analytics.
 
 ## 🚀 Features
 
@@ -240,7 +240,7 @@ bun run src/cli/smart-media-search.ts --optimize-index
 
 ## 🚀 Integration with Existing Tools
 
-The MeiliSearch MCP server seamlessly integrates with your existing Atlas tools:
+The MeiliSearch MCP server seamlessly integrates with your existing Banana Bun tools:
 
 - **Media Ingestion**: Automatically indexes new media with optimized settings
 - **Search CLI**: Enhanced with smart features and learning capabilities  

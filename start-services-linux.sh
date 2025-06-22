@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Atlas Linux Services Startup Script
-# This script starts all required external services for Atlas
+# Banana Bun Linux Services Startup Script
+# This script starts all required external services for Banana Bun
 
 set -e
 
@@ -65,7 +65,7 @@ wait_for_service() {
     return 1
 }
 
-print_status "🚀 Starting Atlas external services..."
+print_status "🚀 Starting Banana Bun external services..."
 
 # Create necessary directories
 mkdir -p ./chroma_db ./meilisearch_db
@@ -123,6 +123,6 @@ echo "   Ollama:      http://localhost:11434"
 echo "   ChromaDB:    http://localhost:8000"
 echo "   MeiliSearch: http://localhost:7700"
 echo ""
-echo "🚀 You can now start Atlas with: bun run dev"
+echo "🚀 You can now start Banana Bun with: bun run dev"
 echo ""
 echo "🛑 To stop services later, run: ./stop-services-linux.sh"
