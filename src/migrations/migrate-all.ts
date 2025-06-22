@@ -27,6 +27,7 @@ import { migration006 } from './006-add-transcription-analytics.js';
 import { migration007 } from './007-add-media-intelligence.js';
 import { migration008 } from './008-add-phase2-features.js';
 import { migration009 } from './009-add-autonomous-learning.js';
+import { migration010 } from './010-add-llm-planning.js';
 
 // Define migration list in order
 const migrations = [
@@ -91,6 +92,14 @@ const migrations = [
         migration: class {
             constructor(private db: Database) { }
             async up() { await migration009(this.db); }
+        }
+    },
+    {
+        version: '010',
+        name: 'Add LLM-Based Planning System',
+        migration: class {
+            constructor(private db: Database) { }
+            async up() { await migration010(this.db); }
         }
     }
 ];

@@ -29,6 +29,12 @@
       "args": ["run", "src/mcp/media-intelligence-server.ts"],
       "env": {},
       "description": "Media Intelligence MCP Server for cross-modal learning and AI-powered content insights"
+    },
+    "llm_planning": {
+      "command": "bun",
+      "args": ["run", "src/mcp/llm-planning-server.ts"],
+      "env": {},
+      "description": "LLM Planning MCP Server for intelligent system optimization and automated planning"
     }
   },
   "settings": {
@@ -73,6 +79,19 @@
       "user_behavior_tracking": true,
       "content_correlation_threshold": 0.6,
       "learning_rate": 0.1
+    },
+    "llm_planning": {
+      "log_analysis_window_hours": 24,
+      "pattern_detection_threshold": 3,
+      "optimization_score_threshold": 0.7,
+      "resource_efficiency_threshold": 0.6,
+      "max_plan_templates": 100,
+      "max_recommendations": 50,
+      "system_health_check_interval_hours": 1,
+      "auto_generate_templates": true,
+      "enable_advanced_models": true,
+      "default_model": "qwen3:8b",
+      "fallback_model": "ollama"
     }
   }
 }
