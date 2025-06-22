@@ -1,0 +1,78 @@
+{
+  "mcpServers": {
+    "chromadb": {
+      "command": "bun",
+      "args": ["run", "src/mcp/chromadb-server.ts"],
+      "env": {},
+      "description": "ChromaDB MCP Server for enhanced vector operations and task learning"
+    },
+    "monitor": {
+      "command": "bun",
+      "args": ["run", "src/mcp/monitor-server.ts"],
+      "env": {},
+      "description": "Communication & Monitoring MCP Server for real-time task tracking"
+    },
+    "meilisearch": {
+      "command": "bun",
+      "args": ["run", "src/mcp/meilisearch-server.ts"],
+      "env": {},
+      "description": "MeiliSearch MCP Server for intelligent search optimization and analytics"
+    },
+    "whisper": {
+      "command": "bun",
+      "args": ["run", "src/mcp/whisper-server.ts"],
+      "env": {},
+      "description": "Whisper MCP Server for intelligent transcription optimization and quality learning"
+    },
+    "media_intelligence": {
+      "command": "bun",
+      "args": ["run", "src/mcp/media-intelligence-server.ts"],
+      "env": {},
+      "description": "Media Intelligence MCP Server for cross-modal learning and AI-powered content insights"
+    }
+  },
+  "settings": {
+    "chromadb": {
+      "collection_name": "task_embeddings",
+      "embedding_model": "qwen3:8b",
+      "similarity_threshold": 0.7,
+      "max_results": 10
+    },
+    "monitor": {
+      "websocket_port": 8080,
+      "notification_types": ["console", "webhook"],
+      "log_retention_days": 7,
+      "metrics_interval_minutes": 5
+    },
+    "meilisearch": {
+      "index_name": "media_index",
+      "search_analytics_collection": "search_analytics",
+      "query_optimization_threshold": 0.8,
+      "max_search_history": 1000,
+      "learning_enabled": true,
+      "auto_optimize_queries": true
+    },
+    "whisper": {
+      "transcription_analytics_collection": "transcription_analytics",
+      "quality_threshold": 0.8,
+      "max_transcription_history": 500,
+      "learning_enabled": true,
+      "auto_optimize_models": true,
+      "quality_assessment_enabled": true,
+      "language_detection_learning": true,
+      "performance_optimization": true
+    },
+    "media_intelligence": {
+      "cross_modal_learning_enabled": true,
+      "content_discovery_threshold": 0.7,
+      "tagging_optimization_enabled": true,
+      "semantic_enhancement_enabled": true,
+      "pattern_analysis_window_hours": 168,
+      "recommendation_cache_size": 1000,
+      "ai_insights_enabled": true,
+      "user_behavior_tracking": true,
+      "content_correlation_threshold": 0.6,
+      "learning_rate": 0.1
+    }
+  }
+}

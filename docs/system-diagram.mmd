@@ -1,0 +1,243 @@
+
+%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%
+graph LR
+    %% External Services
+    subgraph "External Services"
+        direction TB
+        OLLAMA[Ollama LLM Server<br/>localhost:11434]
+        OPENAI[OpenAI API<br/>api.openai.com]
+        CHROMADB[ChromaDB Vector DB<br/>localhost:8000]
+        FS[File System<br/>Watched Directories]
+    end
+
+    %% File System Structure
+    subgraph "File System Structure"
+        direction TB
+        INCOMING[📁 incoming/<br/>Task files]
+        MEDIA[📁 media/<br/>Media files for ingestion]
+        PROCESSING[📁 processing/<br/>Files being processed]
+        ARCHIVE[📁 archive/<br/>Processed files]
+        ERROR[📁 error/<br/>Failed files]
+        OUTPUTS[📁 outputs/<br/>Task results]
+        LOGS[📁 logs/<br/>System logs]
+        DASHBOARD[📁 dashboard/<br/>Generated dashboards]
+        DATABASE[(📊 tasks.sqlite<br/>Main database<br/>+ media_metadata table)]
+    end
+
+    %% Main Application Core
+    subgraph "Main Application (src/index.ts)"
+        direction TB
+        MAIN[🚀 Main Process<br/>Auto-initializes MCP]
+        FILEWATCHER[👁️ File Watcher<br/>fs.watch incoming/ & media/]
+        MEDIADETECTOR[🎬 Media File Detector<br/>Auto-create media_ingest tasks]
+        ORCHESTRATOR[🎯 Orchestrator Loop<br/>Every 5 seconds]
+        TASKPROCESSOR[⚙️ Task Processor<br/>File → Database]
+    end
+
+    %% Database Layer
+    subgraph "Database Layer (src/db.ts)"
+        direction TB
+        DBINIT[🗄️ Database Init]
+        MIGRATIONS[📋 Migration Runner<br/>Auto-run on startup]
+        DEPHELPER[🔗 Dependency Helper<br/>Task relationships]
+    end
+
+    %% Migration System
+    subgraph "Migration System"
+        direction TB
+        MIG001[001: Normalize Dependencies]
+        MIG002[002: Add Retry System]
+        MIG003[003: Add Periodic Tasks]
+        MIGALL[🔄 Unified Migration Runner]
+    end
+
+    %% Task Execution Engine
+    subgraph "Task Execution Engine"
+        direction TB
+        DISPATCHER[🎪 Task Dispatcher<br/>Type-safe routing]
+        
+        subgraph "Executors"
+            direction LR
+            SHELL[🐚 Shell Executor<br/>bash commands]
+            LLM[🤖 LLM Executor<br/>Ollama integration]
+            CODE[💻 Code Executor<br/>Code generation]
+            TOOL[🔧 Tool Executor<br/>Tool runner with 22+ tools]
+            YOUTUBE[📺 YouTube Executor<br/>Video downloads]
+            MEDIA[🎬 Media Ingest Executor<br/>ffprobe/mediainfo metadata]
+            BATCH[📦 Batch Executor<br/>Dynamic generators]
+            PLANNER[📋 Planner Executor<br/>OpenAI planning]
+            REVIEW[🔍 Review Executor<br/>Code/output review]
+            RUNCODE[▶️ Run Code Executor<br/>Execute generated code]
+        end
+    end
+
+    %% Retry & Scheduling System
+    subgraph "Retry & Scheduling System"
+        direction TB
+        RETRYMANAGER[🔄 Retry Manager<br/>Exponential backoff]
+        TASKSCHEDULER[⏰ Task Scheduler<br/>Cron-based scheduling]
+        CRONPARSER[📅 Cron Parser<br/>Expression validation]
+    end
+
+    %% MCP Integration Layer
+    subgraph "MCP Integration Layer"
+        direction TB
+        MCPMANAGER[🧠 MCP Manager<br/>Coordination hub]
+        ENHANCEDPROCESSOR[✨ Enhanced Task Processor<br/>Learning & monitoring<br/>Auto-initialized]
+
+        subgraph "MCP Servers"
+            direction LR
+            MCPCHROMA[🔍 ChromaDB MCP Server<br/>Vector operations & learning<br/>Collection: task_embeddings]
+            MCPMONITOR[📊 Monitor MCP Server<br/>Real-time monitoring<br/>WebSocket: 8080]
+        end
+
+        MCPCLIENT[📡 MCP Client<br/>Server communication]
+    end
+
+    %% Memory & Learning System
+    subgraph "Memory & Learning System"
+        direction TB
+        EMBEDDINGS[🧮 Embedding Manager<br/>Task vectorization]
+        PATTERNS[📈 Pattern Analysis<br/>Success/failure patterns]
+        RECOMMENDATIONS[💡 Recommendations<br/>Smart suggestions]
+    end
+
+    %% Monitoring & Dashboard
+    subgraph "Monitoring & Dashboard"
+        direction TB
+        WEBSOCKET[🌐 WebSocket Server<br/>Port 8080]
+        LIVEDASH[📱 Live Dashboard<br/>Real-time UI]
+        NOTIFICATIONS[🔔 Notifications<br/>Webhooks & alerts]
+        METRICS[📊 System Metrics<br/>Performance tracking]
+    end
+
+    %% Utilities & Validation
+    subgraph "Utilities & Validation"
+        direction TB
+        PARSER[📝 Task Parser<br/>YAML/JSON/MD]
+        HASH[🔐 File Hasher<br/>Duplicate detection]
+        CONVERTER[🔄 Task Converter<br/>DB ↔ Types]
+        LOGGER[📋 Logger<br/>Structured logging]
+        VALIDATOR[✅ Validator<br/>Schema validation]
+        TYPEGUARDS[🛡️ Type Guards<br/>Runtime validation]
+        PARENTUTILS[👨‍👩‍👧‍👦 Parent Task Utils<br/>Task relationships]
+    end
+
+    %% CLI Tools
+    subgraph "CLI Tools"
+        direction TB
+        SCHEDULEMANAGER[⏰ Schedule Manager<br/>Cron management]
+    end
+
+    %% Flow Connections - File Processing
+    FS --> INCOMING
+    FS --> MEDIA
+    INCOMING --> FILEWATCHER
+    MEDIA --> FILEWATCHER
+    FILEWATCHER --> TASKPROCESSOR
+    FILEWATCHER --> MEDIADETECTOR
+    MEDIADETECTOR --> DATABASE
+    TASKPROCESSOR --> PROCESSING
+    TASKPROCESSOR --> PARSER
+    TASKPROCESSOR --> HASH
+    TASKPROCESSOR --> DATABASE
+    PROCESSING --> ARCHIVE
+    PROCESSING --> ERROR
+
+    %% Flow Connections - Main Application
+    MAIN --> DBINIT
+    MAIN --> MIGRATIONS
+    MAIN --> FILEWATCHER
+    MAIN --> MEDIADETECTOR
+    MAIN --> ORCHESTRATOR
+    MAIN --> RETRYMANAGER
+    MAIN --> TASKSCHEDULER
+    MAIN --> ENHANCEDPROCESSOR
+
+    %% Flow Connections - Database
+    DBINIT --> DATABASE
+    MIGRATIONS --> MIGALL
+    MIGALL --> MIG001
+    MIGALL --> MIG002
+    MIGALL --> MIG003
+    DEPHELPER --> DATABASE
+
+    %% Flow Connections - Task Execution
+    ORCHESTRATOR --> DISPATCHER
+    DISPATCHER --> SHELL
+    DISPATCHER --> LLM
+    DISPATCHER --> CODE
+    DISPATCHER --> TOOL
+    DISPATCHER --> YOUTUBE
+    DISPATCHER --> MEDIA
+    DISPATCHER --> BATCH
+    DISPATCHER --> PLANNER
+    DISPATCHER --> REVIEW
+    DISPATCHER --> RUNCODE
+
+    %% Flow Connections - External Services
+    SHELL --> FS
+    LLM --> OLLAMA
+    CODE --> OLLAMA
+    PLANNER --> OPENAI
+    REVIEW --> OPENAI
+    YOUTUBE --> FS
+    MEDIA --> FS
+
+    %% Flow Connections - MCP Integration
+    ENHANCEDPROCESSOR --> MCPMANAGER
+    MCPMANAGER --> MCPCLIENT
+    MCPCLIENT --> MCPCHROMA
+    MCPCLIENT --> MCPMONITOR
+    MCPCHROMA --> CHROMADB
+    MCPCHROMA --> EMBEDDINGS
+    MCPMONITOR --> WEBSOCKET
+    WEBSOCKET --> LIVEDASH
+
+    %% Flow Connections - Learning System
+    EMBEDDINGS --> PATTERNS
+    PATTERNS --> RECOMMENDATIONS
+    MCPCHROMA --> PATTERNS
+
+    %% Flow Connections - Monitoring
+    MCPMONITOR --> NOTIFICATIONS
+    MCPMONITOR --> METRICS
+    ORCHESTRATOR --> MCPMONITOR
+
+    %% Flow Connections - Utilities
+    TASKPROCESSOR --> CONVERTER
+    ORCHESTRATOR --> CONVERTER
+    MAIN --> LOGGER
+    TASKPROCESSOR --> VALIDATOR
+    VALIDATOR --> TYPEGUARDS
+    TASKPROCESSOR --> PARENTUTILS
+
+    %% Flow Connections - Output Generation
+    SHELL --> OUTPUTS
+    LLM --> OUTPUTS
+    CODE --> OUTPUTS
+    REVIEW --> OUTPUTS
+    RUNCODE --> OUTPUTS
+    MEDIA --> DATABASE
+    ORCHESTRATOR --> DASHBOARD
+
+    %% Flow Connections - Retry & Scheduling
+    RETRYMANAGER --> DATABASE
+    TASKSCHEDULER --> CRONPARSER
+    TASKSCHEDULER --> DATABASE
+    ORCHESTRATOR --> RETRYMANAGER
+
+    %% Optional styling
+    classDef external fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef core fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef executor fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef mcp fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef storage fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef utility fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+
+    class OLLAMA,OPENAI,CHROMADB,FS external
+    class MAIN,ORCHESTRATOR,DISPATCHER,TASKPROCESSOR core
+    class SHELL,LLM,CODE,TOOL,YOUTUBE,MEDIA,BATCH,PLANNER,REVIEW,RUNCODE executor
+    class MCPMANAGER,MCPCHROMA,MCPMONITOR,ENHANCEDPROCESSOR,MCPCLIENT mcp
+    class DATABASE,INCOMING,PROCESSING,ARCHIVE,ERROR,OUTPUTS storage
+    class PARSER,HASH,CONVERTER,LOGGER,VALIDATOR,TYPEGUARDS,PARENTUTILS utility
