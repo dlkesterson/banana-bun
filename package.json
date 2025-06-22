@@ -29,6 +29,7 @@
     "mcp:meilisearch": "bun run src/mcp/meilisearch-server.ts",
     "mcp:whisper": "bun run src/mcp/whisper-server.ts",
     "mcp:intelligence": "bun run src/mcp/media-intelligence-server.ts",
+    "mcp:planning": "bun run src/mcp/llm-planning-server.ts",
     "lint-task": "bun run src/cli/lint-task.ts",
     "migrate": "bun run src/migrations/migrate-all.ts",
     "schedule": "bun run src/cli/schedule-manager.ts",
@@ -47,7 +48,12 @@
     "banana-embed-media": "bun run src/cli/banana-embed-media.ts",
     "banana-search-similar": "bun run src/cli/banana-search-similar.ts",
     "analyze-task-metrics": "bun run src/cli/analyze-task-metrics.ts",
-    "run-feedback-loop": "bun run src/cli/run-feedback-loop.ts"
+    "run-feedback-loop": "bun run src/cli/run-feedback-loop.ts",
+    "generate-optimized-plan": "bun run src/cli/generate-optimized-plan.ts",
+    "analyze-system-performance": "bun run src/cli/analyze-system-performance.ts",
+    "optimize-metadata": "bun run src/cli/optimize-metadata.ts",
+    "manage-plan-templates": "bun run src/cli/manage-plan-templates.ts",
+    "test-llm-planning": "bun run src/cli/test-llm-planning.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
