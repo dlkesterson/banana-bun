@@ -53,7 +53,12 @@
     "analyze-system-performance": "bun run src/cli/analyze-system-performance.ts",
     "optimize-metadata": "bun run src/cli/optimize-metadata.ts",
     "manage-plan-templates": "bun run src/cli/manage-plan-templates.ts",
-    "test-llm-planning": "bun run src/cli/test-llm-planning.ts"
+    "test-llm-planning": "bun run src/cli/test-llm-planning.ts",
+    "analyze-activity-patterns": "bun run src/cli/analyze-activity-patterns.ts",
+    "view-detected-patterns": "bun run src/cli/view-detected-patterns.ts",
+    "generate-scheduling-rules": "bun run src/cli/generate-scheduling-rules.ts",
+    "optimize-resource-schedule": "bun run src/cli/optimize-resource-schedule.ts",
+    "search-similar-patterns": "bun run src/cli/search-similar-patterns.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

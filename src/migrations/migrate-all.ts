@@ -28,6 +28,7 @@ import { migration007 } from './007-add-media-intelligence.js';
 import { migration008 } from './008-add-phase2-features.js';
 import { migration009 } from './009-add-autonomous-learning.js';
 import { migration010 } from './010-add-llm-planning.js';
+import { RuleSchedulerMigration } from './011-add-rule-scheduler.js';
 
 // Define migration list in order
 const migrations = [
@@ -101,6 +102,11 @@ const migrations = [
             constructor(private db: Database) { }
             async up() { await migration010(this.db); }
         }
+    },
+    {
+        version: '011',
+        name: 'Add Rule Scheduler System',
+        migration: RuleSchedulerMigration
     }
 ];
 
