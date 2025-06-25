@@ -3,6 +3,7 @@ import { logger } from './utils/logger';
 import { analyticsLogger } from './analytics/logger';
 import { feedbackTracker } from './feedback-tracker';
 import { mediaEmbeddingService } from './services/embedding-service';
+import { EnhancedLearningService } from './services/enhanced-learning-service';
 
 /**
  * Autonomous Learning Agent
@@ -38,6 +39,17 @@ export interface OptimizationRecommendation {
 
 export class AutolearnAgent {
     private db = getDatabase();
+    private enhancedLearningService: EnhancedLearningService;
+
+    constructor() {
+        this.enhancedLearningService = new EnhancedLearningService({
+            min_pattern_frequency: 2,
+            min_confidence_threshold: 0.6,
+            auto_apply_threshold: 0.85,
+            enable_cross_modal_analysis: true,
+            enable_temporal_analysis: true
+        });
+    }
 
     async generateLearningInsights(): Promise<LearningInsight[]> {
         const insights: LearningInsight[] = [];
@@ -315,10 +327,28 @@ export class AutolearnAgent {
                     // Auto-apply feedback patterns if confidence is very high
                     if (insight.title.includes('Strong Correction Patterns')) {
                         try {
-                            // This would trigger the feedback loop learning
-                            actionsTaken.push(`Auto-generated learning rules from ${insight.data?.patterns?.length || 0} strong patterns`);
+                            // Generate and apply enhanced learning rules
+                            const rules = await this.enhancedLearningService.generateEnhancedLearningRules(2);
+                            const storedRules = await this.enhancedLearningService.storeEnhancedRules(rules);
+
+                            actionsTaken.push(`Auto-generated ${storedRules.length} enhanced learning rules from ${insight.data?.patterns?.length || 0} strong patterns`);
+
+                            // Apply high-confidence rules to recent media
+                            const recentMedia = this.db.prepare(`
+                                SELECT id FROM media_metadata
+                                WHERE extracted_at >= DATE('now', '-7 days')
+                                ORDER BY extracted_at DESC LIMIT 10
+                            `).all() as { id: number }[];
+
+                            for (const media of recentMedia) {
+                                const results = await this.enhancedLearningService.applyRulesAutomatically(media.id, 0.9);
+                                const appliedCount = results.filter(r => r.applied).length;
+                                if (appliedCount > 0) {
+                                    actionsTaken.push(`Applied ${appliedCount} rules to media ${media.id}`);
+                                }
+                            }
                         } catch (error) {
-                            await logger.warn('Failed to auto-apply pattern learning', { error });
+                            await logger.warn('Failed to auto-apply enhanced pattern learning', { error });
                         }
                     }
                 }

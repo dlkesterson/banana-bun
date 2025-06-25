@@ -20,6 +20,8 @@ import { parseArgs } from 'util';
 import { initDatabase } from '../db';
 import { mcpClient } from '../mcp/mcp-client';
 import { logger } from '../utils/logger';
+import { CrossModalIntelligenceService } from '../services/cross-modal-intelligence-service';
+import { ContentEngagementService } from '../services/content-engagement-service';
 
 interface CliOptions {
     query?: string;
