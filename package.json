@@ -58,7 +58,10 @@
     "view-detected-patterns": "bun run src/cli/view-detected-patterns.ts",
     "generate-scheduling-rules": "bun run src/cli/generate-scheduling-rules.ts",
     "optimize-resource-schedule": "bun run src/cli/optimize-resource-schedule.ts",
-    "search-similar-patterns": "bun run src/cli/search-similar-patterns.ts"
+    "search-similar-patterns": "bun run src/cli/search-similar-patterns.ts",
+    "analyze-feedback-enhanced": "bun run src/cli/analyze-feedback-enhanced.ts",
+    "test-tag-strategies": "bun run src/cli/test-tag-strategies.ts",
+    "analyze-cross-modal-intelligence": "bun run src/cli/analyze-cross-modal-intelligence.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

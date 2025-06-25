@@ -25,13 +25,18 @@ export interface FeedbackPattern {
 
 export interface LearningRule {
     id?: number;
-    rule_type: 'tag_mapping' | 'genre_correction' | 'metadata_enhancement';
+    rule_type: 'tag_mapping' | 'genre_correction' | 'metadata_enhancement' | 'search_optimization' | 'content_quality';
     condition: string;
     action: string;
     confidence: number;
     created_from_feedback: boolean;
     usage_count: number;
     success_rate: number;
+    enabled?: boolean;
+    strategy_type?: string;
+    effectiveness_score?: number;
+    last_applied?: string;
+    auto_apply_threshold?: number;
 }
 
 export class FeedbackTracker {
