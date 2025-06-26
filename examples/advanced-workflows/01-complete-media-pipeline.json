@@ -1,0 +1,135 @@
+{
+  "id": "complete-media-pipeline",
+  "type": "batch",
+  "description": "End-to-end media processing pipeline with AI optimization",
+  "tasks": [
+    {
+      "id": "pre-processing-analysis",
+      "type": "tool",
+      "description": "Analyze media characteristics for optimal processing",
+      "tool": "mcp_call",
+      "args": {
+        "server": "content-quality",
+        "method": "analyze_content_quality",
+        "params": {
+          "media_id": 1,
+          "quality_aspects": ["resolution", "audio", "metadata"],
+          "include_recommendations": true
+        }
+      }
+    },
+    {
+      "id": "optimized-transcription",
+      "type": "tool",
+      "description": "Smart transcription with model optimization",
+      "tool": "mcp_call",
+      "args": {
+        "server": "whisper",
+        "method": "smart_transcribe",
+        "params": {
+          "file_path": "/path/to/media.mp4",
+          "quality_target": "high",
+          "learn_from_result": true
+        }
+      },
+      "dependencies": ["pre-processing-analysis"]
+    },
+    {
+      "id": "scene-and-object-analysis",
+      "type": "batch",
+      "description": "Parallel scene detection and object recognition",
+      "tasks": [
+        {
+          "id": "detect-scenes",
+          "type": "video_scene_detect",
+          "description": "Detect video scenes",
+          "media_id": 1,
+          "threshold": 0.3
+        },
+        {
+          "id": "detect-objects",
+          "type": "video_object_detect",
+          "description": "Detect objects in scenes",
+          "scene_id": 1,
+          "confidence_threshold": 0.7,
+          "dependencies": ["detect-scenes"]
+        }
+      ],
+      "dependencies": ["optimized-transcription"]
+    },
+    {
+      "id": "ai-enhanced-tagging",
+      "type": "tool",
+      "description": "Generate optimized tags using cross-modal analysis",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "optimize_content_tagging",
+        "params": {
+          "media_id": 1,
+          "optimization_strategy": "comprehensive",
+          "confidence_threshold": 0.8
+        }
+      },
+      "dependencies": ["scene-and-object-analysis"]
+    },
+    {
+      "id": "metadata-enhancement",
+      "type": "tool",
+      "description": "Enhance metadata with AI insights",
+      "tool": "mcp_call",
+      "args": {
+        "server": "metadata-optimization",
+        "method": "optimize_metadata",
+        "params": {
+          "media_ids": [1],
+          "enhancement_types": ["completeness", "accuracy", "enrichment"],
+          "ai_model": "qwen2.5:7b"
+        }
+      },
+      "dependencies": ["ai-enhanced-tagging"]
+    },
+    {
+      "id": "dual-indexing",
+      "type": "batch",
+      "description": "Index in both search engines",
+      "tasks": [
+        {
+          "id": "index-meilisearch",
+          "type": "index_meili",
+          "description": "Index for text search",
+          "media_id": 1
+        },
+        {
+          "id": "index-chromadb",
+          "type": "index_chroma",
+          "description": "Index for semantic search",
+          "media_id": 1
+        }
+      ],
+      "dependencies": ["metadata-enhancement"]
+    },
+    {
+      "id": "quality-validation",
+      "type": "tool",
+      "description": "Validate processing quality and completeness",
+      "tool": "mcp_call",
+      "args": {
+        "server": "content-quality",
+        "method": "generate_quality_report",
+        "params": {
+          "report_scope": "single_media",
+          "include_statistics": true,
+          "include_recommendations": true
+        }
+      },
+      "dependencies": ["dual-indexing"]
+    }
+  ],
+  "metadata": {
+    "priority": "high",
+    "tags": ["advanced", "pipeline", "end-to-end", "ai", "optimization", "complete"],
+    "created_by": "example",
+    "notes": "Complete end-to-end media processing pipeline with AI optimization at every step. Includes quality analysis, smart transcription, scene/object detection, enhanced tagging, metadata optimization, dual indexing, and quality validation."
+  }
+}

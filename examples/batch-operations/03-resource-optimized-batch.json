@@ -1,0 +1,22 @@
+{
+  "id": "resource-optimized-batch",
+  "type": "tool",
+  "description": "Optimize batch processing using Resource Optimization MCP",
+  "tool": "mcp_call",
+  "args": {
+    "server": "resource-optimization",
+    "method": "optimize_load_balancing",
+    "params": {
+      "optimization_strategy": "minimize_peak_usage",
+      "time_horizon_hours": 24,
+      "consider_task_priorities": true,
+      "dry_run": false
+    }
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["batch", "optimization", "resource-management", "load-balancing", "mcp"],
+    "created_by": "example",
+    "notes": "Demonstrates resource-optimized batch processing. Uses Resource Optimization MCP to distribute tasks across time periods for optimal resource usage and minimal peak load."
+  }
+}

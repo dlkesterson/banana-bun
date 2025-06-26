@@ -1,0 +1,14 @@
+{
+  "id": "scene-detection-example",
+  "type": "video_scene_detect",
+  "description": "Detect scenes and keyframes in video",
+  "media_id": 1,
+  "threshold": 0.3,
+  "dependencies": ["media-ingest-example"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["media", "video", "scene-detection", "keyframes", "analysis"],
+    "created_by": "example",
+    "notes": "Demonstrates video scene detection. Identifies scene changes and extracts keyframes for further analysis. Threshold of 0.3 provides good balance between sensitivity and accuracy. Replace media_id with actual ID."
+  }
+}

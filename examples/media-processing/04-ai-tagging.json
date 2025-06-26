@@ -1,0 +1,15 @@
+{
+  "id": "ai-tagging-example",
+  "type": "media_tag",
+  "description": "Generate AI-powered tags for media content",
+  "file_path": "/path/to/your/video.mp4",
+  "explain_reasoning": true,
+  "force": false,
+  "dependencies": ["video-transcription-example"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["media", "tagging", "ai", "classification", "content-analysis"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered media tagging. Uses transcript and visual analysis to generate relevant tags. Includes reasoning explanation for transparency. Depends on transcription for better accuracy."
+  }
+}

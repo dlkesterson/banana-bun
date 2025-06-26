@@ -1,0 +1,16 @@
+{
+  "id": "read-file-demo",
+  "type": "tool",
+  "description": "Read and display file contents",
+  "tool": "read_file",
+  "args": {
+    "path": "./README.md"
+  },
+  "dependencies": ["file-operations-demo"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["basic", "tool", "file-operations", "read"],
+    "created_by": "example",
+    "notes": "Demonstrates the read_file tool. Reads the project README file. Can be used to read configuration files, logs, or any text content for processing."
+  }
+}

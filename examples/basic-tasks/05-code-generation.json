@@ -1,0 +1,19 @@
+{
+  "id": "code-generation-demo",
+  "type": "code",
+  "description": "Generate a simple utility function",
+  "language": "typescript",
+  "requirements": [
+    "Create a function that formats file sizes (bytes to human readable)",
+    "Support bytes, KB, MB, GB, TB",
+    "Include TypeScript types",
+    "Add JSDoc comments",
+    "Export the function"
+  ],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["basic", "code", "typescript", "utility"],
+    "created_by": "example",
+    "notes": "Demonstrates code generation task. Creates a utility function with specific requirements. Shows how to specify language, requirements, and get properly formatted code output."
+  }
+}

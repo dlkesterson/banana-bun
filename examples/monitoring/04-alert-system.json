@@ -1,0 +1,63 @@
+{
+  "id": "alert-system-setup",
+  "type": "batch",
+  "description": "Set up comprehensive alert system",
+  "tasks": [
+    {
+      "id": "setup-performance-alerts",
+      "type": "tool",
+      "description": "Configure performance threshold alerts",
+      "tool": "mcp_call",
+      "args": {
+        "server": "monitor",
+        "method": "setup_notification",
+        "params": {
+          "type": "webhook",
+          "endpoint": "http://localhost:3000/alerts/performance",
+          "enabled": true
+        }
+      }
+    },
+    {
+      "id": "setup-error-alerts",
+      "type": "tool",
+      "description": "Configure error rate alerts",
+      "tool": "mcp_call",
+      "args": {
+        "server": "monitor",
+        "method": "setup_notification",
+        "params": {
+          "type": "console",
+          "enabled": true
+        }
+      },
+      "dependencies": ["setup-performance-alerts"]
+    },
+    {
+      "id": "test-alert-system",
+      "type": "tool",
+      "description": "Test alert system functionality",
+      "tool": "mcp_call",
+      "args": {
+        "server": "monitor",
+        "method": "send_notification",
+        "params": {
+          "task_id": "alert-system-setup",
+          "status": "completed",
+          "message": "Alert system setup completed successfully",
+          "details": {
+            "timestamp": "{{ new Date().toISOString() }}",
+            "test": true
+          }
+        }
+      },
+      "dependencies": ["setup-error-alerts"]
+    }
+  ],
+  "metadata": {
+    "priority": "high",
+    "tags": ["monitoring", "alerts", "notifications", "setup", "system"],
+    "created_by": "example",
+    "notes": "Sets up comprehensive alert system with performance and error notifications. Includes webhook and console notifications with test functionality to verify proper operation."
+  }
+}

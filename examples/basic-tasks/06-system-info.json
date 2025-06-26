@@ -1,0 +1,12 @@
+{
+  "id": "system-info-check",
+  "type": "shell",
+  "description": "Gather basic system information",
+  "shell_command": "echo '=== System Information ===' && echo 'Date:' $(date) && echo 'User:' $(whoami) && echo 'Working Directory:' $(pwd) && echo 'Disk Usage:' && df -h | head -5 && echo 'Memory Usage:' && free -h 2>/dev/null || echo 'Memory info not available on this system'",
+  "metadata": {
+    "priority": "low",
+    "tags": ["basic", "shell", "system", "info", "diagnostics"],
+    "created_by": "example",
+    "notes": "Demonstrates shell task for system diagnostics. Gathers basic system information including date, user, disk usage, and memory. Useful for monitoring and troubleshooting."
+  }
+}

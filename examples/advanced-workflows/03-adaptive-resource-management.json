@@ -1,0 +1,119 @@
+{
+  "id": "adaptive-resource-management",
+  "type": "batch",
+  "description": "Adaptive resource management with predictive optimization",
+  "tasks": [
+    {
+      "id": "analyze-current-load",
+      "type": "tool",
+      "description": "Analyze current system resource utilization",
+      "tool": "mcp_call",
+      "args": {
+        "server": "resource-optimization",
+        "method": "analyze_resource_usage",
+        "params": {
+          "time_range_hours": 24,
+          "include_predictions": true,
+          "detail_level": "comprehensive"
+        }
+      }
+    },
+    {
+      "id": "predict-future-bottlenecks",
+      "type": "tool",
+      "description": "Predict potential resource bottlenecks",
+      "tool": "mcp_call",
+      "args": {
+        "server": "resource-optimization",
+        "method": "predict_resource_bottlenecks",
+        "params": {
+          "prediction_horizon_hours": 72,
+          "confidence_threshold": 0.8,
+          "resource_types": ["cpu", "memory", "disk_io", "network"]
+        }
+      },
+      "dependencies": ["analyze-current-load"]
+    },
+    {
+      "id": "generate-optimization-plan",
+      "type": "tool",
+      "description": "Generate resource optimization plan",
+      "tool": "mcp_call",
+      "args": {
+        "server": "llm-planning",
+        "method": "generate_optimized_plan",
+        "params": {
+          "goal": "Optimize resource utilization and prevent bottlenecks",
+          "context": "Based on current load analysis and bottleneck predictions",
+          "constraints": {
+            "max_concurrent_tasks": 8,
+            "memory_limit": "16GB",
+            "disk_space_reserve": "100GB"
+          },
+          "use_advanced_model": true
+        }
+      },
+      "dependencies": ["predict-future-bottlenecks"]
+    },
+    {
+      "id": "implement-load-balancing",
+      "type": "tool",
+      "description": "Implement optimized load balancing",
+      "tool": "mcp_call",
+      "args": {
+        "server": "resource-optimization",
+        "method": "optimize_load_balancing",
+        "params": {
+          "optimization_strategy": "adaptive_scheduling",
+          "time_horizon_hours": 48,
+          "consider_task_priorities": true,
+          "dry_run": false
+        }
+      },
+      "dependencies": ["generate-optimization-plan"]
+    },
+    {
+      "id": "setup-adaptive-monitoring",
+      "type": "tool",
+      "description": "Set up adaptive monitoring thresholds",
+      "tool": "mcp_call",
+      "args": {
+        "server": "monitor",
+        "method": "setup_notification",
+        "params": {
+          "type": "webhook",
+          "endpoint": "http://localhost:3000/adaptive-alerts",
+          "enabled": true
+        }
+      },
+      "dependencies": ["implement-load-balancing"]
+    },
+    {
+      "id": "validate-optimization-effectiveness",
+      "type": "tool",
+      "description": "Monitor optimization effectiveness",
+      "tool": "mcp_call",
+      "args": {
+        "server": "resource-optimization",
+        "method": "monitor_optimization_effectiveness",
+        "params": {
+          "optimization_id": "adaptive_resource_management",
+          "monitoring_period_hours": 24,
+          "metrics_to_track": ["cpu_utilization", "memory_usage", "task_throughput", "response_time"]
+        }
+      },
+      "dependencies": ["setup-adaptive-monitoring"]
+    }
+  ],
+  "schedule": {
+    "cron": "0 */4 * * *",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["advanced", "resource-management", "adaptive", "optimization", "predictive", "load-balancing"],
+    "created_by": "example",
+    "notes": "Adaptive resource management system that runs every 4 hours. Analyzes current load, predicts bottlenecks, generates optimization plans, implements load balancing, and monitors effectiveness with adaptive thresholds."
+  }
+}

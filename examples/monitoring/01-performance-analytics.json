@@ -1,0 +1,54 @@
+{
+  "id": "performance-analytics",
+  "type": "batch",
+  "description": "Comprehensive performance monitoring and analytics",
+  "tasks": [
+    {
+      "id": "task-metrics",
+      "type": "tool",
+      "description": "Analyze task execution metrics",
+      "tool": "mcp_call",
+      "args": {
+        "server": "monitor",
+        "method": "get_system_metrics",
+        "params": {
+          "time_range_hours": 24
+        }
+      }
+    },
+    {
+      "id": "bottleneck-analysis",
+      "type": "tool",
+      "description": "Identify system bottlenecks",
+      "tool": "mcp_call",
+      "args": {
+        "server": "resource-optimization",
+        "method": "predict_resource_bottlenecks",
+        "params": {
+          "prediction_horizon_hours": 48,
+          "confidence_threshold": 0.7,
+          "resource_types": ["cpu", "memory", "disk", "network"]
+        }
+      },
+      "dependencies": ["task-metrics"]
+    },
+    {
+      "id": "generate-report",
+      "type": "llm",
+      "description": "Generate performance analysis report",
+      "context": "Based on the system metrics and bottleneck analysis, create a comprehensive performance report with recommendations for optimization.",
+      "dependencies": ["bottleneck-analysis"]
+    }
+  ],
+  "schedule": {
+    "cron": "0 6 * * *",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["monitoring", "performance", "analytics", "bottlenecks", "reporting"],
+    "created_by": "example",
+    "notes": "Daily performance analytics at 6 AM. Analyzes system metrics, predicts bottlenecks, and generates comprehensive performance report with optimization recommendations."
+  }
+}

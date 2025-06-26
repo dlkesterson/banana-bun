@@ -1,0 +1,63 @@
+{
+  "id": "sequential-dependency-chain",
+  "type": "batch",
+  "description": "Sequential processing chain with strict dependencies",
+  "tasks": [
+    {
+      "id": "download-content",
+      "type": "youtube",
+      "description": "Download video content",
+      "url": "https://www.youtube.com/watch?v=EXAMPLE_VIDEO_ID",
+      "format": "best[height<=1080]"
+    },
+    {
+      "id": "extract-audio",
+      "type": "shell",
+      "description": "Extract audio track for transcription",
+      "shell_command": "ffmpeg -i ./downloads/video.mp4 -vn -acodec copy ./downloads/audio.aac",
+      "dependencies": ["download-content"]
+    },
+    {
+      "id": "transcribe-audio",
+      "type": "tool",
+      "description": "Transcribe extracted audio",
+      "tool": "mcp_call",
+      "args": {
+        "server": "whisper",
+        "method": "smart_transcribe",
+        "params": {
+          "file_path": "./downloads/audio.aac",
+          "quality_target": "high"
+        }
+      },
+      "dependencies": ["extract-audio"]
+    },
+    {
+      "id": "generate-summary",
+      "type": "llm",
+      "description": "Generate content summary from transcript",
+      "context": "Create a comprehensive summary of the video content based on the transcript. Include key topics, main points, and any actionable insights.",
+      "dependencies": ["transcribe-audio"]
+    },
+    {
+      "id": "create-tags",
+      "type": "llm",
+      "description": "Generate relevant tags based on content",
+      "context": "Based on the video summary and transcript, generate 5-10 relevant tags that would help with content discovery and organization.",
+      "dependencies": ["generate-summary"]
+    },
+    {
+      "id": "organize-files",
+      "type": "shell",
+      "description": "Organize processed files into appropriate directories",
+      "shell_command": "mkdir -p ./organized/$(date +%Y-%m-%d) && mv ./downloads/* ./organized/$(date +%Y-%m-%d)/",
+      "dependencies": ["create-tags"]
+    }
+  ],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["batch", "sequential", "dependencies", "workflow", "youtube", "processing"],
+    "created_by": "example",
+    "notes": "Demonstrates strict sequential processing with dependencies. Each task depends on the previous one completing successfully. Shows complete workflow from download to organization."
+  }
+}

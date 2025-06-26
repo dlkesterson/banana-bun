@@ -1,0 +1,22 @@
+{
+  "id": "ai-task-planning",
+  "type": "planner",
+  "description": "Generate optimized task plan using AI",
+  "goal": "Create a comprehensive media processing workflow for a batch of video files",
+  "context": {
+    "file_count": 50,
+    "file_types": ["mp4", "avi", "mkv"],
+    "processing_requirements": ["transcription", "tagging", "organization", "indexing"],
+    "resource_constraints": {
+      "max_concurrent_tasks": 4,
+      "available_storage": "500GB",
+      "processing_time_limit": "24 hours"
+    }
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["ai", "planning", "optimization", "batch-processing", "workflow"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered task planning. Uses LLM Planning MCP to generate optimized workflow for batch media processing considering resource constraints and requirements."
+  }
+}

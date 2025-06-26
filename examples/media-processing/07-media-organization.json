@@ -1,0 +1,16 @@
+{
+  "id": "media-organization-example",
+  "type": "media_organize",
+  "description": "Organize media files by AI-determined categories",
+  "file_path": "/path/to/your/video.mp4",
+  "target_collection": "auto",
+  "dry_run": true,
+  "force": false,
+  "dependencies": ["ai-tagging-example"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["media", "organization", "ai", "categorization", "file-management"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered media organization. Uses tags and metadata to determine appropriate collection (tv, movies, youtube, catchall). Dry run mode shows changes without moving files. Depends on tagging for better categorization."
+  }
+}
