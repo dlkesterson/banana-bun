@@ -85,17 +85,29 @@ echo ✅ Banana Bun Windows setup completed!
 echo.
 echo 📋 Next steps:
 echo 1. Edit .env file to customize paths and add API keys
-echo 2. Install and start external services:
-echo    - Ollama: Download from https://ollama.ai/download/windows
-echo    - ChromaDB: pip install chromadb ^&^& chroma run --path ./chroma_db
-echo    - MeiliSearch: Download from https://github.com/meilisearch/meilisearch/releases
-echo 3. Pull Ollama models: ollama pull qwen3:8b
-echo 4. Start Banana Bun: bun run dev
+echo 2. Install external services (if not already installed):
+echo    - Ollama: winget install Ollama.Ollama
+echo    - ChromaDB: pip install chromadb
+echo    - MeiliSearch: winget install MeiliSearch.MeiliSearch
+echo.
+echo 3. Start Banana Bun with services:
+echo.
+echo    🚀 Recommended - Automatic service management:
+echo    bun run dev:with-services
+echo.
+echo    🔧 Manual service management:
+echo    start-services-windows.ps1 ^&^& bun run dev
+echo.
+echo    ⚙️ Individual service commands:
+echo    bun run dev:services         (start services only)
+echo    bun run dev:services:stop    (stop services only)
 echo.
 echo 🔧 Service health checks:
-echo    curl http://localhost:11434/api/tags    # Ollama
-echo    curl http://localhost:8000/api/v1/heartbeat  # ChromaDB
-echo    curl http://localhost:7700/health       # MeiliSearch
+echo    curl http://localhost:11434/api/tags         (Ollama)
+echo    curl http://localhost:8000/api/v1/heartbeat  (ChromaDB)
+echo    curl http://localhost:7700/health            (MeiliSearch)
+echo.
+echo 💡 The application will automatically check service health on startup
 echo.
 echo For more advanced setup options, use setup-windows.ps1
 pause

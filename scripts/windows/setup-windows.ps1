@@ -185,14 +185,29 @@ Write-Status "✅ Banana Bun Windows setup completed!"
 Write-Host ""
 Write-Host "📋 Next steps:" -ForegroundColor Cyan
 Write-Host "1. Edit .env file to customize paths and add API keys"
-Write-Host "2. Install and start external services:"
-Write-Host "   - Ollama: Download from https://ollama.ai/download/windows"
-Write-Host "   - ChromaDB: pip install chromadb && chroma run --path ./chroma_db"
-Write-Host "   - MeiliSearch: Download from https://github.com/meilisearch/meilisearch/releases"
-Write-Host "3. Pull Ollama models: ollama pull qwen3:8b"
-Write-Host "4. Start Banana Bun: bun run dev"
+Write-Host "2. Install external services (if not already installed):"
+Write-Host "   - Ollama: winget install Ollama.Ollama"
+Write-Host "   - ChromaDB: pip install chromadb"
+Write-Host "   - MeiliSearch: winget install MeiliSearch.MeiliSearch"
 Write-Host ""
-Write-Host "🔧 Service health checks:" -ForegroundColor Cyan
-Write-Host "   curl http://localhost:11434/api/tags    # Ollama"
+Write-Host "3. Start Banana Bun with services:" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "   🚀 Recommended - Automatic service management:" -ForegroundColor Green
+Write-Host "   bun run dev:with-services    # Checks and starts services, then runs dev server"
+Write-Host ""
+Write-Host "   🔧 Manual service management:" -ForegroundColor Cyan
+Write-Host "   .\\start-services-windows.ps1  # Start all services"
+Write-Host "   bun run dev                    # Run dev server"
+Write-Host "   .\\stop-services-windows.ps1   # Stop services when done"
+Write-Host ""
+Write-Host "   ⚙️ Individual service commands:" -ForegroundColor Gray
+Write-Host "   bun run dev:services          # Start services only"
+Write-Host "   bun run dev:services:stop     # Stop services only"
+Write-Host ""
+Write-Host "🔧 Service health checks:" -ForegroundColor Yellow
+Write-Host "   curl http://localhost:11434/api/tags         # Ollama"
 Write-Host "   curl http://localhost:8000/api/v1/heartbeat  # ChromaDB"
-Write-Host "   curl http://localhost:7700/health       # MeiliSearch"
+Write-Host "   curl http://localhost:7700/health            # MeiliSearch"
+Write-Host ""
+Write-Host "💡 The application will automatically check service health on startup" -ForegroundColor Cyan
+Write-Host "   and provide guidance if services are not running."

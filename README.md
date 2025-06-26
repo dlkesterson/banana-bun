@@ -39,6 +39,77 @@ Banana Bun is a whimsical, developer-first project that uses **local AI models**
 
 All components interact to form a privacy-first, local AI-driven media organization pipeline.
 
+## 🚀 Quick Start
+
+### Prerequisites
+- **Bun** runtime (latest version)
+- **Node.js** 18+ (for some dependencies)
+- **Python** 3.8+ (for AI services)
+- **Git** (for cloning)
+
+### Installation & Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/dlkesterson/banana-bun.git
+   cd banana-bun
+   ```
+
+2. **Run the setup script (cross-platform):**
+   ```bash
+   # Automatic platform detection
+   npm run setup
+
+   # Or run platform-specific scripts directly:
+   # Windows: setup.bat or scripts/windows/setup-windows.ps1
+   # Linux/macOS: ./setup.sh or ./scripts/linux/setup-linux.sh
+   ```
+
+3. **Configure environment:**
+   ```bash
+   # Copy and edit the environment file
+   cp .env.example .env
+   # Edit .env with your preferred paths and API keys
+   ```
+
+4. **Start services and run:**
+   ```bash
+   # Recommended: Automatic service management
+   npm run dev:with-services
+
+   # Or manual service management:
+   npm run services:start  # Start external services
+   npm run dev             # Run development server
+   npm run services:stop   # Stop services when done
+   ```
+
+### External Services
+
+Banana Bun requires these external services (automatically managed by setup scripts):
+
+- **Ollama** (localhost:11434) - Local LLM service
+- **ChromaDB** (localhost:8000) - Vector database for embeddings
+- **MeiliSearch** (localhost:7700) - Full-text search engine
+
+The application will automatically check service health on startup and provide guidance if any services are missing.
+
+### Development Workflow
+
+```bash
+# Start everything with automatic service management
+npm run dev:with-services
+
+# Or manage services manually
+npm run services:start    # Start all external services
+npm run dev              # Start development server with file watching
+npm run services:stop    # Stop all services when done
+
+# Other useful commands
+npm run setup           # Re-run setup if needed
+npm run services:start  # Start services only
+npm run services:stop   # Stop services only
+```
+
 ## 🛠 CLI Commands
 
 Banana Bun provides numerous CLI scripts under `src/cli/`. Each tool can be run with `bun run`, and supports flags and options as documented below. (Replace `src/cli/` with the actual path if needed.)
