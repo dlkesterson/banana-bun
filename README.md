@@ -7,6 +7,8 @@
 
 Banana Bun is a whimsical, developer-first project that uses **local AI models** to help users automatically **tag, organize, and search their media files** — audio, video, images, or docs — all while keeping privacy at the core. Built on Bun for speed and simplicity, it combines local LLMs, computer vision, and vector search into a single elegant pipeline.
 
+**🚀 Enhanced with AI-Powered Intelligence:** Featuring 11 specialized MCP servers with 25+ AI tools for metadata optimization, pattern analysis, resource optimization, content quality enhancement, and privacy-aware user behavior analysis — transforming your media library into an intelligent, self-optimizing system.
+
 ## 🌐 Architecture Overview
 
 ![Banana Bun Architecture Overview](./docs/images/architecture-diagram.svg)
@@ -21,7 +23,7 @@ Banana Bun is a whimsical, developer-first project that uses **local AI models**
 * **Enhanced Learning Service**: An autonomous service that learns from usage and feedback. It generates "enhanced learning rules" to improve tagging, transcription, and scheduling based on detected patterns. These rules can be auto-applied to future tasks.
 * **Feedback System**: Users can provide feedback (e.g., correcting tags or transcripts). The **Feedback Tracker** collects this feedback, analyzes patterns, and feeds it into the Enhanced Learning pipeline to refine future predictions.
 * **Monitoring & Dashboard**: Real-time monitoring is provided via two WebSocket servers (Enhanced Task Processor WebSocket and Monitor WebSocket) that broadcast task status updates to a live dashboard (`live-dashboard.html`).
-* **MCP Servers (Model Context Protocol)**: A suite of subprocess servers (spawned via `mcp-manager`) exposing advanced capabilities via JSON-RPC over `stdin/stdout`. These include:
+* **MCP Servers (Model Context Protocol)**: A comprehensive suite of subprocess servers (spawned via `mcp-manager`) exposing advanced AI-powered capabilities via JSON-RPC over `stdin/stdout`. These include:
 
   * **Whisper MCP**: Smart transcription and quality analysis tools.
   * **ChromaDB MCP**: Vector search tools (e.g. finding similar tasks).
@@ -29,6 +31,11 @@ Banana Bun is a whimsical, developer-first project that uses **local AI models**
   * **Media Intelligence MCP**: Cross-modal insights (content discovery, tagging optimization, user behavior analytics, recommendations).
   * **LLM Planning MCP**: Generates optimized task plans or resource allocation using an LLM.
   * **Monitor MCP**: Provides system metrics, task status queries, and broadcast capabilities.
+  * **Metadata Optimization MCP**: AI-powered metadata quality analysis, enhancement, and consistency validation with learning capabilities.
+  * **Pattern Analysis MCP**: Identifies and leverages system usage patterns for temporal analysis, scheduling optimization, and predictive insights.
+  * **Resource Optimization MCP**: Real-time resource monitoring, load balancing, bottleneck prediction, and performance optimization.
+  * **Content Quality MCP**: Comprehensive media quality assessment, enhancement recommendations, and quality trend tracking.
+  * **User Behavior MCP**: Privacy-aware user interaction analysis, personalization recommendations, and engagement optimization.
 
 All components interact to form a privacy-first, local AI-driven media organization pipeline.
 
@@ -665,6 +672,71 @@ Each MCP server exposes a set of tools (JSON-RPC methods) under the `/tools/call
   * `broadcast_status_update` – Broadcast a custom status update via WebSocket to all clients.
     *Input:* `{ task_id, status, details? }`.
 
+* **Metadata Optimization MCP** (AI-Powered Metadata Enhancement):
+
+  * `analyze_metadata_quality` – Assess completeness and quality of metadata across the library with scoring.
+    *Input:* `{ collection?, quality_aspects?, include_recommendations?, batch_size? }`.
+  * `optimize_metadata` – Apply AI-powered improvements to metadata fields with batch processing.
+    *Input:* `{ media_ids?, collection?, enhancement_types?, dry_run?, batch_size?, ai_model? }`.
+  * `get_metadata_recommendations` – Generate specific improvement suggestions for individual items.
+    *Input:* `{ media_id, recommendation_types?, confidence_threshold?, include_examples? }`.
+  * `track_metadata_improvements` – Monitor and learn from metadata enhancements over time.
+    *Input:* `{ time_range_hours?, collection?, include_trends?, metrics? }`.
+  * `validate_metadata_consistency` – Check for and auto-fix metadata inconsistencies.
+    *Input:* `{ collection?, validation_rules?, auto_fix?, include_suggestions? }`.
+
+* **Pattern Analysis MCP** (Usage Pattern Detection & Optimization):
+
+  * `analyze_usage_patterns` – Detect temporal, sequence, and resource patterns in system usage.
+    *Input:* `{ time_range_hours?, pattern_types?, confidence_threshold?, include_predictions? }`.
+  * `find_similar_patterns` – Identify patterns similar to current system state with confidence scoring.
+    *Input:* `{ pattern_id, similarity_threshold?, max_results?, include_inactive? }`.
+  * `generate_scheduling_recommendations` – Suggest optimal scheduling based on detected patterns.
+    *Input:* `{ optimization_goal?, time_horizon_hours?, consider_historical_data? }`.
+  * `track_pattern_effectiveness` – Monitor the success of pattern-based optimizations.
+    *Input:* `{ pattern_id, time_range_hours?, metrics? }`.
+  * `predict_future_patterns` – Forecast future system behavior based on historical patterns.
+    *Input:* `{ prediction_horizon_hours?, confidence_threshold?, pattern_categories? }`.
+
+* **Resource Optimization MCP** (System Performance & Load Balancing):
+
+  * `analyze_resource_usage` – Monitor current resource utilization and identify bottlenecks.
+    *Input:* `{ time_range_hours?, include_predictions?, detail_level? }`.
+  * `optimize_load_balancing` – Distribute tasks across time periods for optimal resource usage.
+    *Input:* `{ optimization_strategy?, time_horizon_hours?, consider_task_priorities?, dry_run? }`.
+  * `predict_resource_bottlenecks` – Forecast potential resource constraints before they occur.
+    *Input:* `{ prediction_horizon_hours?, confidence_threshold?, resource_types? }`.
+  * `suggest_scheduling_windows` – Recommend optimal times for different task types.
+    *Input:* `{ task_types?, optimization_criteria?, consider_dependencies? }`.
+  * `monitor_optimization_effectiveness` – Track the impact of applied resource optimizations.
+    *Input:* `{ optimization_id, monitoring_period_hours?, metrics_to_track? }`.
+
+* **Content Quality MCP** (Media Quality Assessment & Enhancement):
+
+  * `analyze_content_quality` – Assess quality metrics for individual or batch content (resolution, audio, metadata).
+    *Input:* `{ media_id, quality_aspects?, include_recommendations? }`.
+  * `suggest_quality_enhancements` – Recommend specific improvements for content quality.
+    *Input:* `{ media_id, enhancement_types?, target_quality_level? }`.
+  * `track_quality_improvements` – Monitor quality trends over time with statistical analysis.
+    *Input:* `{ time_range_days?, media_collection?, include_trends? }`.
+  * `batch_quality_assessment` – Analyze quality across multiple items efficiently with prioritization.
+    *Input:* `{ media_ids?, collection_filter?, quality_threshold?, prioritize_low_quality? }`.
+  * `generate_quality_report` – Create comprehensive quality reports for the library.
+    *Input:* `{ report_scope?, include_statistics?, include_recommendations? }`.
+
+* **User Behavior MCP** (Privacy-Aware User Analytics & Personalization):
+
+  * `analyze_user_interactions` – Study user behavior patterns and preferences with confidence scoring.
+    *Input:* `{ user_session_id?, time_range_hours?, interaction_types?, include_patterns? }`.
+  * `generate_personalization_recommendations` – Suggest personalized improvements based on user behavior.
+    *Input:* `{ user_session_id?, recommendation_types?, max_recommendations? }`.
+  * `identify_engagement_opportunities` – Find ways to improve user engagement.
+    *Input:* `{ analysis_scope?, focus_areas?, time_range_days? }`.
+  * `track_behavior_changes` – Monitor changes in user behavior over time.
+    *Input:* `{ baseline_period_days?, comparison_period_days?, behavior_metrics? }`.
+  * `predict_user_needs` – Anticipate future user requirements based on behavior patterns.
+    *Input:* `{ user_session_id?, prediction_horizon_hours?, confidence_threshold?, prediction_categories? }`.
+
 Each tool’s **`inputSchema`** in the code defines its parameters (as shown above). Responses are JSON objects which include either the requested data or an `error` field. All MCP communications follow standard JSON-RPC 2.0 structure over STDIO; e.g. requests of the form:
 
 ```json
@@ -681,5 +753,38 @@ Each tool’s **`inputSchema`** in the code defines its parameters (as shown abo
 * **Cleanup Tools:** CLI options like `--cleanup` in `analyze-task-metrics` help periodically purge old logs or data (maintaining only recent history).
 * **Configuration:** Environment variables (.env) allow fine-tuning behavior (e.g. enabling advanced models, thresholds, default paths) without code changes.
 * **Autonomous Agent (Experimental):** The `autolearn-agent.ts` script hints at future capabilities: continuously monitoring analytics to suggest system optimizations and even self-adjust configurations.
+
+## 🧪 Comprehensive Test Suite
+
+Banana Bun includes an extensive test suite ensuring reliability and performance across all components:
+
+* **150+ Test Cases:** Comprehensive coverage across 6 test files for the new MCP servers, plus existing tests for core functionality.
+* **Individual Server Testing:** Each MCP server has dedicated unit tests covering functionality, performance, error handling, and edge cases.
+* **Integration Testing:** Cross-server data flow and interaction testing ensures seamless operation between different MCP servers.
+* **Performance Testing:** Large dataset handling (1000+ records) and concurrent operation validation.
+* **Error Resilience:** Database failures, invalid data, and graceful degradation scenarios are thoroughly tested.
+* **Privacy & Security:** User behavior analysis includes privacy-aware data handling and anonymization testing.
+
+**Test Commands:**
+```bash
+# Run all tests
+bun test
+
+# Test new MCP servers
+bun run test:new-mcp
+
+# Individual server tests
+bun run test:metadata     # Metadata Optimization
+bun run test:patterns     # Pattern Analysis
+bun run test:resources    # Resource Optimization
+bun run test:quality      # Content Quality
+bun run test:behavior     # User Behavior
+
+# Integration tests
+bun run test:integration
+
+# Coverage report
+bun run test:report
+```
 
 All of the above components and interfaces work together to create a seamless, automated media management pipeline. Users can operate entirely locally, with optional enhancements via LLMs, while Banana Bun continuously learns from usage patterns and feedback to improve its organization and recommendations over time.
