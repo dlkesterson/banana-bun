@@ -566,6 +566,127 @@ Banana Bun provides numerous CLI scripts under `src/cli/`. Each tool can be run 
 
 Each CLI tool’s help (`--help`) provides a succinct summary of flags and usage, as shown above. Together, these tools enable full control over ingestion, analysis, cleanup, and optimization tasks in Banana Bun.
 
+## 📚 Example Task Library
+
+Banana Bun includes a comprehensive library of **39 example task files** that demonstrate all capabilities and use cases. The examples are organized by complexity and functionality to provide a complete learning path from basic operations to advanced AI-powered workflows.
+
+### 📁 Example Categories
+
+#### `/examples/basic-tasks/` - Core Functionality (8 examples)
+Learn the fundamentals with simple, single-purpose tasks:
+- **File Operations**: Reading, writing, and managing files
+- **Shell Commands**: System operations and diagnostics
+- **AI Integration**: LLM-powered text generation and analysis
+- **Task Dependencies**: Understanding task relationships and execution order
+
+#### `/examples/media-processing/` - Complete Media Workflows (8 examples)
+Master media processing with end-to-end pipelines:
+- **Media Ingestion**: Adding files to the library with metadata extraction
+- **Smart Transcription**: AI-optimized audio/video transcription using Whisper MCP
+- **Content Tagging**: AI-powered categorization and content analysis
+- **Scene Detection**: Video scene analysis and keyframe extraction
+- **Object Detection**: Computer vision for object recognition in video frames
+- **Organization**: Automated file organization based on AI analysis
+- **Dual Indexing**: Search engine integration (MeiliSearch + ChromaDB)
+
+#### `/examples/automation/` - Scheduled & Automated Tasks (5 examples)
+Implement automation for hands-off operation:
+- **Backup Operations**: Scheduled S3 sync and file backups
+- **Content Monitoring**: YouTube channel monitoring and auto-download
+- **System Maintenance**: Automated cleanup and database optimization
+- **Health Monitoring**: System performance and resource tracking
+- **Alert Systems**: Notification setup and monitoring workflows
+
+#### `/examples/ai-powered/` - Advanced AI Workflows (6 examples)
+Leverage cutting-edge AI capabilities:
+- **Cross-Modal Analysis**: Multi-modal content intelligence and insights
+- **Smart Planning**: AI-generated optimized task plans and resource allocation
+- **Content Recommendations**: Personalized suggestions based on usage patterns
+- **Pattern Analysis**: Usage pattern detection and system optimization
+- **Metadata Optimization**: AI-driven metadata enhancement and quality improvement
+- **Semantic Search**: Query enhancement and intelligent search expansion
+
+#### `/examples/batch-operations/` - Complex Orchestration (4 examples)
+Handle sophisticated multi-task workflows:
+- **Parallel Processing**: Concurrent task execution with resource management
+- **Conditional Workflows**: Dynamic task generation based on content analysis
+- **Resource Optimization**: Load balancing and performance optimization
+- **Sequential Dependencies**: Strict task ordering with error handling
+
+#### `/examples/monitoring/` - System Analytics (4 examples)
+Monitor and optimize system performance:
+- **Performance Analytics**: Comprehensive system metrics and bottleneck analysis
+- **Quality Monitoring**: Content and metadata quality assessment
+- **User Behavior**: Privacy-aware usage analytics and engagement tracking
+- **Alert Configuration**: Notification systems and threshold management
+
+#### `/examples/advanced-workflows/` - Enterprise-Grade Scenarios (4 examples)
+Explore sophisticated real-world applications:
+- **Complete Media Pipeline**: End-to-end processing with AI optimization at every step
+- **Learning Feedback Loop**: Continuous improvement system with user feedback integration
+- **Adaptive Resource Management**: Predictive optimization and dynamic load balancing
+- **Multi-Modal Content Discovery**: Advanced content intelligence and recommendation systems
+
+### 🚀 Getting Started with Examples
+
+#### For Beginners
+1. Start with `/examples/basic-tasks/` to understand core concepts
+2. Learn task structure, metadata, and basic AI integration
+3. Practice with file operations and simple shell commands
+
+#### For Intermediate Users
+1. Explore `/examples/media-processing/` for complete workflows
+2. Try `/examples/automation/` for scheduled operations
+3. Experiment with MCP server integrations and AI tools
+
+#### For Advanced Users
+1. Dive into `/examples/ai-powered/` for cutting-edge AI workflows
+2. Master `/examples/batch-operations/` for complex orchestration
+3. Implement `/examples/advanced-workflows/` for enterprise scenarios
+
+### 📖 Example Documentation
+
+Each example includes:
+- **Comprehensive Metadata**: Tags, priorities, and detailed descriptions
+- **Usage Notes**: Explanation of functionality and learning objectives
+- **Dependencies**: Clear task relationships and execution requirements
+- **Real-World Applicability**: Practical use cases and customization guidance
+
+### 🎯 Task Types & Tools Demonstrated
+
+**All Task Types Covered:**
+- `shell` - System commands and operations
+- `tool` - Built-in tool usage (23 tools total)
+- `llm` - AI text generation and analysis
+- `batch` - Multi-task orchestration
+- `media_*` - Complete media processing pipeline
+- `planner` - AI-powered task planning
+- `code` - Code generation and review
+- `youtube` - Video downloading and processing
+
+**All MCP Servers Integrated:**
+- **Whisper MCP**: Smart transcription and quality analysis
+- **ChromaDB MCP**: Vector search and similarity matching
+- **MeiliSearch MCP**: Intelligent text search enhancement
+- **Media Intelligence MCP**: Cross-modal insights and recommendations
+- **LLM Planning MCP**: Optimized task plan generation
+- **Monitor MCP**: System metrics and status monitoring
+- **Metadata Optimization MCP**: AI-powered metadata enhancement
+- **Pattern Analysis MCP**: Usage pattern detection and optimization
+- **Resource Optimization MCP**: Performance tuning and load balancing
+- **Content Quality MCP**: Media quality assessment and improvement
+- **User Behavior MCP**: Privacy-aware user analytics and personalization
+
+### 💡 Using Examples
+
+1. **Copy & Customize**: Use examples as templates for your specific needs
+2. **Learn Progressively**: Follow the complexity progression from basic to advanced
+3. **Mix & Match**: Combine concepts from different examples
+4. **Schedule & Automate**: Add cron schedules to any example for automation
+5. **Monitor & Optimize**: Use monitoring examples to track performance
+
+For complete documentation and the full catalog of examples, see [`/examples/README.md`](./examples/README.md) and [`/examples/INDEX.md`](./examples/INDEX.md).
+
 ## 🔌 API & WebSocket Interfaces
 
 Banana Bun exposes internal APIs and WebSocket endpoints for automation and integration. All inter-process calls use JSON-RPC over STDIO (via the Model Context Protocol) or WebSockets. Key details:
