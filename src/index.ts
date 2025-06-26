@@ -12,6 +12,7 @@ import { hashFile } from './utils/hash';
 import { generateDashboard } from './dashboard';
 import { checkAndCompleteParentTask } from './utils/parent_task_utils';
 import { enhancedTaskProcessor } from './mcp/enhanced-task-processor';
+import { mcpManager } from './mcp/mcp-manager';
 import { RetryManager } from './retry/retry-manager';
 import type { RetryContext } from './types/retry';
 import { TaskScheduler } from './scheduler/task-scheduler';
@@ -555,15 +556,26 @@ async function orchestratorLoop() {
 
         // 🧠 Get MCP enhancements before processing
         try {
-          const enhancements =
-            await enhancedTaskProcessor.processTaskWithEnhancements({
+          // Try MCP Manager first, fallback to enhanced task processor
+          let enhancements;
+          try {
+            const processedTask = await mcpManager.processTaskWithMCP({
               id: task.id,
               description: task.description || `${task.type} task`,
               type: task.type,
             });
+            enhancements = await mcpManager.getTaskRecommendations(processedTask);
+          } catch (mcpManagerError) {
+            // Fallback to enhanced task processor
+            enhancements = await enhancedTaskProcessor.processTaskWithEnhancements({
+              id: task.id,
+              description: task.description || `${task.type} task`,
+              type: task.type,
+            });
+          }
 
           if (
-            enhancements.recommendations &&
+            enhancements?.recommendations &&
             enhancements.recommendations.length > 0
           ) {
             await logger.info("💡 MCP Recommendations received", {
@@ -573,7 +585,7 @@ async function orchestratorLoop() {
           }
 
           if (
-            enhancements.similarTasks &&
+            enhancements?.similarTasks &&
             enhancements.similarTasks.length > 0
           ) {
             await logger.info("🔍 Found similar successful tasks", {
@@ -615,19 +627,37 @@ async function orchestratorLoop() {
 
           // 🎯 Complete task with MCP enhancements (learning & notifications)
           try {
-            await enhancedTaskProcessor.completeTaskWithEnhancements(
-              {
-                id: task.id,
-                description: task.description || `${task.type} task`,
-                type: task.type,
-                metadata: {
-                  outputPath: result.outputPath,
-                  filePath: result.filePath,
-                  subtaskIds: result.subtaskIds,
+            // Try MCP Manager first, fallback to enhanced task processor
+            try {
+              await mcpManager.completeTaskWithMCP(
+                {
+                  id: task.id,
+                  description: task.description || `${task.type} task`,
+                  type: task.type,
+                  metadata: {
+                    outputPath: result.outputPath,
+                    filePath: result.filePath,
+                    subtaskIds: result.subtaskIds,
+                  },
                 },
-              },
-              result
-            );
+                result
+              );
+            } catch (mcpManagerError) {
+              // Fallback to enhanced task processor
+              await enhancedTaskProcessor.completeTaskWithEnhancements(
+                {
+                  id: task.id,
+                  description: task.description || `${task.type} task`,
+                  type: task.type,
+                  metadata: {
+                    outputPath: result.outputPath,
+                    filePath: result.filePath,
+                    subtaskIds: result.subtaskIds,
+                  },
+                },
+                result
+              );
+            }
           } catch (mcpError) {
             await logger.warn("MCP completion failed, continuing", {
               taskId: task.id,
@@ -790,29 +820,45 @@ async function main() {
     console.log("✅ Task scheduler initialized and started");
     logger.info("✅ Task scheduler initialized and started");
 
-    // Initialize MCP Enhanced Task Processor for learning and monitoring
-    console.log("🚀 Initializing MCP Enhanced Task Processor...");
-    await logger.info("🚀 Initializing MCP Enhanced Task Processor...");
+    // Initialize MCP Manager for all MCP servers
+    console.log("🚀 Initializing MCP Manager with all servers...");
+    await logger.info("🚀 Initializing MCP Manager with all servers...");
     try {
-      await enhancedTaskProcessor.initialize();
-      const dashboardInfo = enhancedTaskProcessor.getLiveDashboardInfo();
-      console.log("✅ MCP Enhanced Task Processor initialized");
-      await logger.info("✅ MCP Enhanced Task Processor initialized", {
+      await mcpManager.initialize();
+      const dashboardInfo = await mcpManager.getLiveDashboardInfo();
+      console.log("✅ MCP Manager initialized with all servers");
+      await logger.info("✅ MCP Manager initialized with all servers", {
         websocketUrl: dashboardInfo.websocketUrl,
         dashboardPath: dashboardInfo.dashboardPath,
+        servers: [
+          'ChromaDB', 'Monitor', 'MeiliSearch', 'Whisper',
+          'Media Intelligence', 'LLM Planning', 'Metadata Optimization',
+          'Pattern Analysis', 'Resource Optimization', 'Content Quality', 'User Behavior'
+        ]
       });
     } catch (error) {
-      console.log(
-        "❌ Failed to initialize MCP Enhanced Task Processor:",
-        error
-      );
-      await logger.error(
-        "❌ Failed to initialize MCP Enhanced Task Processor",
-        {
-          error: error instanceof Error ? error.message : String(error),
-        }
-      );
-      // Continue without MCP for now
+      console.log("❌ Failed to initialize MCP Manager:", error);
+      await logger.error("❌ Failed to initialize MCP Manager", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Fallback to Enhanced Task Processor only
+      console.log("🔄 Falling back to Enhanced Task Processor only...");
+      try {
+        await enhancedTaskProcessor.initialize();
+        const dashboardInfo = enhancedTaskProcessor.getLiveDashboardInfo();
+        console.log("✅ Enhanced Task Processor fallback initialized");
+        await logger.info("✅ Enhanced Task Processor fallback initialized", {
+          websocketUrl: dashboardInfo.websocketUrl,
+          dashboardPath: dashboardInfo.dashboardPath,
+        });
+      } catch (fallbackError) {
+        console.log("❌ Fallback also failed:", fallbackError);
+        await logger.error("❌ MCP fallback also failed", {
+          error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+        });
+        // Continue without MCP
+      }
     }
 
     // Start orchestrator loop (every 5 seconds)
@@ -930,7 +976,12 @@ async function main() {
       await logger.info("🛑 Shutting down services...");
       taskScheduler?.stop();
       rssWatcher.stop();
-      await enhancedTaskProcessor.shutdown();
+      try {
+        await mcpManager.shutdown();
+      } catch (error) {
+        // Fallback to enhanced task processor shutdown
+        await enhancedTaskProcessor.shutdown();
+      }
       process.exit(0);
     });
 
@@ -938,7 +989,12 @@ async function main() {
       await logger.info("🛑 Shutting down services...");
       taskScheduler?.stop();
       rssWatcher.stop();
-      await enhancedTaskProcessor.shutdown();
+      try {
+        await mcpManager.shutdown();
+      } catch (error) {
+        // Fallback to enhanced task processor shutdown
+        await enhancedTaskProcessor.shutdown();
+      }
       process.exit(0);
     });
   } catch (error) {

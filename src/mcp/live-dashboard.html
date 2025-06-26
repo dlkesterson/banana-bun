@@ -34,6 +34,7 @@
         .connected { background-color: #10b981; }
         .disconnected { background-color: #ef4444; }
         .connecting { background-color: #f59e0b; }
+        .partial { background-color: #f97316; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -41,7 +42,10 @@
         <!-- Header -->
         <div class="bg-white rounded-lg shadow p-6 mb-6">
             <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold">Live Task Monitor Dashboard</h1>
+                <div>
+                    <h1 class="text-2xl font-bold">Live Task Monitor Dashboard</h1>
+                    <p class="text-sm text-gray-600 mt-1">Real-time monitoring via dual WebSocket connections</p>
+                </div>
                 <div class="flex items-center">
                     <span class="connection-indicator" id="connectionIndicator"></span>
                     <span id="connectionStatus">Connecting...</span>
@@ -78,6 +82,34 @@
             </div>
         </div>
 
+        <!-- Performance Charts -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">System Health & Performance</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-md font-medium mb-2">Task Queue Progress</h3>
+                    <div id="taskProgressChart" class="h-32 bg-gray-50 p-4 rounded flex items-center justify-center">
+                        <span class="text-gray-500 text-sm">Live charts will appear here</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-md font-medium mb-2">WebSocket Connections</h3>
+                    <div id="connectionChart" class="h-32 bg-gray-50 p-4 rounded">
+                        <div class="flex justify-between items-center h-full">
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">Monitor (8080)</div>
+                                <div id="monitorStatus" class="text-lg font-semibold text-red-500">Disconnected</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">Enhanced (8081)</div>
+                                <div id="enhancedStatus" class="text-lg font-semibold text-red-500">Disconnected</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Task List -->
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold mb-4">Recent Tasks</h2>
@@ -108,13 +140,15 @@
     <script>
         class LiveDashboard {
             constructor() {
-                this.ws = null;
+                this.monitorWs = null; // Monitor WebSocket (port 8080)
+                this.enhancedWs = null; // Enhanced Task Processor WebSocket (port 8081)
                 this.reconnectAttempts = 0;
                 this.maxReconnectAttempts = 5;
                 this.reconnectDelay = 1000;
                 this.tasks = [];
-                
+
                 this.initializeElements();
+                this.initializeConnectionStatus();
                 this.connect();
                 this.setupEventListeners();
             }
@@ -131,8 +165,18 @@
                 this.completedTasks = document.getElementById('completedTasks');
                 this.runningTasks = document.getElementById('runningTasks');
                 this.failedTasks = document.getElementById('failedTasks');
+
+                // Performance chart elements
+                this.monitorStatus = document.getElementById('monitorStatus');
+                this.enhancedStatus = document.getElementById('enhancedStatus');
             }
-            
+
+            initializeConnectionStatus() {
+                // Initialize both connection status displays as disconnected
+                this.updateMonitorStatus('Disconnected');
+                this.updateEnhancedStatus('Disconnected');
+            }
+
             setupEventListeners() {
                 this.reconnectBtn.addEventListener('click', () => {
                     this.connect();
@@ -142,39 +186,98 @@
             connect() {
                 this.updateConnectionStatus('connecting', 'Connecting...');
                 this.reconnectBtn.classList.add('hidden');
-                
+
+                // Connect to Monitor WebSocket (port 8080)
+                this.connectToMonitor();
+
+                // Connect to Enhanced Task Processor WebSocket (port 8081)
+                this.connectToEnhanced();
+            }
+
+            connectToMonitor() {
                 try {
-                    this.ws = new WebSocket('ws://localhost:8080');
-                    
-                    this.ws.onopen = () => {
-                        this.updateConnectionStatus('connected', 'Connected');
+                    this.monitorWs = new WebSocket('ws://localhost:8080');
+
+                    this.monitorWs.onopen = () => {
+                        this.addRealtimeUpdate('Connected to Monitor WebSocket (8080)', 'success');
+                        this.updateMonitorStatus('Connected');
                         this.reconnectAttempts = 0;
-                        this.addRealtimeUpdate('Connected to live monitoring', 'success');
+                        this.checkOverallConnection();
                     };
-                    
-                    this.ws.onmessage = (event) => {
+
+                    this.monitorWs.onmessage = (event) => {
                         try {
                             const message = JSON.parse(event.data);
-                            this.handleMessage(message);
+                            this.handleMessage(message, 'monitor');
                         } catch (error) {
-                            console.error('Error parsing WebSocket message:', error);
+                            console.error('Error parsing Monitor WebSocket message:', error);
                         }
                     };
-                    
-                    this.ws.onclose = () => {
-                        this.updateConnectionStatus('disconnected', 'Disconnected');
-                        this.addRealtimeUpdate('Connection lost', 'error');
-                        this.scheduleReconnect();
+
+                    this.monitorWs.onclose = () => {
+                        this.addRealtimeUpdate('Monitor WebSocket connection lost', 'error');
+                        this.updateMonitorStatus('Disconnected');
+                        this.checkOverallConnection();
                     };
-                    
-                    this.ws.onerror = (error) => {
-                        console.error('WebSocket error:', error);
-                        this.addRealtimeUpdate('Connection error', 'error');
+
+                    this.monitorWs.onerror = (error) => {
+                        console.error('Monitor WebSocket error:', error);
+                        this.addRealtimeUpdate('Monitor WebSocket error', 'error');
                     };
-                    
+
                 } catch (error) {
-                    console.error('Failed to create WebSocket connection:', error);
-                    this.updateConnectionStatus('disconnected', 'Connection failed');
+                    console.error('Failed to create Monitor WebSocket connection:', error);
+                    this.addRealtimeUpdate('Monitor WebSocket connection failed', 'error');
+                }
+            }
+
+            connectToEnhanced() {
+                try {
+                    this.enhancedWs = new WebSocket('ws://localhost:8081');
+
+                    this.enhancedWs.onopen = () => {
+                        this.addRealtimeUpdate('Connected to Enhanced Task Processor WebSocket (8081)', 'success');
+                        this.updateEnhancedStatus('Connected');
+                        this.reconnectAttempts = 0;
+                        this.checkOverallConnection();
+                    };
+
+                    this.enhancedWs.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message, 'enhanced');
+                        } catch (error) {
+                            console.error('Error parsing Enhanced WebSocket message:', error);
+                        }
+                    };
+
+                    this.enhancedWs.onclose = () => {
+                        this.addRealtimeUpdate('Enhanced Task Processor WebSocket connection lost', 'error');
+                        this.updateEnhancedStatus('Disconnected');
+                        this.checkOverallConnection();
+                    };
+
+                    this.enhancedWs.onerror = (error) => {
+                        console.error('Enhanced WebSocket error:', error);
+                        this.addRealtimeUpdate('Enhanced WebSocket error', 'error');
+                    };
+
+                } catch (error) {
+                    console.error('Failed to create Enhanced WebSocket connection:', error);
+                    this.addRealtimeUpdate('Enhanced WebSocket connection failed', 'error');
+                }
+            }
+
+            checkOverallConnection() {
+                const monitorConnected = this.monitorWs && this.monitorWs.readyState === WebSocket.OPEN;
+                const enhancedConnected = this.enhancedWs && this.enhancedWs.readyState === WebSocket.OPEN;
+
+                if (monitorConnected && enhancedConnected) {
+                    this.updateConnectionStatus('connected', 'Both Connected');
+                } else if (monitorConnected || enhancedConnected) {
+                    this.updateConnectionStatus('partial', 'Partially Connected');
+                } else {
+                    this.updateConnectionStatus('disconnected', 'Disconnected');
                     this.scheduleReconnect();
                 }
             }
@@ -197,46 +300,82 @@
             updateConnectionStatus(status, text) {
                 this.connectionIndicator.className = `connection-indicator ${status}`;
                 this.connectionStatus.textContent = text;
-                
+
                 if (status === 'connecting') {
                     this.connectionIndicator.classList.add('pulse-animation');
                 } else {
                     this.connectionIndicator.classList.remove('pulse-animation');
                 }
             }
-            
-            handleMessage(message) {
+
+            updateMonitorStatus(status) {
+                if (this.monitorStatus) {
+                    this.monitorStatus.textContent = status;
+                    this.monitorStatus.className = status === 'Connected' ?
+                        'text-lg font-semibold text-green-500' :
+                        'text-lg font-semibold text-red-500';
+                }
+            }
+
+            updateEnhancedStatus(status) {
+                if (this.enhancedStatus) {
+                    this.enhancedStatus.textContent = status;
+                    this.enhancedStatus.className = status === 'Connected' ?
+                        'text-lg font-semibold text-green-500' :
+                        'text-lg font-semibold text-red-500';
+                }
+            }
+
+            handleMessage(message, source = 'unknown') {
                 switch (message.type) {
                     case 'current_status':
                         this.updateTaskList(message.data.tasks);
-                        this.addRealtimeUpdate('Received current status', 'info');
+                        this.addRealtimeUpdate(`Received current status from ${source}`, 'info');
                         break;
-                        
+
                     case 'status_update':
-                        this.handleStatusUpdate(message.data);
+                        this.handleStatusUpdate(message.data, source);
                         break;
-                        
+
+                    case 'system_metrics':
+                        this.handleSystemMetrics(message.data, source);
+                        break;
+
                     default:
-                        console.log('Unknown message type:', message.type);
+                        console.log(`Unknown message type from ${source}:`, message.type);
                 }
             }
             
-            handleStatusUpdate(statusUpdate) {
+            handleStatusUpdate(statusUpdate, source = 'unknown') {
                 const { taskId, status, timestamp, details } = statusUpdate;
-                
+
                 // Update task in list if it exists
                 const taskIndex = this.tasks.findIndex(task => task.id == taskId);
                 if (taskIndex !== -1) {
                     this.tasks[taskIndex].status = status;
+                    if (details) {
+                        this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...details };
+                    }
                     this.updateTaskList(this.tasks);
                 }
-                
+
                 // Add to real-time updates
                 this.addRealtimeUpdate(
-                    `Task ${taskId} → ${status}`,
+                    `[${source}] Task ${taskId} → ${status}`,
                     this.getStatusType(status),
                     timestamp
                 );
+            }
+
+            handleSystemMetrics(metrics, source = 'unknown') {
+                // Handle system metrics from WebSocket servers
+                this.addRealtimeUpdate(
+                    `[${source}] System metrics received`,
+                    'info'
+                );
+
+                // You can extend this to display system metrics in the dashboard
+                console.log('System metrics from', source, ':', metrics);
             }
             
             updateTaskList(tasks) {
