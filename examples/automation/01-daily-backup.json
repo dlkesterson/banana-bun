@@ -1,0 +1,27 @@
+{
+  "id": "daily-backup-s3",
+  "type": "tool",
+  "description": "Daily backup of important files to S3",
+  "tool": "s3_sync",
+  "args": {
+    "direction": "up",
+    "bucket": "my-backup-bucket",
+    "prefix": "daily-backups/",
+    "local_path": "./outputs/",
+    "dry_run": false,
+    "delete": false,
+    "include": ["*.json", "*.md", "*.txt", "*.log"],
+    "exclude": ["*.tmp", "*.cache", "node_modules/**"]
+  },
+  "schedule": {
+    "cron": "0 2 * * *",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["automation", "backup", "s3", "scheduled", "daily"],
+    "created_by": "example",
+    "notes": "Automated daily backup at 2 AM. Syncs outputs directory to S3, includes important file types, excludes temporary files. Skips if previous backup still running."
+  }
+}

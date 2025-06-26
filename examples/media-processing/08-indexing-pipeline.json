@@ -1,0 +1,29 @@
+{
+  "id": "indexing-pipeline",
+  "type": "batch",
+  "description": "Complete indexing pipeline for processed media",
+  "tasks": [
+    {
+      "id": "index-meilisearch",
+      "type": "index_meili",
+      "description": "Index media in MeiliSearch for text search",
+      "media_id": 1,
+      "force": false
+    },
+    {
+      "id": "index-chromadb",
+      "type": "index_chroma",
+      "description": "Index media embeddings in ChromaDB for semantic search",
+      "media_id": 1,
+      "force": false,
+      "dependencies": ["index-meilisearch"]
+    }
+  ],
+  "dependencies": ["media-organization-example"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["media", "indexing", "search", "meilisearch", "chromadb", "batch"],
+    "created_by": "example",
+    "notes": "Demonstrates complete indexing pipeline. Indexes media in both MeiliSearch (text search) and ChromaDB (semantic search) for comprehensive search capabilities. Replace media_id with actual ID."
+  }
+}

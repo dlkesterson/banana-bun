@@ -1,0 +1,26 @@
+{
+  "id": "content-quality-monitoring",
+  "type": "tool",
+  "description": "Monitor content quality across the library",
+  "tool": "mcp_call",
+  "args": {
+    "server": "content-quality",
+    "method": "batch_quality_assessment",
+    "params": {
+      "collection_filter": "recent",
+      "quality_threshold": 0.7,
+      "prioritize_low_quality": true
+    }
+  },
+  "schedule": {
+    "cron": "0 4 * * *",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["monitoring", "quality", "content", "assessment", "mcp"],
+    "created_by": "example",
+    "notes": "Daily content quality monitoring at 4 AM. Assesses quality of recent content additions, prioritizes low-quality items for improvement, and tracks quality trends over time."
+  }
+}

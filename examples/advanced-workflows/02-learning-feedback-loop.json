@@ -1,0 +1,104 @@
+{
+  "id": "learning-feedback-loop",
+  "type": "batch",
+  "description": "Continuous learning system with feedback integration",
+  "tasks": [
+    {
+      "id": "collect-feedback-patterns",
+      "type": "tool",
+      "description": "Analyze user feedback patterns",
+      "tool": "mcp_call",
+      "args": {
+        "server": "user-behavior",
+        "method": "analyze_user_interactions",
+        "params": {
+          "time_range_hours": 168,
+          "interaction_types": ["feedback", "corrections", "ratings"],
+          "include_patterns": true
+        }
+      }
+    },
+    {
+      "id": "identify-improvement-opportunities",
+      "type": "tool",
+      "description": "Identify areas for system improvement",
+      "tool": "mcp_call",
+      "args": {
+        "server": "pattern-analysis",
+        "method": "analyze_usage_patterns",
+        "params": {
+          "time_range_hours": 336,
+          "pattern_types": ["quality", "accuracy", "user_satisfaction"],
+          "confidence_threshold": 0.75
+        }
+      },
+      "dependencies": ["collect-feedback-patterns"]
+    },
+    {
+      "id": "generate-learning-rules",
+      "type": "llm",
+      "description": "Generate learning rules from patterns",
+      "context": "Based on the feedback patterns and usage analysis, generate specific learning rules that can improve system accuracy and user satisfaction. Focus on transcription quality, tagging accuracy, and search relevance.",
+      "dependencies": ["identify-improvement-opportunities"]
+    },
+    {
+      "id": "validate-learning-rules",
+      "type": "tool",
+      "description": "Validate proposed learning rules",
+      "tool": "mcp_call",
+      "args": {
+        "server": "metadata-optimization",
+        "method": "validate_metadata_consistency",
+        "params": {
+          "validation_rules": "generated",
+          "auto_fix": false,
+          "include_suggestions": true
+        }
+      },
+      "dependencies": ["generate-learning-rules"]
+    },
+    {
+      "id": "apply-validated-rules",
+      "type": "tool",
+      "description": "Apply validated learning rules to improve system",
+      "tool": "mcp_call",
+      "args": {
+        "server": "metadata-optimization",
+        "method": "track_metadata_improvements",
+        "params": {
+          "time_range_hours": 24,
+          "include_trends": true,
+          "metrics": ["accuracy", "completeness", "user_satisfaction"]
+        }
+      },
+      "dependencies": ["validate-learning-rules"]
+    },
+    {
+      "id": "measure-improvement-impact",
+      "type": "tool",
+      "description": "Measure impact of applied improvements",
+      "tool": "mcp_call",
+      "args": {
+        "server": "pattern-analysis",
+        "method": "track_pattern_effectiveness",
+        "params": {
+          "pattern_id": "learning_rules_applied",
+          "time_range_hours": 168,
+          "metrics": ["accuracy_improvement", "user_satisfaction", "error_reduction"]
+        }
+      },
+      "dependencies": ["apply-validated-rules"]
+    }
+  ],
+  "schedule": {
+    "cron": "0 3 * * 1",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["advanced", "learning", "feedback", "continuous-improvement", "ai", "optimization"],
+    "created_by": "example",
+    "notes": "Weekly continuous learning system that analyzes user feedback, identifies improvement opportunities, generates and validates learning rules, applies improvements, and measures impact. Runs every Monday at 3 AM."
+  }
+}

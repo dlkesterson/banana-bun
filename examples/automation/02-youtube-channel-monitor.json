@@ -1,0 +1,20 @@
+{
+  "id": "youtube-channel-monitor",
+  "type": "tool",
+  "description": "Monitor YouTube channel for new videos",
+  "tool": "yt_watch",
+  "args": {
+    "channel_url": "https://www.youtube.com/@example-channel"
+  },
+  "schedule": {
+    "cron": "0 */6 * * *",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["automation", "youtube", "monitoring", "scheduled", "content"],
+    "created_by": "example",
+    "notes": "Monitors YouTube channel every 6 hours for new videos. Replace channel_url with actual channel. Can trigger download tasks for new content automatically."
+  }
+}

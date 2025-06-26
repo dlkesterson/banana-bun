@@ -1,0 +1,15 @@
+{
+  "id": "object-detection-example",
+  "type": "video_object_detect",
+  "description": "Detect objects in video scenes",
+  "scene_id": 1,
+  "confidence_threshold": 0.7,
+  "force": false,
+  "dependencies": ["scene-detection-example"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["media", "video", "object-detection", "ai", "computer-vision"],
+    "created_by": "example",
+    "notes": "Demonstrates object detection in video scenes. Uses TensorFlow.js/COCO model to identify objects with 70% confidence threshold. Depends on scene detection. Replace scene_id with actual scene ID."
+  }
+}

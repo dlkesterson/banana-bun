@@ -1,0 +1,16 @@
+{
+  "id": "file-operations-demo",
+  "type": "tool",
+  "description": "Demonstrate basic file operations",
+  "tool": "write_file",
+  "args": {
+    "path": "./outputs/example-file.txt",
+    "content": "This is a test file created by Banana Bun!\n\nTimestamp: {{ new Date().toISOString() }}\n\nThis demonstrates the write_file tool capability.\nYou can use this for creating configuration files, logs, or any text content."
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["basic", "tool", "file-operations", "write"],
+    "created_by": "example",
+    "notes": "Demonstrates the write_file tool. Creates a simple text file with timestamp. Follow up with read_file tool to read it back."
+  }
+}

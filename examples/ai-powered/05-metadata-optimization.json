@@ -1,0 +1,23 @@
+{
+  "id": "ai-metadata-optimization",
+  "type": "tool",
+  "description": "Optimize metadata using AI analysis",
+  "tool": "mcp_call",
+  "args": {
+    "server": "metadata-optimization",
+    "method": "optimize_metadata",
+    "params": {
+      "collection": "all",
+      "enhancement_types": ["completeness", "accuracy", "consistency", "enrichment"],
+      "dry_run": true,
+      "batch_size": 100,
+      "ai_model": "qwen2.5:7b"
+    }
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["ai", "metadata", "optimization", "quality", "mcp", "enhancement"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered metadata optimization. Analyzes and enhances metadata for completeness, accuracy, consistency, and enrichment. Dry run mode shows proposed changes without applying them."
+  }
+}

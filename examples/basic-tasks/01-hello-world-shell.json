@@ -1,0 +1,12 @@
+{
+  "id": "hello-world-shell",
+  "type": "shell",
+  "description": "Simple hello world shell command",
+  "shell_command": "echo 'Hello from Banana Bun! 🍌'",
+  "metadata": {
+    "priority": "normal",
+    "tags": ["basic", "shell", "hello-world", "example"],
+    "created_by": "example",
+    "notes": "Basic shell task example - executes a simple echo command to demonstrate shell task execution."
+  }
+}

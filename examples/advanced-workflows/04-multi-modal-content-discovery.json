@@ -1,0 +1,132 @@
+{
+  "id": "multi-modal-content-discovery",
+  "type": "batch",
+  "description": "Advanced multi-modal content discovery and recommendation system",
+  "tasks": [
+    {
+      "id": "analyze-content-discovery-patterns",
+      "type": "tool",
+      "description": "Analyze how users discover content across modalities",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "analyze_content_discovery",
+        "params": {
+          "time_range_hours": 336,
+          "include_recommendations": true,
+          "discovery_threshold": 0.6
+        }
+      }
+    },
+    {
+      "id": "correlate-search-transcription",
+      "type": "tool",
+      "description": "Analyze correlations between search queries and transcription content",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "correlate_search_transcription",
+        "params": {
+          "update_correlations": true,
+          "generate_insights": true
+        }
+      },
+      "dependencies": ["analyze-content-discovery-patterns"]
+    },
+    {
+      "id": "enhance-semantic-understanding",
+      "type": "tool",
+      "description": "Enhance semantic search capabilities",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "enhance_semantic_search",
+        "params": {
+          "query": "dynamic_learning",
+          "enhancement_type": "contextual_expansion",
+          "use_user_patterns": true,
+          "cache_result": true
+        }
+      },
+      "dependencies": ["correlate-search-transcription"]
+    },
+    {
+      "id": "generate-cross-modal-insights",
+      "type": "tool",
+      "description": "Generate insights across different content modalities",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "generate_cross_modal_insights",
+        "params": {
+          "media_id": "all_recent",
+          "correlation_threshold": 0.7,
+          "include_optimization_suggestions": true,
+          "analysis_depth": "deep"
+        }
+      },
+      "dependencies": ["enhance-semantic-understanding"]
+    },
+    {
+      "id": "create-personalized-recommendations",
+      "type": "tool",
+      "description": "Create personalized content recommendations",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "generate_content_recommendations",
+        "params": {
+          "recommendation_type": "personalized",
+          "max_recommendations": 20,
+          "include_reasoning": true
+        }
+      },
+      "dependencies": ["generate-cross-modal-insights"]
+    },
+    {
+      "id": "optimize-discovery-pathways",
+      "type": "tool",
+      "description": "Optimize content discovery pathways",
+      "tool": "mcp_call",
+      "args": {
+        "server": "user-behavior",
+        "method": "identify_engagement_opportunities",
+        "params": {
+          "analysis_scope": "content_discovery",
+          "focus_areas": ["search_optimization", "recommendation_accuracy", "user_journey"],
+          "time_range_days": 30
+        }
+      },
+      "dependencies": ["create-personalized-recommendations"]
+    },
+    {
+      "id": "update-intelligence-dashboard",
+      "type": "tool",
+      "description": "Update intelligence dashboard with new insights",
+      "tool": "mcp_call",
+      "args": {
+        "server": "media-intelligence",
+        "method": "get_intelligence_dashboard",
+        "params": {
+          "time_range_hours": 168,
+          "include_trends": true,
+          "include_predictions": true,
+          "include_optimization_opportunities": true,
+          "detail_level": "comprehensive"
+        }
+      },
+      "dependencies": ["optimize-discovery-pathways"]
+    }
+  ],
+  "schedule": {
+    "cron": "0 2 * * 2,5",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["advanced", "multi-modal", "content-discovery", "recommendations", "intelligence", "personalization"],
+    "created_by": "example",
+    "notes": "Advanced multi-modal content discovery system that runs twice weekly (Tuesday and Friday at 2 AM). Analyzes discovery patterns, correlates search and transcription data, enhances semantic understanding, generates cross-modal insights, creates personalized recommendations, and optimizes discovery pathways."
+  }
+}

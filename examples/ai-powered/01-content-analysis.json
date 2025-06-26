@@ -1,0 +1,22 @@
+{
+  "id": "cross-modal-content-analysis",
+  "type": "tool",
+  "description": "Analyze content using Media Intelligence MCP",
+  "tool": "mcp_call",
+  "args": {
+    "server": "media-intelligence",
+    "method": "generate_cross_modal_insights",
+    "params": {
+      "media_id": 1,
+      "correlation_threshold": 0.7,
+      "include_optimization_suggestions": true,
+      "analysis_depth": "comprehensive"
+    }
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["ai", "analysis", "cross-modal", "intelligence", "mcp", "insights"],
+    "created_by": "example",
+    "notes": "Demonstrates cross-modal content analysis using Media Intelligence MCP. Correlates search, transcription, and tagging data to provide comprehensive insights and optimization suggestions. Replace media_id with actual ID."
+  }
+}

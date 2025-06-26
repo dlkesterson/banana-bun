@@ -1,0 +1,22 @@
+{
+  "id": "smart-transcription-mcp",
+  "type": "tool",
+  "description": "Use Whisper MCP for optimized transcription",
+  "tool": "mcp_call",
+  "args": {
+    "server": "whisper",
+    "method": "smart_transcribe",
+    "params": {
+      "file_path": "/path/to/your/audio.mp3",
+      "quality_target": "high",
+      "learn_from_result": true,
+      "language": "auto"
+    }
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["media", "transcription", "mcp", "whisper", "smart", "ai"],
+    "created_by": "example",
+    "notes": "Demonstrates Whisper MCP smart transcription. Automatically selects optimal model, learns from results, and provides high-quality transcription. Replace file_path with actual audio/video file."
+  }
+}

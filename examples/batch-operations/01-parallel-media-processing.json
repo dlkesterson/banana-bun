@@ -1,0 +1,67 @@
+{
+  "id": "parallel-media-batch",
+  "type": "batch",
+  "description": "Process multiple media files in parallel",
+  "tasks": [
+    {
+      "id": "process-video-1",
+      "type": "batch",
+      "description": "Complete processing pipeline for video 1",
+      "tasks": [
+        {
+          "id": "ingest-1",
+          "type": "media_ingest",
+          "description": "Ingest video 1",
+          "file_path": "/path/to/video1.mp4"
+        },
+        {
+          "id": "transcribe-1",
+          "type": "media_transcribe",
+          "description": "Transcribe video 1",
+          "file_path": "/path/to/video1.mp4",
+          "dependencies": ["ingest-1"]
+        },
+        {
+          "id": "tag-1",
+          "type": "media_tag",
+          "description": "Tag video 1",
+          "file_path": "/path/to/video1.mp4",
+          "dependencies": ["transcribe-1"]
+        }
+      ]
+    },
+    {
+      "id": "process-video-2",
+      "type": "batch",
+      "description": "Complete processing pipeline for video 2",
+      "tasks": [
+        {
+          "id": "ingest-2",
+          "type": "media_ingest",
+          "description": "Ingest video 2",
+          "file_path": "/path/to/video2.mp4"
+        },
+        {
+          "id": "transcribe-2",
+          "type": "media_transcribe",
+          "description": "Transcribe video 2",
+          "file_path": "/path/to/video2.mp4",
+          "dependencies": ["ingest-2"]
+        },
+        {
+          "id": "tag-2",
+          "type": "media_tag",
+          "description": "Tag video 2",
+          "file_path": "/path/to/video2.mp4",
+          "dependencies": ["transcribe-2"]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "priority": "high",
+    "tags": ["batch", "parallel", "media", "processing", "pipeline"],
+    "created_by": "example",
+    "notes": "Demonstrates parallel batch processing. Two video processing pipelines run concurrently, each with sequential steps (ingest → transcribe → tag). Replace file paths with actual video files."
+  }
+}

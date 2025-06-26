@@ -1,0 +1,55 @@
+{
+  "id": "conditional-media-workflow",
+  "type": "batch",
+  "description": "Conditional workflow based on media type and quality",
+  "generator": {
+    "type": "conditional",
+    "conditions": [
+      {
+        "if": "file_extension == 'mp4' && duration > 3600",
+        "then": "long_video_pipeline"
+      },
+      {
+        "if": "file_extension == 'mp3'",
+        "then": "audio_only_pipeline"
+      },
+      {
+        "if": "file_size < 100MB",
+        "then": "quick_processing_pipeline"
+      }
+    ],
+    "default": "standard_pipeline"
+  },
+  "tasks": [
+    {
+      "id": "analyze-media-properties",
+      "type": "shell",
+      "description": "Analyze media file properties",
+      "shell_command": "ffprobe -v quiet -print_format json -show_format -show_streams /path/to/media/file"
+    },
+    {
+      "id": "determine-processing-path",
+      "type": "llm",
+      "description": "Determine optimal processing path based on media properties",
+      "context": "Based on the media analysis results, determine the most appropriate processing pipeline considering file type, duration, size, and quality.",
+      "dependencies": ["analyze-media-properties"]
+    },
+    {
+      "id": "execute-chosen-pipeline",
+      "type": "tool",
+      "description": "Execute the determined processing pipeline",
+      "tool": "create_task",
+      "args": {
+        "type": "batch",
+        "description": "Dynamic pipeline based on analysis"
+      },
+      "dependencies": ["determine-processing-path"]
+    }
+  ],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["batch", "conditional", "dynamic", "workflow", "adaptive"],
+    "created_by": "example",
+    "notes": "Demonstrates conditional workflow generation. Analyzes media properties and dynamically creates appropriate processing pipeline based on file characteristics. Showcases adaptive task generation."
+  }
+}

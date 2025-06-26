@@ -1,0 +1,22 @@
+{
+  "id": "usage-pattern-analysis",
+  "type": "tool",
+  "description": "Analyze system usage patterns with AI",
+  "tool": "mcp_call",
+  "args": {
+    "server": "pattern-analysis",
+    "method": "analyze_usage_patterns",
+    "params": {
+      "time_range_hours": 168,
+      "pattern_types": ["temporal", "sequence", "resource"],
+      "confidence_threshold": 0.8,
+      "include_predictions": true
+    }
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["ai", "pattern-analysis", "usage", "optimization", "mcp", "analytics"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered pattern analysis. Analyzes 7 days of usage data to detect temporal, sequence, and resource patterns with 80% confidence threshold. Includes predictions for optimization."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "semantic-search-enhancement",
+  "type": "tool",
+  "description": "Enhance search queries using AI semantic analysis",
+  "tool": "mcp_call",
+  "args": {
+    "server": "media-intelligence",
+    "method": "enhance_semantic_search",
+    "params": {
+      "query": "funny cat videos with music",
+      "enhancement_type": "expansion",
+      "use_user_patterns": true,
+      "cache_result": true
+    }
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["ai", "search", "semantic", "enhancement", "nlp", "mcp"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered semantic search enhancement. Expands and refines search queries using semantic analysis and user patterns to improve search results and discovery."
+  }
+}
