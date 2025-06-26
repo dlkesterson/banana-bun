@@ -26,7 +26,7 @@ export interface EnhancedTaskResult {
 
 export class EnhancedTaskProcessor {
     private wsServer?: WebSocketServer;
-    private wsPort = 8080;
+    private wsPort = 8081; // Enhanced Task Processor WebSocket on port 8081
     private isInitialized = false;
     private notifications: Array<{ type: string; endpoint?: string; enabled: boolean }> = [];
 
