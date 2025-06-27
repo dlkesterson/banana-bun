@@ -5,7 +5,7 @@
   <img src="./docs/images/banana-bun.png" alt="Banana Bun - 3D Banana Bao Bun" width="300"/>
 </div>
 
-Banana Bun is a whimsical, developer-first project that uses **local AI models** to help users automatically **tag, organize, and search their media files** — audio, video, images, or docs — all while keeping privacy at the core. Built on Bun for speed and simplicity, it combines local LLMs, computer vision, and vector search into a single elegant pipeline.
+Banana Bun is a project that uses **local AI models** to help users automatically **tag, organize, and search their media files** — audio, video, images, or docs — all while keeping privacy at the core. Built on Bun for speed and simplicity, it combines local LLMs, computer vision, and vector search into a single elegant pipeline.
 
 **🚀 Enhanced with AI-Powered Intelligence:** Featuring 11 specialized MCP servers with 25+ AI tools for metadata optimization, pattern analysis, resource optimization, content quality enhancement, and privacy-aware user behavior analysis — transforming your media library into an intelligent, self-optimizing system.
 
