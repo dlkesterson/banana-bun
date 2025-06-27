@@ -1,0 +1,17 @@
+{
+  "id": "video-transcription-example",
+  "type": "media_transcribe",
+  "description": "Transcribe audio from video file using Whisper",
+  "file_path": "/path/to/your/video.mp4",
+  "whisper_model": "base",
+  "language": "auto",
+  "chunk_duration": 30,
+  "force": false,
+  "dependencies": ["media-ingest-example"],
+  "metadata": {
+    "priority": "high",
+    "tags": ["media", "transcription", "whisper", "audio", "ai"],
+    "created_by": "example",
+    "notes": "Demonstrates video transcription using Whisper. Depends on media ingestion. Uses automatic language detection and 30-second chunks for processing. Replace file_path with actual video file."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ollama-chat-demo",
+  "type": "tool",
+  "description": "Demonstrate Ollama chat tool",
+  "tool": "ollama_chat",
+  "args": {
+    "prompt": "Explain what Banana Bun is and how it helps with media organization. Keep the explanation concise and mention its key features like local AI, privacy, and automation.",
+    "system": "You are a helpful assistant explaining software tools. Be concise, accurate, and enthusiastic about the technology."
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["basic", "tool", "ollama", "chat", "ai"],
+    "created_by": "example",
+    "notes": "Demonstrates the ollama_chat tool for direct LLM interaction. Shows how to use system prompts to guide the AI's behavior and get specific types of responses."
+  }
+}

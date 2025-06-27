@@ -1,0 +1,416 @@
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { promises as fs } from 'fs';
+import { executeShellTask } from '../src/executors/shell';
+import { executeLlmTask } from '../src/executors/llm';
+import { executeCodeTask } from '../src/executors/code';
+import { executeToolTask } from '../src/executors/tool';
+import { executeTask } from '../src/executors/dispatcher';
+import type { ShellTask, LlmTask, CodeTask, ToolTask, BaseTask } from '../src/types';
+
+// Mock external dependencies
+const mockFetch = mock(() => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ response: 'Mocked LLM response' })
+}));
+
+const mockToolRunner = {
+    executeTool: mock(() => Promise.resolve({
+        success: true,
+        output_path: '/test/output.txt'
+    }))
+};
+
+// Mock modules
+mock.module('../src/tools/tool_runner', () => ({
+    toolRunner: mockToolRunner
+}));
+
+global.fetch = mockFetch as any;
+
+describe('Task Executors', () => {
+    const testDir = '/tmp/folder-watcher-executor-test';
+
+    beforeEach(async () => {
+        await fs.mkdir(testDir, { recursive: true });
+        // Reset mocks
+        mockFetch.mockClear();
+        mockToolRunner.executeTool.mockClear();
+    });
+
+    afterEach(async () => {
+        await fs.rm(testDir, { recursive: true, force: true });
+    });
+
+    describe('Shell Executor', () => {
+        it('should execute simple shell command successfully', async () => {
+            const task: ShellTask = {
+                id: 1,
+                type: 'shell',
+                shell_command: 'echo "Hello World"',
+                status: 'pending',
+                result: null,
+                description: 'Test echo command'
+            };
+
+            const result = await executeShellTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+            expect(result.error).toBeUndefined();
+
+            // Verify output file was created
+            if (result.outputPath) {
+                const content = await fs.readFile(result.outputPath, 'utf-8');
+                expect(content).toContain('Hello World');
+                expect(content).toContain('# Command');
+                expect(content).toContain('# STDOUT');
+                expect(content).toContain('# Exit Code');
+            }
+        });
+
+        it('should handle shell command failure', async () => {
+            const task: ShellTask = {
+                id: 2,
+                type: 'shell',
+                shell_command: 'exit 1',
+                status: 'pending',
+                result: null,
+                description: 'Test failing command'
+            };
+
+            const result = await executeShellTask(task);
+
+            expect(result.success).toBe(false);
+            expect(result.outputPath).toBeDefined();
+            expect(result.error).toBeDefined();
+        });
+
+        it('should handle missing shell_command', async () => {
+            const task: ShellTask = {
+                id: 3,
+                type: 'shell',
+                shell_command: '',
+                status: 'pending',
+                result: null,
+                description: 'Test missing command'
+            };
+
+            const result = await executeShellTask(task);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('No shell_command found');
+        });
+
+        it('should handle complex shell commands', async () => {
+            const task: ShellTask = {
+                id: 4,
+                type: 'shell',
+                shell_command: 'echo "Line 1" && echo "Line 2" && ls /tmp',
+                status: 'pending',
+                result: null,
+                description: 'Test complex command'
+            };
+
+            const result = await executeShellTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+
+            if (result.outputPath) {
+                const content = await fs.readFile(result.outputPath, 'utf-8');
+                expect(content).toContain('Line 1');
+                expect(content).toContain('Line 2');
+            }
+        });
+    });
+
+    describe('LLM Executor', () => {
+        it('should execute LLM task successfully', async () => {
+            const task: LlmTask = {
+                id: 1,
+                type: 'llm',
+                description: 'Write a short poem about testing',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeLlmTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+            expect(mockFetch).toHaveBeenCalledWith(
+                'http://localhost:11434/api/generate',
+                expect.objectContaining({
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+            );
+
+            // Verify output file was created
+            if (result.outputPath) {
+                const content = await fs.readFile(result.outputPath, 'utf-8');
+                expect(content).toContain('# Model');
+                expect(content).toContain('# Prompt');
+                expect(content).toContain('# Output');
+                expect(content).toContain('Mocked LLM response');
+            }
+        });
+
+        it('should handle LLM API failure', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                statusText: 'Internal Server Error'
+            } as any);
+
+            const task: LlmTask = {
+                id: 2,
+                type: 'llm',
+                description: 'This should fail',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeLlmTask(task);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Ollama API error: 500');
+        });
+
+        it('should handle network errors', async () => {
+            mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+            const task: LlmTask = {
+                id: 3,
+                type: 'llm',
+                description: 'This should fail with network error',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeLlmTask(task);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Network error');
+        });
+    });
+
+    describe('Code Executor', () => {
+        it('should execute code generation task', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({
+                    response: 'print("Hello from Python!")'
+                })
+            } as any);
+
+            const task: CodeTask = {
+                id: 1,
+                type: 'code',
+                description: 'Write a Python script that prints hello world',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeCodeTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+            expect(mockFetch).toHaveBeenCalled();
+
+            if (result.outputPath) {
+                const content = await fs.readFile(result.outputPath, 'utf-8');
+                expect(content).toContain('print("Hello from Python!")');
+            }
+        });
+
+        it('should infer language from description', async () => {
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: () => Promise.resolve({
+                    response: 'console.log("Hello from JavaScript!");'
+                })
+            } as any);
+
+            const task: CodeTask = {
+                id: 2,
+                type: 'code',
+                description: 'Write a JavaScript function to calculate factorial',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeCodeTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+
+            // Check that the prompt included JavaScript
+            const fetchCall = mockFetch.mock.calls[0] || [undefined, undefined];
+            const requestData = fetchCall[1] || {} as RequestInit;
+            const body = JSON.parse(requestData.body as string || '{}');
+            expect(body.prompt).toContain('JavaScript');
+        });
+    });
+
+    describe('Tool Executor', () => {
+        it('should execute tool task successfully', async () => {
+            const task: ToolTask = {
+                id: 1,
+                type: 'tool',
+                tool: 'read_file',
+                args: { path: '/test/file.txt' },
+                status: 'pending',
+                result: null,
+                description: 'Read a test file'
+            };
+
+            const result = await executeToolTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBe('/test/output.txt');
+            expect(mockToolRunner.executeTool).toHaveBeenCalledWith(
+                'read_file',
+                { path: '/test/file.txt' }
+            );
+        });
+
+        it('should handle missing tool', async () => {
+            const task: ToolTask = {
+                id: 2,
+                type: 'tool',
+                tool: 'read_file', // Changed from empty string to a valid ToolName
+                args: { path: '/test/file.txt' },
+                status: 'pending',
+                result: null,
+                description: 'Invalid tool task'
+            };
+
+            await expect(executeToolTask(task)).rejects.toThrow(
+                'Tool task missing required tool or args'
+            );
+        });
+
+        it('should handle missing args', async () => {
+            const task: ToolTask = {
+                id: 3,
+                type: 'tool',
+                tool: 'read_file',
+                args: undefined as any,
+                status: 'pending',
+                result: null,
+                description: 'Invalid tool task'
+            };
+
+            await expect(executeToolTask(task)).rejects.toThrow(
+                'Tool task missing required tool or args'
+            );
+        });
+
+        it('should handle tool execution failure', async () => {
+            mockToolRunner.executeTool.mockRejectedValueOnce(
+                new Error('Tool execution failed')
+            );
+
+            const task: ToolTask = {
+                id: 4,
+                type: 'tool',
+                tool: 'read_file',
+                args: { path: '/nonexistent/file.txt' },
+                status: 'pending',
+                result: null,
+                description: 'Failing tool task'
+            };
+
+            const result = await executeToolTask(task);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('Tool execution failed');
+        });
+    });
+
+    describe('Task Dispatcher', () => {
+        it('should dispatch shell task correctly', async () => {
+            const task: BaseTask = {
+                id: 1,
+                type: 'shell',
+                shell_command: 'echo "test"',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+        });
+
+        it('should dispatch LLM task correctly', async () => {
+            const task: BaseTask = {
+                id: 2,
+                type: 'llm',
+                description: 'Test LLM task',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+        });
+
+        it('should dispatch tool task correctly', async () => {
+            const task: BaseTask = {
+                id: 3,
+                type: 'tool',
+                tool: 'read_file',
+                args: { path: '/test/file.txt' },
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeTask(task);
+
+            expect(result.success).toBe(true);
+            expect(result.outputPath).toBeDefined();
+        });
+
+        it('should handle unknown task type', async () => {
+            const task = {
+                id: 4,
+                type: 'unknown_type',
+                status: 'pending',
+                result: null
+            } as any;
+
+            await expect(executeTask(task)).rejects.toThrow(
+                'Unknown task type: unknown_type'
+            );
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('should handle file system errors gracefully', async () => {
+            // Mock fs.writeFile to fail
+            const originalWriteFile = fs.writeFile;
+            (fs as any).writeFile = mock(() => Promise.reject(new Error('Disk full')));
+
+            const task: ShellTask = {
+                id: 1,
+                type: 'shell',
+                shell_command: 'echo "test"',
+                status: 'pending',
+                result: null
+            };
+
+            const result = await executeShellTask(task);
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBeDefined();
+
+            // Restore original function
+            (fs as any).writeFile = originalWriteFile;
+        });
+    });
+});

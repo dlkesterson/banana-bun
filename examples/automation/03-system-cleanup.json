@@ -1,0 +1,38 @@
+{
+  "id": "weekly-system-cleanup",
+  "type": "batch",
+  "description": "Weekly system maintenance and cleanup",
+  "tasks": [
+    {
+      "id": "cleanup-temp-files",
+      "type": "shell",
+      "description": "Remove temporary files older than 7 days",
+      "shell_command": "find ./outputs -name '*.tmp' -mtime +7 -delete && find ./outputs -name '*.cache' -mtime +7 -delete"
+    },
+    {
+      "id": "cleanup-old-logs",
+      "type": "shell",
+      "description": "Archive old log files",
+      "shell_command": "find ./logs -name '*.log' -mtime +30 -exec gzip {} \\;",
+      "dependencies": ["cleanup-temp-files"]
+    },
+    {
+      "id": "database-maintenance",
+      "type": "shell",
+      "description": "Run database maintenance tasks",
+      "shell_command": "echo 'VACUUM; ANALYZE;' | sqlite3 ./data/banana-bun.db",
+      "dependencies": ["cleanup-old-logs"]
+    }
+  ],
+  "schedule": {
+    "cron": "0 3 * * 0",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "low",
+    "tags": ["automation", "cleanup", "maintenance", "scheduled", "weekly", "batch"],
+    "created_by": "example",
+    "notes": "Weekly system cleanup every Sunday at 3 AM. Removes old temporary files, archives logs, and performs database maintenance. Sequential execution ensures proper cleanup order."
+  }
+}

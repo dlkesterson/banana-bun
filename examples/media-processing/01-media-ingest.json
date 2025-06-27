@@ -1,0 +1,14 @@
+{
+  "id": "media-ingest-example",
+  "type": "media_ingest",
+  "description": "Ingest a media file into the library",
+  "file_path": "/path/to/your/video.mp4",
+  "force": false,
+  "tool_preference": "auto",
+  "metadata": {
+    "priority": "normal",
+    "tags": ["media", "ingest", "video", "metadata"],
+    "created_by": "example",
+    "notes": "Demonstrates media ingestion. Replace file_path with actual media file. This extracts metadata, creates database entries, and prepares the file for further processing."
+  }
+}

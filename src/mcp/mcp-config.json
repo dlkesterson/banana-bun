@@ -1,0 +1,186 @@
+{
+  "mcpServers": {
+    "chromadb": {
+      "command": "bun",
+      "args": ["run", "src/mcp/chromadb-server.ts"],
+      "env": {},
+      "description": "ChromaDB MCP Server for enhanced vector operations and task learning"
+    },
+    "monitor": {
+      "command": "bun",
+      "args": ["run", "src/mcp/monitor-server.ts"],
+      "env": {},
+      "description": "Communication & Monitoring MCP Server for real-time task tracking"
+    },
+    "meilisearch": {
+      "command": "bun",
+      "args": ["run", "src/mcp/meilisearch-server.ts"],
+      "env": {},
+      "description": "MeiliSearch MCP Server for intelligent search optimization and analytics"
+    },
+    "whisper": {
+      "command": "bun",
+      "args": ["run", "src/mcp/whisper-server.ts"],
+      "env": {},
+      "description": "Whisper MCP Server for intelligent transcription optimization and quality learning"
+    },
+    "media_intelligence": {
+      "command": "bun",
+      "args": ["run", "src/mcp/media-intelligence-server.ts"],
+      "env": {},
+      "description": "Media Intelligence MCP Server for cross-modal learning and AI-powered content insights"
+    },
+    "llm_planning": {
+      "command": "bun",
+      "args": ["run", "src/mcp/llm-planning-server.ts"],
+      "env": {},
+      "description": "LLM Planning MCP Server for intelligent system optimization and automated planning"
+    },
+    "metadata_optimization": {
+      "command": "bun",
+      "args": ["run", "src/mcp/metadata-optimization-server.ts"],
+      "env": {},
+      "description": "Metadata Optimization MCP Server for continuous metadata quality analysis and improvement"
+    },
+    "pattern_analysis": {
+      "command": "bun",
+      "args": ["run", "src/mcp/pattern-analysis-server.ts"],
+      "env": {},
+      "description": "Pattern Analysis MCP Server for identifying and leveraging system usage patterns"
+    },
+    "resource_optimization": {
+      "command": "bun",
+      "args": ["run", "src/mcp/resource-optimization-server.ts"],
+      "env": {},
+      "description": "Resource Optimization MCP Server for monitoring and optimizing system resource usage"
+    },
+    "content_quality": {
+      "command": "bun",
+      "args": ["run", "src/mcp/content-quality-server.ts"],
+      "env": {},
+      "description": "Content Quality MCP Server for analyzing and enhancing media content quality"
+    },
+    "user_behavior": {
+      "command": "bun",
+      "args": ["run", "src/mcp/user-behavior-server.ts"],
+      "env": {},
+      "description": "User Behavior MCP Server for analyzing user interactions and providing personalization"
+    }
+  },
+  "settings": {
+    "chromadb": {
+      "collection_name": "task_embeddings",
+      "embedding_model": "qwen3:8b",
+      "similarity_threshold": 0.7,
+      "max_results": 10
+    },
+    "monitor": {
+      "websocket_port": 8080,
+      "notification_types": ["console", "webhook"],
+      "log_retention_days": 7,
+      "metrics_interval_minutes": 5
+    },
+    "meilisearch": {
+      "index_name": "media_index",
+      "search_analytics_collection": "search_analytics",
+      "query_optimization_threshold": 0.8,
+      "max_search_history": 1000,
+      "learning_enabled": true,
+      "auto_optimize_queries": true
+    },
+    "whisper": {
+      "transcription_analytics_collection": "transcription_analytics",
+      "quality_threshold": 0.8,
+      "max_transcription_history": 500,
+      "learning_enabled": true,
+      "auto_optimize_models": true,
+      "quality_assessment_enabled": true,
+      "language_detection_learning": true,
+      "performance_optimization": true
+    },
+    "media_intelligence": {
+      "cross_modal_learning_enabled": true,
+      "content_discovery_threshold": 0.7,
+      "tagging_optimization_enabled": true,
+      "semantic_enhancement_enabled": true,
+      "pattern_analysis_window_hours": 168,
+      "recommendation_cache_size": 1000,
+      "ai_insights_enabled": true,
+      "user_behavior_tracking": true,
+      "content_correlation_threshold": 0.6,
+      "learning_rate": 0.1
+    },
+    "llm_planning": {
+      "log_analysis_window_hours": 24,
+      "pattern_detection_threshold": 3,
+      "optimization_score_threshold": 0.7,
+      "resource_efficiency_threshold": 0.6,
+      "max_plan_templates": 100,
+      "max_recommendations": 50,
+      "system_health_check_interval_hours": 1,
+      "auto_generate_templates": true,
+      "enable_advanced_models": true,
+      "default_model": "qwen3:8b",
+      "fallback_model": "ollama"
+    },
+    "metadata_optimization": {
+      "quality_analysis_enabled": true,
+      "auto_enhancement_enabled": true,
+      "min_completeness_threshold": 0.7,
+      "batch_processing_size": 10,
+      "ai_enhancement_model": "qwen3:8b",
+      "learning_from_corrections": true,
+      "validation_checks_enabled": true,
+      "metadata_fields_priority": ["title", "tags", "summary", "genre", "duration"]
+    },
+    "pattern_analysis": {
+      "pattern_detection_enabled": true,
+      "min_confidence_threshold": 0.7,
+      "temporal_analysis_enabled": true,
+      "sequence_analysis_enabled": true,
+      "resource_pattern_analysis": true,
+      "prediction_horizon_hours": 48,
+      "pattern_learning_enabled": true,
+      "scheduling_optimization": true
+    },
+    "resource_optimization": {
+      "monitoring_enabled": true,
+      "load_balancing_enabled": true,
+      "bottleneck_prediction": true,
+      "optimization_strategies": ["efficiency_focused", "peak_avoidance", "even_distribution"],
+      "resource_thresholds": {
+        "cpu_warning": 70,
+        "cpu_critical": 85,
+        "memory_warning": 75,
+        "memory_critical": 90
+      },
+      "auto_optimization": false,
+      "monitoring_interval_minutes": 5
+    },
+    "content_quality": {
+      "quality_analysis_enabled": true,
+      "enhancement_suggestions": true,
+      "batch_assessment_enabled": true,
+      "quality_thresholds": {
+        "resolution_minimum": 0.7,
+        "audio_minimum": 0.6,
+        "metadata_minimum": 0.8,
+        "overall_minimum": 0.7
+      },
+      "enhancement_types": ["upscaling", "audio_enhancement", "metadata_enrichment"],
+      "quality_tracking": true,
+      "auto_quality_reports": true
+    },
+    "user_behavior": {
+      "behavior_tracking_enabled": true,
+      "personalization_enabled": true,
+      "engagement_analysis": true,
+      "prediction_enabled": true,
+      "interaction_types": ["search", "view", "tag_edit", "feedback"],
+      "analysis_window_hours": 168,
+      "min_confidence_threshold": 0.7,
+      "privacy_mode": true,
+      "anonymize_data": true
+    }
+  }
+}

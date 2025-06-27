@@ -1,0 +1,24 @@
+{
+  "id": "system-health-check",
+  "type": "tool",
+  "description": "Monitor system health and performance",
+  "tool": "mcp_call",
+  "args": {
+    "server": "monitor",
+    "method": "get_system_metrics",
+    "params": {
+      "time_range_hours": 1
+    }
+  },
+  "schedule": {
+    "cron": "*/15 * * * *",
+    "max_instances": 1,
+    "overlap_policy": "skip"
+  },
+  "metadata": {
+    "priority": "high",
+    "tags": ["automation", "monitoring", "health-check", "mcp", "scheduled"],
+    "created_by": "example",
+    "notes": "System health check every 15 minutes. Uses Monitor MCP to get system metrics including CPU, memory, task throughput, and error rates. Can trigger alerts if thresholds exceeded."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "auto-download-youtube-playlist",
+  "type": "youtube",
+  "description": "Automatically download videos from YouTube playlist",
+  "url": "https://www.youtube.com/playlist?list=YOUR_PLAYLIST_ID",
+  "format": "best[height<=720]",
+  "quality": "720p",
+  "schedule": {
+    "cron": "0 1 * * *",
+    "max_instances": 1,
+    "overlap_policy": "queue"
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["automation", "youtube", "download", "playlist", "scheduled", "daily"],
+    "created_by": "example",
+    "notes": "Daily download of new videos from YouTube playlist at 1 AM. Downloads in 720p quality for balance of quality and storage. Queues if previous download still running. Replace playlist URL with actual playlist."
+  }
+}

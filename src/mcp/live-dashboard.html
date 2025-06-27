@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Task Monitor Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .status-pending { @apply bg-yellow-100 text-yellow-800; }
+        .status-running { @apply bg-blue-100 text-blue-800; }
+        .status-completed { @apply bg-green-100 text-green-800; }
+        .status-failed { @apply bg-red-100 text-red-800; }
+        .status-blocked { @apply bg-gray-100 text-gray-800; }
+        .status-skipped { @apply bg-gray-100 text-gray-800; }
+        .status-retrying { @apply bg-orange-100 text-orange-800; }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .connection-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .connected { background-color: #10b981; }
+        .disconnected { background-color: #ef4444; }
+        .connecting { background-color: #f59e0b; }
+        .partial { background-color: #f97316; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold">Live Task Monitor Dashboard</h1>
+                    <p class="text-sm text-gray-600 mt-1">Real-time monitoring via dual WebSocket connections</p>
+                </div>
+                <div class="flex items-center">
+                    <span class="connection-indicator" id="connectionIndicator"></span>
+                    <span id="connectionStatus">Connecting...</span>
+                    <button id="reconnectBtn" class="ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 hidden">
+                        Reconnect
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600" id="totalTasks">-</div>
+                    <div class="text-sm text-gray-600">Total Tasks</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600" id="completedTasks">-</div>
+                    <div class="text-sm text-gray-600">Completed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-600" id="runningTasks">-</div>
+                    <div class="text-sm text-gray-600">Running</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-red-600" id="failedTasks">-</div>
+                    <div class="text-sm text-gray-600">Failed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Updates -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Real-time Updates</h2>
+            <div id="realtimeUpdates" class="h-32 overflow-y-auto bg-gray-50 p-4 rounded">
+                <div class="text-gray-500 text-sm">Waiting for updates...</div>
+            </div>
+        </div>
+
+        <!-- Performance Charts -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">System Health & Performance</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-md font-medium mb-2">Task Queue Progress</h3>
+                    <div id="taskProgressChart" class="h-32 bg-gray-50 p-4 rounded flex items-center justify-center">
+                        <span class="text-gray-500 text-sm">Live charts will appear here</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-md font-medium mb-2">WebSocket Connections</h3>
+                    <div id="connectionChart" class="h-32 bg-gray-50 p-4 rounded">
+                        <div class="flex justify-between items-center h-full">
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">Monitor (8080)</div>
+                                <div id="monitorStatus" class="text-lg font-semibold text-red-500">Disconnected</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600">Enhanced (8081)</div>
+                                <div id="enhancedStatus" class="text-lg font-semibold text-red-500">Disconnected</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task List -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Recent Tasks</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="px-4 py-2 text-left">ID</th>
+                            <th class="px-4 py-2 text-left">Type</th>
+                            <th class="px-4 py-2 text-left">Description</th>
+                            <th class="px-4 py-2 text-left">Status</th>
+                            <th class="px-4 py-2 text-left">Created</th>
+                            <th class="px-4 py-2 text-left">Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskTableBody">
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                Loading tasks...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LiveDashboard {
+            constructor() {
+                this.monitorWs = null; // Monitor WebSocket (port 8080)
+                this.enhancedWs = null; // Enhanced Task Processor WebSocket (port 8081)
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.reconnectDelay = 1000;
+                this.tasks = [];
+
+                this.initializeElements();
+                this.initializeConnectionStatus();
+                this.connect();
+                this.setupEventListeners();
+            }
+            
+            initializeElements() {
+                this.connectionIndicator = document.getElementById('connectionIndicator');
+                this.connectionStatus = document.getElementById('connectionStatus');
+                this.reconnectBtn = document.getElementById('reconnectBtn');
+                this.realtimeUpdates = document.getElementById('realtimeUpdates');
+                this.taskTableBody = document.getElementById('taskTableBody');
+                
+                // Stats elements
+                this.totalTasks = document.getElementById('totalTasks');
+                this.completedTasks = document.getElementById('completedTasks');
+                this.runningTasks = document.getElementById('runningTasks');
+                this.failedTasks = document.getElementById('failedTasks');
+
+                // Performance chart elements
+                this.monitorStatus = document.getElementById('monitorStatus');
+                this.enhancedStatus = document.getElementById('enhancedStatus');
+            }
+
+            initializeConnectionStatus() {
+                // Initialize both connection status displays as disconnected
+                this.updateMonitorStatus('Disconnected');
+                this.updateEnhancedStatus('Disconnected');
+            }
+
+            setupEventListeners() {
+                this.reconnectBtn.addEventListener('click', () => {
+                    this.connect();
+                });
+            }
+            
+            connect() {
+                this.updateConnectionStatus('connecting', 'Connecting...');
+                this.reconnectBtn.classList.add('hidden');
+
+                // Connect to Monitor WebSocket (port 8080)
+                this.connectToMonitor();
+
+                // Connect to Enhanced Task Processor WebSocket (port 8081)
+                this.connectToEnhanced();
+            }
+
+            connectToMonitor() {
+                try {
+                    this.monitorWs = new WebSocket('ws://localhost:8080');
+
+                    this.monitorWs.onopen = () => {
+                        this.addRealtimeUpdate('Connected to Monitor WebSocket (8080)', 'success');
+                        this.updateMonitorStatus('Connected');
+                        this.reconnectAttempts = 0;
+                        this.checkOverallConnection();
+                    };
+
+                    this.monitorWs.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message, 'monitor');
+                        } catch (error) {
+                            console.error('Error parsing Monitor WebSocket message:', error);
+                        }
+                    };
+
+                    this.monitorWs.onclose = () => {
+                        this.addRealtimeUpdate('Monitor WebSocket connection lost', 'error');
+                        this.updateMonitorStatus('Disconnected');
+                        this.checkOverallConnection();
+                    };
+
+                    this.monitorWs.onerror = (error) => {
+                        console.error('Monitor WebSocket error:', error);
+                        this.addRealtimeUpdate('Monitor WebSocket error', 'error');
+                    };
+
+                } catch (error) {
+                    console.error('Failed to create Monitor WebSocket connection:', error);
+                    this.addRealtimeUpdate('Monitor WebSocket connection failed', 'error');
+                }
+            }
+
+            connectToEnhanced() {
+                try {
+                    this.enhancedWs = new WebSocket('ws://localhost:8081');
+
+                    this.enhancedWs.onopen = () => {
+                        this.addRealtimeUpdate('Connected to Enhanced Task Processor WebSocket (8081)', 'success');
+                        this.updateEnhancedStatus('Connected');
+                        this.reconnectAttempts = 0;
+                        this.checkOverallConnection();
+                    };
+
+                    this.enhancedWs.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message, 'enhanced');
+                        } catch (error) {
+                            console.error('Error parsing Enhanced WebSocket message:', error);
+                        }
+                    };
+
+                    this.enhancedWs.onclose = () => {
+                        this.addRealtimeUpdate('Enhanced Task Processor WebSocket connection lost', 'error');
+                        this.updateEnhancedStatus('Disconnected');
+                        this.checkOverallConnection();
+                    };
+
+                    this.enhancedWs.onerror = (error) => {
+                        console.error('Enhanced WebSocket error:', error);
+                        this.addRealtimeUpdate('Enhanced WebSocket error', 'error');
+                    };
+
+                } catch (error) {
+                    console.error('Failed to create Enhanced WebSocket connection:', error);
+                    this.addRealtimeUpdate('Enhanced WebSocket connection failed', 'error');
+                }
+            }
+
+            checkOverallConnection() {
+                const monitorConnected = this.monitorWs && this.monitorWs.readyState === WebSocket.OPEN;
+                const enhancedConnected = this.enhancedWs && this.enhancedWs.readyState === WebSocket.OPEN;
+
+                if (monitorConnected && enhancedConnected) {
+                    this.updateConnectionStatus('connected', 'Both Connected');
+                } else if (monitorConnected || enhancedConnected) {
+                    this.updateConnectionStatus('partial', 'Partially Connected');
+                } else {
+                    this.updateConnectionStatus('disconnected', 'Disconnected');
+                    this.scheduleReconnect();
+                }
+            }
+            
+            scheduleReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+                    
+                    setTimeout(() => {
+                        this.addRealtimeUpdate(`Reconnecting... (attempt ${this.reconnectAttempts})`, 'info');
+                        this.connect();
+                    }, delay);
+                } else {
+                    this.reconnectBtn.classList.remove('hidden');
+                    this.addRealtimeUpdate('Max reconnection attempts reached. Click reconnect to try again.', 'error');
+                }
+            }
+            
+            updateConnectionStatus(status, text) {
+                this.connectionIndicator.className = `connection-indicator ${status}`;
+                this.connectionStatus.textContent = text;
+
+                if (status === 'connecting') {
+                    this.connectionIndicator.classList.add('pulse-animation');
+                } else {
+                    this.connectionIndicator.classList.remove('pulse-animation');
+                }
+            }
+
+            updateMonitorStatus(status) {
+                if (this.monitorStatus) {
+                    this.monitorStatus.textContent = status;
+                    this.monitorStatus.className = status === 'Connected' ?
+                        'text-lg font-semibold text-green-500' :
+                        'text-lg font-semibold text-red-500';
+                }
+            }
+
+            updateEnhancedStatus(status) {
+                if (this.enhancedStatus) {
+                    this.enhancedStatus.textContent = status;
+                    this.enhancedStatus.className = status === 'Connected' ?
+                        'text-lg font-semibold text-green-500' :
+                        'text-lg font-semibold text-red-500';
+                }
+            }
+
+            handleMessage(message, source = 'unknown') {
+                switch (message.type) {
+                    case 'current_status':
+                        this.updateTaskList(message.data.tasks);
+                        this.addRealtimeUpdate(`Received current status from ${source}`, 'info');
+                        break;
+
+                    case 'status_update':
+                        this.handleStatusUpdate(message.data, source);
+                        break;
+
+                    case 'system_metrics':
+                        this.handleSystemMetrics(message.data, source);
+                        break;
+
+                    default:
+                        console.log(`Unknown message type from ${source}:`, message.type);
+                }
+            }
+            
+            handleStatusUpdate(statusUpdate, source = 'unknown') {
+                const { taskId, status, timestamp, details } = statusUpdate;
+
+                // Update task in list if it exists
+                const taskIndex = this.tasks.findIndex(task => task.id == taskId);
+                if (taskIndex !== -1) {
+                    this.tasks[taskIndex].status = status;
+                    if (details) {
+                        this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...details };
+                    }
+                    this.updateTaskList(this.tasks);
+                }
+
+                // Add to real-time updates
+                this.addRealtimeUpdate(
+                    `[${source}] Task ${taskId} → ${status}`,
+                    this.getStatusType(status),
+                    timestamp
+                );
+            }
+
+            handleSystemMetrics(metrics, source = 'unknown') {
+                // Handle system metrics from WebSocket servers
+                this.addRealtimeUpdate(
+                    `[${source}] System metrics received`,
+                    'info'
+                );
+
+                // You can extend this to display system metrics in the dashboard
+                console.log('System metrics from', source, ':', metrics);
+            }
+            
+            updateTaskList(tasks) {
+                this.tasks = tasks || [];
+                this.updateStats();
+                this.renderTaskTable();
+            }
+            
+            updateStats() {
+                const stats = this.tasks.reduce((acc, task) => {
+                    acc.total++;
+                    acc[task.status] = (acc[task.status] || 0) + 1;
+                    return acc;
+                }, { total: 0 });
+                
+                this.totalTasks.textContent = stats.total;
+                this.completedTasks.textContent = stats.completed || 0;
+                this.runningTasks.textContent = stats.running || 0;
+                this.failedTasks.textContent = (stats.failed || 0) + (stats.error || 0);
+            }
+            
+            renderTaskTable() {
+                if (this.tasks.length === 0) {
+                    this.taskTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                No tasks found
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                this.taskTableBody.innerHTML = this.tasks.slice(0, 20).map(task => {
+                    const duration = this.calculateDuration(task);
+                    return `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-4 py-2">${task.id}</td>
+                            <td class="px-4 py-2">${task.type}</td>
+                            <td class="px-4 py-2 max-w-xs truncate" title="${task.description}">
+                                ${task.description || 'No description'}
+                            </td>
+                            <td class="px-4 py-2">
+                                <span class="px-2 py-1 rounded text-xs status-${task.status}">
+                                    ${task.status}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 text-sm">
+                                ${this.formatTimestamp(task.created_at)}
+                            </td>
+                            <td class="px-4 py-2 text-sm">
+                                ${duration}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+            
+            calculateDuration(task) {
+                if (!task.started_at) return '-';
+                
+                const start = new Date(task.started_at);
+                const end = task.finished_at ? new Date(task.finished_at) : new Date();
+                const duration = Math.floor((end - start) / 1000);
+                
+                if (duration < 60) return `${duration}s`;
+                if (duration < 3600) return `${Math.floor(duration / 60)}m ${duration % 60}s`;
+                return `${Math.floor(duration / 3600)}h ${Math.floor((duration % 3600) / 60)}m`;
+            }
+            
+            formatTimestamp(timestamp) {
+                if (!timestamp) return '-';
+                return new Date(timestamp).toLocaleString();
+            }
+            
+            addRealtimeUpdate(message, type = 'info', timestamp = null) {
+                const time = timestamp ? new Date(timestamp) : new Date();
+                const timeStr = time.toLocaleTimeString();
+                
+                const typeClasses = {
+                    success: 'text-green-600',
+                    error: 'text-red-600',
+                    info: 'text-blue-600',
+                    warning: 'text-yellow-600'
+                };
+                
+                const updateElement = document.createElement('div');
+                updateElement.className = `text-sm mb-1 ${typeClasses[type] || 'text-gray-600'}`;
+                updateElement.innerHTML = `<span class="text-gray-500">[${timeStr}]</span> ${message}`;
+                
+                this.realtimeUpdates.insertBefore(updateElement, this.realtimeUpdates.firstChild);
+                
+                // Keep only last 50 updates
+                while (this.realtimeUpdates.children.length > 50) {
+                    this.realtimeUpdates.removeChild(this.realtimeUpdates.lastChild);
+                }
+            }
+            
+            getStatusType(status) {
+                const statusTypes = {
+                    completed: 'success',
+                    failed: 'error',
+                    error: 'error',
+                    running: 'info',
+                    pending: 'warning'
+                };
+                return statusTypes[status] || 'info';
+            }
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new LiveDashboard();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "id": "ai-content-recommendations",
+  "type": "tool",
+  "description": "Generate personalized content recommendations",
+  "tool": "mcp_call",
+  "args": {
+    "server": "media-intelligence",
+    "method": "generate_content_recommendations",
+    "params": {
+      "source_media_id": 1,
+      "recommendation_type": "similar",
+      "max_recommendations": 10,
+      "include_reasoning": true
+    }
+  },
+  "metadata": {
+    "priority": "normal",
+    "tags": ["ai", "recommendations", "personalization", "content-discovery", "mcp"],
+    "created_by": "example",
+    "notes": "Demonstrates AI-powered content recommendations. Uses Media Intelligence MCP to generate personalized suggestions based on user behavior and content similarity. Includes reasoning for transparency."
+  }
+}

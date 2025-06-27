@@ -1,0 +1,21 @@
+{
+  "id": "review-task-demo",
+  "type": "review",
+  "description": "Review the output of the code generation task",
+  "target_task_id": "code-generation-demo",
+  "criteria": [
+    "Code follows TypeScript best practices",
+    "Function includes proper type annotations",
+    "JSDoc comments are comprehensive",
+    "Function handles edge cases (zero, negative numbers)",
+    "Code is readable and well-structured",
+    "Export statement is present"
+  ],
+  "dependencies": ["code-generation-demo"],
+  "metadata": {
+    "priority": "normal",
+    "tags": ["basic", "review", "quality-assurance", "code-review"],
+    "created_by": "example",
+    "notes": "Demonstrates review task functionality. Reviews the output of the code generation task against specific criteria. Shows how to set up task dependencies and quality checks."
+  }
+}
