@@ -8,8 +8,8 @@ import { getDatabase } from '../db';
 
 function getInterpreterForExtension(ext: string): { cmd: string[], label: string } | null {
     if (ext === '.py') return { cmd: ['python'], label: 'python' };
-    if (ext === '.js') return { cmd: ['node'], label: 'node' };
-    if (ext === '.ts') return { cmd: ['ts-node'], label: 'ts-node' };
+    if (ext === '.js') return { cmd: ['bun', 'run'], label: 'bun' };
+    if (ext === '.ts') return { cmd: ['bun', 'run'], label: 'bun' };
     if (ext === '.sh') return { cmd: ['bash'], label: 'bash' };
     // Add more as needed
     return null;

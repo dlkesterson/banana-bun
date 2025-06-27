@@ -21,7 +21,7 @@ This script will:
 2. Copy environment configuration
 3. Check for required dependencies
 4. Install missing dependencies (if not skipped)
-5. Install Node.js and Python dependencies
+5. Install dependencies and Python packages
 
 Prerequisites:
 - PowerShell 5.1 or later
@@ -146,13 +146,13 @@ if (!$SkipDependencies) {
     }
 }
 
-# Install Node.js dependencies
-Write-Status "Installing Node.js dependencies..."
+# Install dependencies
+Write-Status "Installing dependencies..."
 try {
     & bun install
-    Write-Status "Node.js dependencies installed successfully"
+    Write-Status "Dependencies installed successfully"
 } catch {
-    Write-Error "Failed to install Node.js dependencies"
+    Write-Error "Failed to install dependencies"
     exit 1
 }
 

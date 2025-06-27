@@ -25,7 +25,7 @@ mock.module('../src/db', () => ({
 
 // Mock MCP SDK
 const mockServer = {
-    setRequestHandler: mock(() => {}),
+    setRequestHandler: mock(() => { }),
     connect: mock(() => Promise.resolve())
 };
 
@@ -46,7 +46,7 @@ describe('New MCP Servers Integration', () => {
     beforeEach(() => {
         // Create comprehensive test database
         mockDb = new Database(':memory:');
-        
+
         // Create all necessary tables
         mockDb.exec(`
             CREATE TABLE IF NOT EXISTS media_metadata (
@@ -109,7 +109,7 @@ describe('New MCP Servers Integration', () => {
         `);
 
         // Insert comprehensive test data
-        this.insertTestData();
+        await insertTestData();
 
         // Reset all mocks
         mockLogger.info.mockClear();
@@ -124,8 +124,8 @@ describe('New MCP Servers Integration', () => {
         mockDb?.close();
     });
 
-    // Helper method to insert test data
-    insertTestData() {
+    // Helper function to insert test data
+    const insertTestData = async () => {
         // Insert media metadata with varying quality
         mockDb.exec(`
             INSERT INTO media_metadata (title, tags, summary, genre, duration, collection, width, height, audio_bitrate, sample_rate)
@@ -142,7 +142,7 @@ describe('New MCP Servers Integration', () => {
             const taskTime = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000);
             const hour = 9 + (i % 8); // Business hours pattern
             taskTime.setHours(hour, Math.floor(Math.random() * 60), 0, 0);
-            
+
             mockDb.run(`
                 INSERT INTO tasks (type, status, created_at, started_at, finished_at)
                 VALUES (?, ?, ?, ?, ?)
@@ -186,7 +186,7 @@ describe('New MCP Servers Integration', () => {
                 ]);
             }
         }
-    }
+    };
 
     describe('Server Initialization', () => {
         it('should initialize all new MCP servers without errors', async () => {
@@ -239,7 +239,7 @@ describe('New MCP Servers Integration', () => {
             // Simulate metadata optimization improving an item
             const itemId = 3; // Low quality item
             const originalItem = mockDb.query('SELECT * FROM media_metadata WHERE id = ?').get(itemId) as any;
-            
+
             expect(originalItem.tags).toBe('');
             expect(originalItem.summary).toBe('');
 
@@ -273,7 +273,7 @@ describe('New MCP Servers Integration', () => {
             // Use patterns to optimize resource scheduling
             const pattern = patterns[0];
             const patternData = JSON.parse(pattern.pattern_data);
-            
+
             if (patternData.success_rate > 0.8) {
                 // This hour should be prioritized for scheduling
                 expect(patternData.hour).toBeDefined();
@@ -333,7 +333,7 @@ describe('New MCP Servers Integration', () => {
 
             // Execute all operations
             const results = operations.map(op => op());
-            
+
             // All operations should complete successfully
             expect(results.length).toBe(5);
             results.forEach(result => {

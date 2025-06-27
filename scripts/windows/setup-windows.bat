@@ -57,11 +57,11 @@ if errorlevel 1 (
     echo [INFO] Python is installed
 )
 
-REM Install Node.js dependencies
-echo [INFO] Installing Node.js dependencies...
+REM Install dependencies
+echo [INFO] Installing dependencies...
 bun install
 if errorlevel 1 (
-    echo [ERROR] Failed to install Node.js dependencies
+    echo [ERROR] Failed to install dependencies
     pause
     exit /b 1
 )

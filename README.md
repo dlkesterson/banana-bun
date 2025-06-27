@@ -43,7 +43,6 @@ All components interact to form a privacy-first, local AI-driven media organizat
 
 ### Prerequisites
 - **Bun** runtime (latest version)
-- **Node.js** 18+ (for some dependencies)
 - **Python** 3.8+ (for AI services)
 - **Git** (for cloning)
 

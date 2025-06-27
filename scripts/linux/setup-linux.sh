@@ -75,8 +75,8 @@ if ! command -v mediainfo &> /dev/null; then
     sudo apt install -y mediainfo
 fi
 
-# Install Node.js dependencies
-print_status "Installing Node.js dependencies..."
+# Install dependencies
+print_status "Installing dependencies..."
 bun install
 
 # Install Python dependencies
