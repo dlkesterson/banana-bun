@@ -24,8 +24,7 @@ interface AnalysisOptions {
     generateReport?: boolean;
 }
 
-async function parseArgs(): Promise<AnalysisOptions> {
-    const args = process.argv.slice(2);
+async function parseArgs(args: string[] = process.argv.slice(2)): Promise<AnalysisOptions> {
     const options: AnalysisOptions = {
         action: 'correlations',
         days: 7,
@@ -317,7 +316,7 @@ async function trackSearchBehavior(
 }
 
 async function showDashboard(
-    service: CrossModalIntelligenceService, 
+    service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
     console.log(`📊 Cross-Modal Intelligence Dashboard`);
@@ -346,6 +345,17 @@ async function showDashboard(
         console.log(`   • Tagging effectiveness metrics`);
     }
 }
+
+// Export functions for testing
+export {
+    parseArgs,
+    analyzeCorrelations,
+    assessQuality,
+    generateEmbeddings,
+    analyzeSearchPatterns,
+    trackSearchBehavior,
+    showDashboard
+};
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
