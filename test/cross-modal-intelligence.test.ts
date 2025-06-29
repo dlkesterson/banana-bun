@@ -1,10 +1,20 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
+
+let db: Database;
+// mock database module before importing services
+mock.module('../src/db', () => ({ getDatabase: () => db }));
+mock.module('../src/config', () => ({
+    config: {
+        paths: { logs: '/tmp' },
+        services: { chromadb: { url: 'http://localhost:1234' } }
+    }
+}));
+
 import { CrossModalIntelligenceService } from '../src/services/cross-modal-intelligence-service';
 import { ContentEngagementService } from '../src/services/content-engagement-service';
 
 describe('Cross-Modal Intelligence Service', () => {
-    let db: Database;
     let crossModalService: CrossModalIntelligenceService;
     let engagementService: ContentEngagementService;
 
@@ -18,9 +28,7 @@ describe('Cross-Modal Intelligence Service', () => {
         // Insert test data
         insertTestData(db);
 
-        // Mock the database getter
-        const originalGetDatabase = require('../src/db').getDatabase;
-        require('../src/db').getDatabase = () => db;
+        process.env.CHROMA_URL = 'http://localhost:1234';
 
         // Initialize services
         crossModalService = new CrossModalIntelligenceService();
@@ -29,6 +37,7 @@ describe('Cross-Modal Intelligence Service', () => {
 
     afterAll(() => {
         db.close();
+        delete process.env.CHROMA_URL;
     });
 
     test('should analyze search-transcript-tag correlations', async () => {
@@ -60,7 +69,7 @@ describe('Cross-Modal Intelligence Service', () => {
 
     test('should generate cross-modal embeddings', async () => {
         const embedding = await crossModalService.generateCrossModalEmbedding(1);
-        
+
         expect(embedding.media_id).toBe(1);
         expect(Array.isArray(embedding.text_embedding)).toBe(true);
         expect(Array.isArray(embedding.metadata_features)).toBe(true);
@@ -68,6 +77,39 @@ describe('Cross-Modal Intelligence Service', () => {
         expect(embedding.embedding_quality).toBeGreaterThanOrEqual(0);
         expect(embedding.embedding_quality).toBeLessThanOrEqual(1);
         expect(embedding.combined_embedding.length).toBeGreaterThan(0);
+    });
+
+    describe('correlation helpers', () => {
+        test('calculate high correlation', async () => {
+            const result = await (crossModalService as any).calculateCorrelations(
+                ['machine learning tutorial'],
+                [{ text: 'machine learning algorithms explained', start_time: 0, end_time: 5, relevance_score: 0.9, matched_terms: ['machine', 'learning'] }],
+                ['machine-learning', 'ai']
+            );
+            expect(result.overall_score).toBeGreaterThan(0.4);
+            expect(result.improvement_potential).toBeLessThan(0.5);
+        });
+
+        test('suggest tags from transcript and queries', async () => {
+            const suggestions = await (crossModalService as any).generateTagSuggestions(
+                ['neural networks overview'],
+                [{ text: 'introduction to neural networks and deep learning', start_time: 0, end_time: 10, relevance_score: 0.8, matched_terms: [] }],
+                ['tutorial']
+            );
+            expect(suggestions).toContain('neural');
+            expect(suggestions).toContain('networks');
+            expect(suggestions).not.toContain('tutorial');
+        });
+
+        test('handle empty transcript', async () => {
+            const result = await (crossModalService as any).calculateCorrelations(
+                ['test video'],
+                [],
+                ['video']
+            );
+            expect(result.overall_score).toBeLessThan(0.2);
+            expect(result.confidence).toBeLessThan(0.5);
+        });
     });
 
     test('should track search behavior', async () => {
@@ -205,6 +247,7 @@ function createTestTables(db: Database): void {
             transcript_text TEXT NOT NULL,
             language TEXT,
             chunks_json TEXT,
+            confidence_score REAL,
             whisper_model TEXT NOT NULL,
             transcribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -253,16 +296,18 @@ function insertTestData(db: Database): void {
 
     // Insert test transcripts
     db.run(`
-        INSERT INTO media_transcripts (media_id, task_id, transcript_text, chunks_json, whisper_model)
-        VALUES (1, 1, 'This is a test video about cats and dogs playing together', 
-                '[{"text": "This is a test video", "start": 0, "end": 3}, {"text": "about cats and dogs", "start": 3, "end": 6}]', 
+        INSERT INTO media_transcripts (media_id, task_id, transcript_text, chunks_json, confidence_score, whisper_model)
+        VALUES (1, 1, 'This is a test video about cats and dogs playing together',
+                '[{"text": "This is a test video", "start": 0, "end": 3}, {"text": "about cats and dogs", "start": 3, "end": 6}]',
+                0.9,
                 'whisper-1')
     `);
 
     db.run(`
-        INSERT INTO media_transcripts (media_id, task_id, transcript_text, chunks_json, whisper_model)
-        VALUES (2, 2, 'Another video showing funny animals in nature', 
-                '[{"text": "Another video showing", "start": 0, "end": 3}, {"text": "funny animals in nature", "start": 3, "end": 8}]', 
+        INSERT INTO media_transcripts (media_id, task_id, transcript_text, chunks_json, confidence_score, whisper_model)
+        VALUES (2, 2, 'Another video showing funny animals in nature',
+                '[{"text": "Another video showing", "start": 0, "end": 3}, {"text": "funny animals in nature", "start": 3, "end": 8}]',
+                0.85,
                 'whisper-1')
     `);
 
