@@ -51,9 +51,9 @@ Styles:
 `);
 }
 
-function parseCliArgs(): CliOptions {
+function parseCliArgs(args: string[] = process.argv.slice(2)): CliOptions {
   const { values } = parseArgs({
-    args: process.argv.slice(2),
+    args,
     options: {
       media: { type: "string" },
       style: { type: "string" },
@@ -65,6 +65,7 @@ function parseCliArgs(): CliOptions {
   });
 
   const options: CliOptions = {
+    style: "bullet",
     force: values.force,
     direct: values.direct,
     help: values.help,
@@ -76,6 +77,8 @@ function parseCliArgs(): CliOptions {
       throw new Error(`Invalid media ID: ${values.media}`);
     }
     options.mediaId = mediaId;
+  } else if (!values.help) {
+    throw new Error("Media ID is required");
   }
 
   if (values.style) {
@@ -89,6 +92,10 @@ function parseCliArgs(): CliOptions {
 
   if (values.model) {
     options.model = values.model;
+  }
+
+  if (values.help) {
+    printUsage();
   }
 
   return options;
@@ -248,4 +255,14 @@ async function main() {
   }
 }
 
-main();
+export {
+  parseCliArgs,
+  validateMediaExists,
+  runDirectSummarization,
+  createSummarizationTask,
+  main,
+};
+
+if (import.meta.main) {
+  main();
+}
