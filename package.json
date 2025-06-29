@@ -88,7 +88,8 @@
     "search-similar-patterns": "bun run src/cli/search-similar-patterns.ts",
     "analyze-feedback-enhanced": "bun run src/cli/analyze-feedback-enhanced.ts",
     "test-tag-strategies": "bun run src/cli/test-tag-strategies.ts",
-    "analyze-cross-modal-intelligence": "bun run src/cli/analyze-cross-modal-intelligence.ts"
+    "analyze-cross-modal-intelligence": "bun run src/cli/analyze-cross-modal-intelligence.ts",
+    "verify-codecov": "bun run scripts/verify-codecov-setup.ts"
   },
   "devDependencies": {
     "@types/ws": "^8.5.10",
