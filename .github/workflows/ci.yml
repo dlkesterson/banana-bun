@@ -125,3 +125,37 @@ jobs:
           exit 1
         fi
         echo "Coverage check passed!"
+
+  changed-tests:
+    name: Run Changed Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
+    - name: Install dependencies
+      run: bun install --frozen-lockfile
+
+    - name: Get changed test files
+      id: changed
+      run: |
+        git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+        CHANGED=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD | grep '^test/.*\\.test\\.ts$' || true)
+        echo "tests=$CHANGED" >> "$GITHUB_OUTPUT"
+
+    - name: Run changed tests
+      if: steps.changed.outputs.tests != ''
+      run: bun test ${{ steps.changed.outputs.tests }}
+
+    - name: No tests changed
+      if: steps.changed.outputs.tests == ''
+      run: echo "No test changes detected"
