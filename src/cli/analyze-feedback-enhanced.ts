@@ -10,6 +10,7 @@
 import { initDatabase } from '../db';
 import { logger } from '../utils/logger';
 import { EnhancedLearningService } from '../services/enhanced-learning-service';
+import { safeParseInt, safeParseFloat } from '../utils/safe-access';
 
 interface AnalysisOptions {
     minFrequency: number;
@@ -39,7 +40,7 @@ async function parseArgs(): Promise<AnalysisOptions> {
         const arg = args[i];
         switch (arg) {
             case '--min-frequency':
-                options.minFrequency = parseInt(args[++i]) || 3;
+                options.minFrequency = safeParseInt(args[++i]) ?? 3;
                 break;
             case '--generate-rules':
                 options.generateRules = true;
@@ -51,7 +52,7 @@ async function parseArgs(): Promise<AnalysisOptions> {
                 options.dryRun = true;
                 break;
             case '--confidence':
-                options.confidenceThreshold = parseFloat(args[++i]) || 0.7;
+                options.confidenceThreshold = safeParseFloat(args[++i]) ?? 0.7;
                 break;
             case '--no-cross-modal':
                 options.enableCrossModal = false;
@@ -63,7 +64,10 @@ async function parseArgs(): Promise<AnalysisOptions> {
                 options.strategy = args[++i];
                 break;
             case '--media-id':
-                options.mediaId = parseInt(args[++i]);
+                const mediaId = safeParseInt(args[++i]);
+                if (mediaId !== undefined) {
+                    options.mediaId = mediaId;
+                }
                 break;
             case '--help':
                 printHelp();

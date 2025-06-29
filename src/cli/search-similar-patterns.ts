@@ -15,6 +15,7 @@ import { parseArgs } from 'util';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 import { getDatabase } from '../db';
+import { safeObjectEntries } from '../utils/safe-access';
 import type { ActivityPattern } from '../types/rule-scheduler';
 
 interface SearchOptions {
@@ -500,8 +501,10 @@ function displayAnalysisSummary(patterns: ActivityPattern[], options: SearchOpti
     }
 
     console.log('\n📊 BY PATTERN TYPE:');
-    Object.entries(typeGroups)
-        .sort(([,a], [,b]) => b - a)
+    const typeEntries = safeObjectEntries(typeGroups);
+    typeEntries
+        .filter(([, count]) => typeof count === 'number')
+        .sort(([,a], [,b]) => (b as number) - (a as number))
         .forEach(([type, count]) => {
             console.log(`   ${type}: ${count}`);
         });

@@ -13,6 +13,7 @@ import { parseArgs } from 'util';
 import { initDatabase, getDatabase } from '../db';
 import { logger } from '../utils/logger';
 import { mediaEmbeddingService } from '../services/embedding-service';
+import { safeParseInt, safeParseFloat } from '../utils/safe-access';
 
 interface CliOptions {
     mediaId?: number;
@@ -71,8 +72,8 @@ function parseCliArgs(): CliOptions {
     };
 
     if (values.media) {
-        const mediaId = parseInt(values.media, 10);
-        if (isNaN(mediaId)) {
+        const mediaId = safeParseInt(values.media);
+        if (mediaId === undefined) {
             throw new Error(`Invalid media ID: ${values.media}`);
         }
         options.mediaId = mediaId;
@@ -83,16 +84,16 @@ function parseCliArgs(): CliOptions {
     }
 
     if (values.top) {
-        const top = parseInt(values.top, 10);
-        if (isNaN(top) || top < 1 || top > 100) {
+        const top = safeParseInt(values.top);
+        if (top === undefined || top < 1 || top > 100) {
             throw new Error(`Invalid top value: ${values.top}. Must be between 1 and 100`);
         }
         options.top = top;
     }
 
     if (values.threshold) {
-        const threshold = parseFloat(values.threshold);
-        if (isNaN(threshold) || threshold < 0 || threshold > 1) {
+        const threshold = safeParseFloat(values.threshold);
+        if (threshold === undefined || threshold < 0 || threshold > 1) {
             throw new Error(`Invalid threshold: ${values.threshold}. Must be between 0.0 and 1.0`);
         }
         options.threshold = threshold;

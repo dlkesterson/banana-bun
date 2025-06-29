@@ -13,6 +13,7 @@ import { initDatabase, getDatabase } from '../db';
 import { logger } from '../utils/logger';
 import { executeVideoObjectDetectTask } from '../executors/scene-detect';
 import { objectRecognizerService } from '../services/object-recognizer';
+import { safeParseInt, safeParseFloat } from '../utils/safe-access';
 
 interface CliOptions {
     sceneId?: number;
@@ -82,24 +83,24 @@ function parseCliArgs(): CliOptions {
     };
 
     if (values.scene) {
-        const sceneId = parseInt(values.scene, 10);
-        if (isNaN(sceneId)) {
+        const sceneId = safeParseInt(values.scene);
+        if (sceneId === undefined) {
             throw new Error(`Invalid scene ID: ${values.scene}`);
         }
         options.sceneId = sceneId;
     }
 
     if (values.media) {
-        const mediaId = parseInt(values.media, 10);
-        if (isNaN(mediaId)) {
+        const mediaId = safeParseInt(values.media);
+        if (mediaId === undefined) {
             throw new Error(`Invalid media ID: ${values.media}`);
         }
         options.mediaId = mediaId;
     }
 
     if (values.confidence) {
-        const confidence = parseFloat(values.confidence);
-        if (isNaN(confidence) || confidence < 0 || confidence > 1) {
+        const confidence = safeParseFloat(values.confidence);
+        if (confidence === undefined || confidence < 0 || confidence > 1) {
             throw new Error(`Invalid confidence: ${values.confidence}. Must be between 0.0 and 1.0`);
         }
         options.confidence = confidence;
