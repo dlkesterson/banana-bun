@@ -17,7 +17,7 @@
  */
 
 import { parseArgs } from 'util';
-import { readdir } from 'fs/promises';
+import { readdir, stat } from 'fs/promises';
 import { join, extname } from 'path';
 import { initDatabase } from '../db';
 import { mcpClient } from '../mcp/mcp-client';
@@ -81,42 +81,60 @@ Examples:
 `);
 }
 
+function parseCliArgs(args: string[]): CliOptions {
+    const { values, positionals } = parseArgs({
+        args,
+        options: {
+            model: { type: 'string' },
+            language: { type: 'string' },
+            quality: { type: 'string' },
+            recommend: { type: 'string' },
+            assess: { type: 'string' },
+            analytics: { type: 'boolean' },
+            patterns: { type: 'boolean' },
+            batch: { type: 'string' },
+            feedback: { type: 'string' },
+            rating: { type: 'string' },
+            'session-id': { type: 'string' },
+            help: { type: 'boolean' }
+        },
+        allowPositionals: true
+    });
+
+    if (values.quality && !['fast', 'balanced', 'high'].includes(values.quality)) {
+        throw new Error('Invalid quality. Must be one of: fast, balanced, high');
+    }
+
+    let rating: number | undefined;
+    if (values.rating !== undefined) {
+        rating = parseInt(values.rating);
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+            throw new Error('Rating must be between 1 and 5');
+        }
+    }
+
+    const options: CliOptions = {
+        filePath: positionals[0],
+        model: values.model,
+        language: values.language,
+        quality: values.quality as 'fast' | 'balanced' | 'high',
+        recommend: values.recommend,
+        assess: values.assess,
+        analytics: values.analytics,
+        patterns: values.patterns,
+        batch: values.batch,
+        feedback: values.feedback,
+        rating,
+        sessionId: values['session-id'],
+        help: values.help
+    };
+
+    return options;
+}
+
 async function main() {
     try {
-        const { values, positionals } = parseArgs({
-            args: Bun.argv.slice(2),
-            options: {
-                model: { type: 'string' },
-                language: { type: 'string' },
-                quality: { type: 'string' },
-                recommend: { type: 'string' },
-                assess: { type: 'string' },
-                analytics: { type: 'boolean' },
-                patterns: { type: 'boolean' },
-                batch: { type: 'string' },
-                feedback: { type: 'string' },
-                rating: { type: 'string' },
-                'session-id': { type: 'string' },
-                help: { type: 'boolean' }
-            },
-            allowPositionals: true
-        });
-
-        const options: CliOptions = {
-            filePath: positionals[0],
-            model: values.model,
-            language: values.language,
-            quality: values.quality as 'fast' | 'balanced' | 'high',
-            recommend: values.recommend,
-            assess: values.assess,
-            analytics: values.analytics,
-            patterns: values.patterns,
-            batch: values.batch,
-            feedback: values.feedback,
-            rating: values.rating ? parseInt(values.rating) : undefined,
-            sessionId: values['session-id'],
-            help: values.help
-        };
+        const options = parseCliArgs(Bun.argv.slice(2));
 
         if (options.help) {
             printUsage();
@@ -153,7 +171,7 @@ async function main() {
     }
 }
 
-async function performSmartTranscription(filePath: string, options: CliOptions): Promise<void> {
+async function performSmartTranscription(filePath: string, options: CliOptions, client = mcpClient): Promise<void> {
     try {
         console.log(`🎙️  Smart transcription for: "${filePath}"`);
         if (options.model) {
@@ -165,7 +183,7 @@ async function performSmartTranscription(filePath: string, options: CliOptions):
         console.log(`🎯 Quality target: ${options.quality || 'balanced'}`);
         console.log('');
 
-        const result = await mcpClient.smartTranscribe(filePath, {
+        const result = await client.smartTranscribe(filePath, {
             model: options.model,
             language: options.language,
             qualityTarget: options.quality,
@@ -225,11 +243,11 @@ async function performSmartTranscription(filePath: string, options: CliOptions):
     }
 }
 
-async function getModelRecommendation(filePath: string, qualityTarget?: string): Promise<void> {
+async function getModelRecommendation(filePath: string, qualityTarget?: string, client = mcpClient): Promise<void> {
     try {
         console.log(`🤖 Getting model recommendation for: "${filePath}"\n`);
 
-        const result = await mcpClient.getModelRecommendation(filePath, {
+        const result = await client.getModelRecommendation(filePath, {
             qualityTarget: qualityTarget || 'balanced'
         });
 
@@ -259,11 +277,11 @@ async function getModelRecommendation(filePath: string, qualityTarget?: string):
     }
 }
 
-async function assessTranscriptionQuality(transcript: string): Promise<void> {
+async function assessTranscriptionQuality(transcript: string, client = mcpClient): Promise<void> {
     try {
         console.log(`📊 Assessing transcription quality...\n`);
 
-        const result = await mcpClient.assessTranscriptionQuality(transcript);
+        const result = await client.assessTranscriptionQuality(transcript);
 
         if (!result) {
             console.error('❌ Failed to assess quality - MCP server may not be running');
@@ -305,11 +323,11 @@ async function assessTranscriptionQuality(transcript: string): Promise<void> {
     }
 }
 
-async function showTranscriptionAnalytics(): Promise<void> {
+async function showTranscriptionAnalytics(client = mcpClient): Promise<void> {
     try {
         console.log('📊 Transcription Analytics (Last 24 hours)\n');
 
-        const result = await mcpClient.getTranscriptionAnalytics();
+        const result = await client.getTranscriptionAnalytics();
 
         if (!result) {
             console.error('❌ Failed to get analytics - MCP server may not be running');
@@ -354,11 +372,11 @@ async function showTranscriptionAnalytics(): Promise<void> {
     }
 }
 
-async function showTranscriptionPatterns(): Promise<void> {
+async function showTranscriptionPatterns(client = mcpClient): Promise<void> {
     try {
         console.log('🔍 Transcription Pattern Analysis (Last 24 hours)\n');
 
-        const result = await mcpClient.analyzeTranscriptionPatterns();
+        const result = await client.analyzeTranscriptionPatterns();
 
         if (!result) {
             console.error('❌ Failed to analyze patterns - MCP server may not be running');
@@ -400,7 +418,7 @@ async function showTranscriptionPatterns(): Promise<void> {
     }
 }
 
-async function performBatchTranscription(pattern: string, options: CliOptions): Promise<void> {
+async function performBatchTranscription(pattern: string, options: CliOptions, client = mcpClient): Promise<void> {
     try {
         console.log(`📁 Batch transcription for pattern: "${pattern}"\n`);
 
@@ -414,7 +432,7 @@ async function performBatchTranscription(pattern: string, options: CliOptions): 
         console.log(`Found ${files.length} files to transcribe`);
 
         // Get batch optimization
-        const optimization = await mcpClient.optimizeBatchTranscription(files, {
+        const optimization = await client.optimizeBatchTranscription(files, {
             qualityTarget: options.quality,
             analyzeOnly: true
         });
@@ -454,7 +472,7 @@ async function performBatchTranscription(pattern: string, options: CliOptions): 
     }
 }
 
-async function provideFeedback(transcriptionId: string, rating?: number): Promise<void> {
+async function provideFeedback(transcriptionId: string, rating?: number, client = mcpClient): Promise<void> {
     try {
         console.log(`📝 Providing feedback for transcription: ${transcriptionId}\n`);
 
@@ -464,7 +482,7 @@ async function provideFeedback(transcriptionId: string, rating?: number): Promis
             return;
         }
 
-        const result = await mcpClient.recordTranscriptionFeedback(transcriptionId, {
+        const result = await client.recordTranscriptionFeedback(transcriptionId, {
             userRating: rating
         });
 
@@ -493,6 +511,21 @@ function formatTime(seconds: number): string {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+async function validateAudioFile(filePath: string): Promise<boolean> {
+    const audioExtensions = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.mp4', '.avi', '.mov', '.mkv'];
+    if (!audioExtensions.includes(extname(filePath).toLowerCase())) {
+        throw new Error(`Unsupported audio format: ${extname(filePath)}`);
+    }
+
+    try {
+        await stat(filePath);
+    } catch {
+        throw new Error(`Audio file not found: ${filePath}`);
+    }
+
+    return true;
+}
+
 async function findAudioFiles(directory: string): Promise<string[]> {
     try {
         const audioExtensions = ['.mp3', '.wav', '.m4a', '.flac', '.ogg', '.mp4', '.avi', '.mov', '.mkv'];
@@ -519,4 +552,22 @@ function formatDuration(seconds: number): string {
     }
 }
 
-main().catch(console.error);
+if (import.meta.main) {
+    main().catch(console.error);
+}
+
+export {
+    parseCliArgs,
+    validateAudioFile,
+    performSmartTranscription,
+    getModelRecommendation,
+    assessTranscriptionQuality,
+    showTranscriptionAnalytics,
+    showTranscriptionPatterns,
+    performBatchTranscription,
+    provideFeedback,
+    formatTime,
+    findAudioFiles,
+    formatDuration,
+    main
+};
