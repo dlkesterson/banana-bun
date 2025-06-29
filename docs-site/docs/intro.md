@@ -2,46 +2,75 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Getting Started with Banana Bun
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Welcome to **Banana Bun** - a privacy-first, local AI-powered media organization system that helps you automatically tag, organize, and search your media files using cutting-edge AI models.
 
-## Getting Started
+## What is Banana Bun?
 
-Get started by **creating a new site**.
+Banana Bun combines local LLMs, computer vision, and vector search into a single elegant pipeline that:
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+- **Automatically organizes** your audio, video, images, and documents
+- **Preserves privacy** by running entirely on your local machine
+- **Learns from usage** to improve organization and recommendations over time
+- **Provides intelligent search** across all your content using semantic understanding
 
-### What you'll need
+## Key Features
 
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+### 🤖 AI-Powered Intelligence
+- **11 specialized MCP servers** with 25+ AI tools
+- **Local LLM integration** via Ollama for text processing
+- **Computer vision** for object and scene detection
+- **Audio analysis** and transcription with Whisper
 
-## Generate a new site
+### 🔍 Advanced Search Capabilities
+- **Vector search** with ChromaDB for semantic similarity
+- **Full-text search** with MeiliSearch for fast text queries
+- **Cross-modal search** that understands relationships between different media types
 
-Generate a new Docusaurus site using the **classic template**.
+### 🛡️ Privacy-First Design
+- **100% local processing** - no data leaves your machine
+- **No cloud dependencies** for core functionality
+- **Open source** and transparent
 
-The classic template will automatically be added to your project after you run the command:
+### 📁 Intelligent Organization
+- **Automatic tagging** based on content analysis
+- **Smart categorization** using AI understanding
+- **Metadata optimization** for better discoverability
+- **Pattern recognition** to learn your preferences
 
-```bash
-npm init docusaurus@latest my-website classic
-```
+## Quick Start
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
+### Prerequisites
 
-The command also installs all necessary dependencies you need to run Docusaurus.
+- **Bun** runtime (latest version)
+- **Python** 3.8+ (for AI services)
+- **Git** (for cloning)
 
-## Start your site
+### Installation
 
-Run the development server:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/dlkesterson/banana-bun.git
+   cd banana-bun
+   ```
 
-```bash
-cd my-website
-npm run start
-```
+2. **Run the setup script:**
+   ```bash
+   # Automatic platform detection
+   npm run setup
+   ```
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+3. **Start the development server:**
+   ```bash
+   npm run dev:with-services
+   ```
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+This will automatically start all required services (Ollama, ChromaDB, MeiliSearch) and begin watching for task files.
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+## What's Next?
+
+- Learn about [CLI Commands](./cli-commands) for direct control
+- Explore [MCP Servers](./mcp-servers) for AI-powered automation
+- Check out [Example Task Files](./example-task-files) to see what's possible
+- Understand the [Project Structure](./project-structure) to customize your setup

@@ -14,14 +14,14 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://your-github-user.github.io',
+  url: 'https://dlkesterson.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/banana-bun/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'your-github-user', // GitHub org/user name
+  organizationName: 'dlkesterson', // GitHub org/user name
   projectName: 'banana-bun', // Repo name
 
   onBrokenLinks: 'throw',
@@ -43,22 +43,9 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
-          editUrl: 'https://github.com/your-github-user/banana-bun/edit/main/',
+          editUrl: 'https://github.com/dlkesterson/banana-bun/edit/main/',
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl: 'https://github.com/your-github-user/banana-bun/edit/main/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false, // Disable blog functionality
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -74,11 +61,10 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Documentation',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
         {
-          href: 'https://github.com/your-github-user/banana-bun',
+          href: 'https://github.com/dlkesterson/banana-bun',
           label: 'GitHub',
           position: 'right',
         },
@@ -88,41 +74,36 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Docs',
+          title: 'Documentation',
           items: [
             {
-              label: 'Tutorial',
+              label: 'Getting Started',
               to: '/docs/intro',
             },
-          ],
-        },
-        {
-          title: 'Community',
-          items: [
             {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              label: 'CLI Commands',
+              to: '/docs/cli-commands',
             },
             {
-              label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com/docusaurus',
+              label: 'MCP Servers',
+              to: '/docs/mcp-servers',
             },
           ],
         },
         {
-          title: 'More',
+          title: 'Resources',
           items: [
-            {
-              label: 'Blog',
-              to: '/blog',
-            },
             {
               label: 'GitHub',
-              href: 'https://github.com/your-github-user/banana-bun',
+              href: 'https://github.com/dlkesterson/banana-bun',
+            },
+            {
+              label: 'Examples',
+              to: '/docs/example-task-files',
+            },
+            {
+              label: 'API Reference',
+              to: '/docs/api-endpoints',
             },
           ],
         },

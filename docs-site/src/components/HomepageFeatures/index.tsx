@@ -10,29 +10,29 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
+    title: 'Privacy-First AI',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        All AI processing happens locally on your machine. No data leaves your device,
+        ensuring complete privacy while leveraging powerful AI models for media organization.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Intelligent Organization',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Automatically tag, categorize, and organize your media files using advanced AI.
+        Banana Bun learns from your usage patterns to improve organization over time.
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Powerful Search',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Find anything instantly with semantic search across all your content.
+        Search by meaning, not just keywords, using vector embeddings and full-text search.
       </>
     ),
   },
