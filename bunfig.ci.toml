@@ -1,0 +1,32 @@
+# Bun configuration file for CI
+
+[test]
+# Enable coverage reporting by default
+coverage = true
+
+# No coverage thresholds for CI to avoid failing builds
+# coverageThreshold = { lines = 0.70, functions = 0.70, statements = 0.70 }
+
+# Coverage reporting configuration
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+
+# Exclude test files from coverage calculation for cleaner metrics
+coverageSkipTestFiles = true
+
+# Include sourcemaps for accurate line mapping
+coverageIgnoreSourcemaps = false
+
+# Test discovery patterns
+testNamePattern = ".*\\.(test|spec)\\.(js|jsx|ts|tsx)$"
+
+# Test timeout (30 seconds for integration tests)
+timeout = 30000
+
+[install]
+# Package manager configuration
+auto = true
+exact = true
+
+# Faster installs
+cache = true

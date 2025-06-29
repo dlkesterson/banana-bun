@@ -31,6 +31,7 @@
     "test:watch": "bun test --watch",
     "test:report": "bun test --coverage --coverage-reporter=lcov --preload ./test-setup.ts | tee test-results.txt",
     "test:coverage": "bun test --coverage --coverage-reporter=lcov",
+    "test:ci": "bun test --coverage --coverage-reporter=lcov",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write .",

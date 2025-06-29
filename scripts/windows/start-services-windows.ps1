@@ -1,4 +1,4 @@
-# Banana Bun Windows Service Startup Script
+﻿# Banana Bun Windows Service Startup Script
 # This script starts all required external services for Banana Bun on Windows
 
 param(
@@ -47,7 +47,7 @@ function Write-Warning {
     Write-Host "[WARNING] $Message" -ForegroundColor Yellow
 }
 
-function Write-Error {
+function Write-ErrorMessage {
     param([string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
 }
@@ -111,7 +111,7 @@ function Wait-ForService {
         Write-Verbose "Waited $elapsed seconds for $ServiceName..."
     }
     
-    Write-Error "$ServiceName did not become healthy within $MaxWaitSeconds seconds"
+    Write-ErrorMessage "$ServiceName did not become healthy within $MaxWaitSeconds seconds"
     return $false
 }
 
@@ -141,7 +141,7 @@ function Start-ServiceProcess {
         Write-Status "$ServiceName started with PID $($process.Id)"
         return $process
     } catch {
-        Write-Error "Failed to start $ServiceName: $($_.Exception.Message)"
+        Write-ErrorMessage "Failed to start ${ServiceName}: $($_.Exception.Message)"
         return $null
     }
 }
@@ -210,11 +210,11 @@ if (!$SkipOllama) {
                         Write-Warning "Failed to check/pull Ollama models: $($_.Exception.Message)"
                     }
                 } else {
-                    Write-Error "Ollama failed to start properly"
+                    Write-ErrorMessage "Ollama failed to start properly"
                 }
             }
         } catch {
-            Write-Error "Ollama is not installed or not in PATH. Please install it first:"
+            Write-ErrorMessage "Ollama is not installed or not in PATH. Please install it first:"
             Write-Host "Visit: https://ollama.ai/download/windows"
             Write-Host "Or use winget: winget install Ollama.Ollama"
         }
@@ -244,11 +244,11 @@ if (!$SkipChroma) {
                 if (Wait-ForService -Url "http://localhost:8000/api/v1/heartbeat" -ServiceName "ChromaDB" -MaxWaitSeconds 30) {
                     $servicesStarted += "ChromaDB"
                 } else {
-                    Write-Error "ChromaDB failed to start properly"
+                    Write-ErrorMessage "ChromaDB failed to start properly"
                 }
             }
         } catch {
-            Write-Error "ChromaDB is not installed or not in PATH. Please install it first:"
+            Write-ErrorMessage "ChromaDB is not installed or not in PATH. Please install it first:"
             Write-Host "pip install chromadb"
             Write-Host "Or use conda: conda install -c conda-forge chromadb"
         }
@@ -285,11 +285,11 @@ if (!$SkipMeiliSearch) {
                 if (Wait-ForService -Url "http://localhost:7700/health" -ServiceName "MeiliSearch" -MaxWaitSeconds 30) {
                     $servicesStarted += "MeiliSearch"
                 } else {
-                    Write-Error "MeiliSearch failed to start properly"
+                    Write-ErrorMessage "MeiliSearch failed to start properly"
                 }
             }
         } catch {
-            Write-Error "MeiliSearch is not installed or not in PATH. Please install it first:"
+            Write-ErrorMessage "MeiliSearch is not installed or not in PATH. Please install it first:"
             Write-Host "Download from: https://github.com/meilisearch/meilisearch/releases"
             Write-Host "Or use winget: winget install MeiliSearch.MeiliSearch"
         }
