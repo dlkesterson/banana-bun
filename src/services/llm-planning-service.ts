@@ -394,7 +394,7 @@ Format your response as JSON with the following structure:
                 };
             }
         } catch (error) {
-            await logger.warn('Failed to parse JSON from LLM response, using fallback', { error });
+            logger.warn('Failed to parse JSON from LLM response, using fallback', { error });
         }
 
         // Fallback: create basic plan from text
