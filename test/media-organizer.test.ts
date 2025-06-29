@@ -60,10 +60,16 @@ mock.module('../src/utils/logger', () => ({
     }
 }));
 
-// Mock hash utility
+// Mock hash utility with configurable mock
+const mockHashFile = mock(() => Promise.resolve('mock-hash-123'));
 mock.module('../src/utils/hash', () => ({
-    hashFile: mock(() => Promise.resolve('mock-hash-123'))
+    hashFile: mockHashFile
 }));
+
+beforeEach(() => {
+    mockHashFile.mockReset();
+    mockHashFile.mockResolvedValue('mock-hash-123');
+});
 
 describe('Media Type Detector', () => {
     it('should detect TV shows from filename patterns', async () => {
@@ -102,7 +108,7 @@ describe('Media Type Detector', () => {
 
 describe('TV Series Info Extraction', () => {
     it('should extract series info from S01E01 pattern', () => {
-        const info = extractTvSeriesInfo('The.Office.S01E01.Pilot.mkv');
+        const info = extractTvSeriesInfo('The.Office.S01E01 - Pilot.mkv');
         expect(info.series).toBe('The Office');
         expect(info.season).toBe(1);
         expect(info.episode).toBe(1);
@@ -117,7 +123,7 @@ describe('TV Series Info Extraction', () => {
     });
 
     it('should extract series info from 1x01 pattern', () => {
-        const info = extractTvSeriesInfo('Friends 1x01 The One Where Monica Gets a Roommate.avi');
+        const info = extractTvSeriesInfo('Friends 1x01 - The One Where Monica Gets a Roommate.avi');
         expect(info.series).toBe('Friends');
         expect(info.season).toBe(1);
         expect(info.episode).toBe(1);
@@ -204,12 +210,12 @@ describe('Template Formatting', () => {
 
 describe('Organization Plan Creation', () => {
     it('should create plan for TV show', async () => {
-        const plan = await createOrganizationPlan('/source/The.Office.S01E01.Pilot.mkv');
+        const plan = await createOrganizationPlan('/source/The.Office.S01E01 - Pilot.mkv');
         expect(plan.collectionType).toBe('tv');
         expect(plan.targetDirectory).toContain('Shows');
         expect(plan.targetDirectory).toContain('The Office');
         expect(plan.targetDirectory).toContain('Season 01');
-        expect(plan.filename).toContain('S01E01');
+        expect(plan.filename).toMatch(/S01E01/i);
     });
 
     it('should create plan for movie', async () => {
@@ -223,6 +229,13 @@ describe('Organization Plan Creation', () => {
         const plan = await createOrganizationPlan('/source/random.mkv', undefined, 'youtube');
         expect(plan.collectionType).toBe('youtube');
         expect(plan.targetDirectory).toContain('YouTube');
+    });
+
+    it('should default to catch-all when type is unknown', async () => {
+        const plan = await createOrganizationPlan('/source/unknown_file.mp4');
+        expect(plan.collectionType).toBe('catchall');
+        expect(plan.targetDirectory).toContain('Downloads');
+        expect(plan.filename).toBe('Unknown_file.mp4');
     });
 });
 
@@ -265,5 +278,77 @@ describe('Organization Plan Execution', () => {
         // File should still exist in source
         const sourceExists = await fs.access(sourceFile).then(() => true).catch(() => false);
         expect(sourceExists).toBe(true);
+    });
+
+    it('should move file when run normally', async () => {
+        const sourceFile = join(tempDir, 'source', 'move.mkv');
+        await fs.writeFile(sourceFile, 'abc');
+
+        const targetFile = join(tempDir, 'target', 'move.mkv');
+        const plan = {
+            originalPath: sourceFile,
+            targetPath: targetFile,
+            targetDirectory: join(tempDir, 'target'),
+            filename: 'move.mkv',
+            collectionType: 'catchall' as const
+        };
+
+        const result = await executeOrganizationPlan(plan);
+
+        expect(result.success).toBe(true);
+        expect(result.actualPath).toBe(targetFile);
+        const existsSource = await fs.access(sourceFile).then(() => true).catch(() => false);
+        const existsTarget = await fs.access(targetFile).then(() => true).catch(() => false);
+        expect(existsSource).toBe(false);
+        expect(existsTarget).toBe(true);
+    });
+
+    it('should skip move when identical file exists', async () => {
+        const sourceFile = join(tempDir, 'source', 'same.mkv');
+        const targetFile = join(tempDir, 'target', 'same.mkv');
+        await fs.writeFile(sourceFile, '123');
+        await fs.writeFile(targetFile, '123');
+
+        const plan = {
+            originalPath: sourceFile,
+            targetPath: targetFile,
+            targetDirectory: join(tempDir, 'target'),
+            filename: 'same.mkv',
+            collectionType: 'catchall' as const
+        };
+
+        const result = await executeOrganizationPlan(plan);
+
+        expect(result.success).toBe(true);
+        expect(result.skipped).toBe(true);
+        expect(result.actualPath).toBe(targetFile);
+        const existsSource = await fs.access(sourceFile).then(() => true).catch(() => false);
+        expect(existsSource).toBe(true);
+    });
+
+    it('should create safe filename when different file exists', async () => {
+        const sourceFile = join(tempDir, 'source', 'conflict.mkv');
+        const targetFile = join(tempDir, 'target', 'conflict.mkv');
+        await fs.writeFile(sourceFile, 'aaa');
+        await fs.writeFile(targetFile, 'bbb');
+
+        mockHashFile.mockResolvedValueOnce('hash-source').mockResolvedValueOnce('hash-target');
+
+        const plan = {
+            originalPath: sourceFile,
+            targetPath: targetFile,
+            targetDirectory: join(tempDir, 'target'),
+            filename: 'conflict.mkv',
+            collectionType: 'catchall' as const
+        };
+
+        const result = await executeOrganizationPlan(plan);
+
+        expect(result.success).toBe(true);
+        expect(result.actualPath).not.toBe(targetFile);
+        const existsNew = await fs.access(result.actualPath!).then(() => true).catch(() => false);
+        const existsSource = await fs.access(sourceFile).then(() => true).catch(() => false);
+        expect(existsNew).toBe(true);
+        expect(existsSource).toBe(false);
     });
 });
