@@ -28,16 +28,22 @@ mock.module('../src/utils/logger', () => ({
     logger: mockLogger
 }));
 
+// Mock database module
+let testDb: Database;
+mock.module('../src/db', () => ({
+    getDatabase: () => testDb,
+    initDatabase: mock(() => Promise.resolve())
+}));
+
 describe('Dashboard Generation', () => {
-    let db: Database;
     let dashboardDir: string;
 
     beforeEach(async () => {
         // Create in-memory database for testing
-        db = new Database(':memory:');
+        testDb = new Database(':memory:');
         
         // Create tasks table
-        db.run(`
+        testDb.run(`
             CREATE TABLE tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT,
@@ -59,6 +65,41 @@ describe('Dashboard Generation', () => {
             )
         `);
 
+        // Create review_results table (needed by dashboard)
+        testDb.run(`
+            CREATE TABLE review_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                reviewer_type TEXT NOT NULL,
+                model_used TEXT,
+                passed BOOLEAN NOT NULL,
+                score INTEGER,
+                feedback TEXT NOT NULL,
+                suggestions TEXT,
+                review_criteria TEXT,
+                reviewed_output TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+            )
+        `);
+
+        // Create planner_results table (needed by dashboard)
+        testDb.run(`
+            CREATE TABLE planner_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                model_used TEXT NOT NULL,
+                goal_description TEXT NOT NULL,
+                generated_plan TEXT NOT NULL,
+                similar_tasks_used TEXT,
+                context_embeddings TEXT,
+                subtask_count INTEGER DEFAULT 0,
+                plan_version INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+            )
+        `);
+
         // Setup test dashboard directory
         dashboardDir = '/tmp/test-dashboard';
         await fs.mkdir(dashboardDir, { recursive: true });
@@ -71,16 +112,18 @@ describe('Dashboard Generation', () => {
     });
 
     afterEach(async () => {
-        db.close();
+        if (testDb) {
+            testDb.close();
+        }
         await fs.rm(dashboardDir, { recursive: true, force: true });
     });
 
     describe('Dashboard HTML Generation', () => {
         it('should generate dashboard HTML file', async () => {
             // Insert test data
-            db.run(`
+            testDb.run(`
                 INSERT INTO tasks (type, description, status, created_at)
-                VALUES 
+                VALUES
                     ('shell', 'Test task 1', 'completed', '2024-01-01 10:00:00'),
                     ('llm', 'Test task 2', 'pending', '2024-01-01 11:00:00'),
                     ('code', 'Test task 3', 'failed', '2024-01-01 12:00:00')
@@ -104,9 +147,9 @@ describe('Dashboard Generation', () => {
 
         it('should include task statistics in dashboard', async () => {
             // Insert test data with various statuses
-            db.run(`
+            testDb.run(`
                 INSERT INTO tasks (type, description, status)
-                VALUES 
+                VALUES
                     ('shell', 'Completed task 1', 'completed'),
                     ('shell', 'Completed task 2', 'completed'),
                     ('llm', 'Pending task', 'pending'),
@@ -140,9 +183,9 @@ describe('Dashboard Generation', () => {
 
         it('should include task type breakdown', async () => {
             // Insert tasks of different types
-            db.run(`
+            testDb.run(`
                 INSERT INTO tasks (type, description, status)
-                VALUES 
+                VALUES
                     ('shell', 'Shell task 1', 'completed'),
                     ('shell', 'Shell task 2', 'pending'),
                     ('llm', 'LLM task', 'completed'),
@@ -168,28 +211,33 @@ describe('Dashboard Generation', () => {
     describe('Error Handling', () => {
         it('should handle database errors gracefully', async () => {
             // Close database to simulate error
-            db.close();
+            testDb.close();
 
             await expect(generateDashboard()).rejects.toThrow();
         });
 
         it('should handle file system errors gracefully', async () => {
-            // Mock fs.writeFile to throw an error
-            const originalWriteFile = fs.writeFile;
-            (fs as any).writeFile = mock(() => Promise.reject(new Error('File system error')));
+            // This test verifies that file system errors are properly propagated
+            // Since the dashboard function doesn't have comprehensive error handling
+            // for the main writeFile call, we expect it to throw
+
+            // Create a scenario where the dashboard directory doesn't exist and can't be created
+            const invalidDashboardDir = '/invalid/nonexistent/path/that/cannot/be/created';
+            const originalDashboardPath = mockConfig.paths.dashboard;
+            mockConfig.paths.dashboard = invalidDashboardDir;
 
             try {
                 await expect(generateDashboard()).rejects.toThrow();
             } finally {
-                // Restore original function
-                (fs as any).writeFile = originalWriteFile;
+                // Restore original dashboard path
+                mockConfig.paths.dashboard = originalDashboardPath;
             }
         });
     });
 
     describe('Dashboard Content Validation', () => {
         it('should generate valid HTML structure', async () => {
-            db.run(`
+            testDb.run(`
                 INSERT INTO tasks (type, description, status, created_at)
                 VALUES ('shell', 'Test task', 'completed', '2024-01-01 10:00:00')
             `);
@@ -203,12 +251,12 @@ describe('Dashboard Generation', () => {
             expect(dashboardContent).toContain('<!DOCTYPE html>');
             expect(dashboardContent).toContain('<html');
             expect(dashboardContent).toContain('<head>');
-            expect(dashboardContent).toContain('<body>');
+            expect(dashboardContent).toContain('<body');
             expect(dashboardContent).toContain('</html>');
         });
 
         it('should escape HTML in task descriptions', async () => {
-            db.run(`
+            testDb.run(`
                 INSERT INTO tasks (type, description, status)
                 VALUES ('shell', '<script>alert("xss")</script>', 'completed')
             `);

@@ -14,7 +14,33 @@ const mockConfig = {
         logs: '/tmp/test-logs',
         dashboard: '/tmp/test-dashboard',
         database: ':memory:',
-        media: '/tmp/test-media'
+        media: '/tmp/test-media',
+        chroma: {
+            host: 'localhost',
+            port: 8000,
+            ssl: false
+        }
+    },
+    openai: {
+        apiKey: 'test-api-key',
+        model: 'gpt-4'
+    },
+    ollama: {
+        url: 'http://localhost:11434',
+        model: 'qwen3:8b',
+        fastModel: 'qwen3:8b'
+    },
+    meilisearch: {
+        url: 'http://localhost:7700',
+        masterKey: 'test-master-key',
+        indexName: 'test-media-index'
+    },
+    downloaders: {
+        rss: {
+            enabled: false,
+            checkInterval: 3600,
+            feeds: []
+        }
     }
 };
 
@@ -139,7 +165,7 @@ describe('Main Orchestrator (src/index.ts)', () => {
         mockGenerateDashboard.mockClear();
 
         // Setup test directories
-        const testDirs = Object.values(mockConfig.paths).filter(p => p !== ':memory:');
+        const testDirs = Object.values(mockConfig.paths).filter(p => typeof p === 'string' && p !== ':memory:');
         for (const dir of testDirs) {
             await fs.mkdir(dir, { recursive: true });
         }
@@ -149,7 +175,7 @@ describe('Main Orchestrator (src/index.ts)', () => {
         mockDb?.close();
         
         // Cleanup test directories
-        const testDirs = Object.values(mockConfig.paths).filter(p => p !== ':memory:');
+        const testDirs = Object.values(mockConfig.paths).filter(p => typeof p === 'string' && p !== ':memory:');
         for (const dir of testDirs) {
             await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
         }
