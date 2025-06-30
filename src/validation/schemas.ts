@@ -13,7 +13,19 @@ export const TASK_TYPES = [
     'run_code',
     'batch',
     'tool',
-    'youtube'
+    'youtube',
+    'media_ingest',
+    'media_organize',
+    'media_transcribe',
+    'media_tag',
+    'index_meili',
+    'index_chroma',
+    'media_summarize',
+    'media_recommend',
+    'video_scene_detect',
+    'video_object_detect',
+    'audio_analyze',
+    'media_download'
 ] as const;
 
 export const TASK_STATUSES = [
@@ -177,8 +189,9 @@ export function validateShellTask(obj: any): ValidationResult {
         errors.push('type must be "shell"');
     }
 
-    if (!isString(obj.shell_command) || obj.shell_command.trim().length === 0) {
-        errors.push('shell_command is required and must be a non-empty string');
+    // shell_command is optional for creation, but required for execution
+    if (obj.shell_command !== undefined && (!isString(obj.shell_command) || obj.shell_command.trim().length === 0)) {
+        errors.push('shell_command must be a non-empty string when provided');
     }
 
     if (obj.description !== undefined && !isString(obj.description)) {
@@ -196,8 +209,25 @@ export function validateLlmTask(obj: any): ValidationResult {
         errors.push('type must be "llm"');
     }
 
-    if (!isString(obj.description) || obj.description.trim().length === 0) {
-        errors.push('description is required and must be a non-empty string');
+    // description is optional for creation, can be derived from context
+    if (obj.description !== undefined && (!isString(obj.description) || obj.description.trim().length === 0)) {
+        errors.push('description must be a non-empty string when provided');
+    }
+
+    if (obj.context !== undefined && !isString(obj.context)) {
+        errors.push('context must be a string when provided');
+    }
+
+    if (obj.model !== undefined && !isString(obj.model)) {
+        errors.push('model must be a string when provided');
+    }
+
+    if (obj.temperature !== undefined && !isNumber(obj.temperature)) {
+        errors.push('temperature must be a number when provided');
+    }
+
+    if (obj.max_tokens !== undefined && !isNumber(obj.max_tokens)) {
+        errors.push('max_tokens must be a number when provided');
     }
 
     return { valid: errors.length === 0, errors };
@@ -306,12 +336,14 @@ export function validateToolTask(obj: any): ValidationResult {
         errors.push('type must be "tool"');
     }
 
-    if (!isString(obj.tool) || obj.tool.trim().length === 0) {
-        errors.push('tool is required and must be a non-empty string');
+    // tool is optional for creation
+    if (obj.tool !== undefined && (!isString(obj.tool) || obj.tool.trim().length === 0)) {
+        errors.push('tool must be a non-empty string when provided');
     }
 
-    if (!isObject(obj.args)) {
-        errors.push('args is required and must be an object');
+    // args is optional for creation
+    if (obj.args !== undefined && !isObject(obj.args)) {
+        errors.push('args must be an object when provided');
     }
 
     if (obj.description !== undefined && !isString(obj.description)) {
@@ -370,6 +402,74 @@ export function validateMediaIngestTask(obj: any): ValidationResult {
     return { valid: errors.length === 0, errors };
 }
 
+// Media task validators - basic validation for now
+export function validateMediaOrganizeTask(obj: any): ValidationResult {
+    const baseResult = validateBaseTaskFields(obj);
+    const errors = [...baseResult.errors];
+
+    if (!isValidTaskType(obj.type) || obj.type !== 'media_organize') {
+        errors.push('type must be "media_organize"');
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
+export function validateMediaTranscribeTask(obj: any): ValidationResult {
+    const baseResult = validateBaseTaskFields(obj);
+    const errors = [...baseResult.errors];
+
+    if (!isValidTaskType(obj.type) || obj.type !== 'media_transcribe') {
+        errors.push('type must be "media_transcribe"');
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
+export function validateMediaTagTask(obj: any): ValidationResult {
+    const baseResult = validateBaseTaskFields(obj);
+    const errors = [...baseResult.errors];
+
+    if (!isValidTaskType(obj.type) || obj.type !== 'media_tag') {
+        errors.push('type must be "media_tag"');
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
+export function validateIndexMeiliTask(obj: any): ValidationResult {
+    const baseResult = validateBaseTaskFields(obj);
+    const errors = [...baseResult.errors];
+
+    if (!isValidTaskType(obj.type) || obj.type !== 'index_meili') {
+        errors.push('type must be "index_meili"');
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
+export function validateIndexChromaTask(obj: any): ValidationResult {
+    const baseResult = validateBaseTaskFields(obj);
+    const errors = [...baseResult.errors];
+
+    if (!isValidTaskType(obj.type) || obj.type !== 'index_chroma') {
+        errors.push('type must be "index_chroma"');
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
+// Generic media task validator for remaining types
+export function validateGenericMediaTask(obj: any, expectedType: string): ValidationResult {
+    const baseResult = validateBaseTaskFields(obj);
+    const errors = [...baseResult.errors];
+
+    if (!isValidTaskType(obj.type) || obj.type !== expectedType) {
+        errors.push(`type must be "${expectedType}"`);
+    }
+
+    return { valid: errors.length === 0, errors };
+}
+
 // Main validation function that routes to specific validators
 export function validateTask(obj: any): ValidationResult {
     if (!isObject(obj)) {
@@ -405,6 +505,28 @@ export function validateTask(obj: any): ValidationResult {
             return validateYoutubeTask(obj);
         case 'media_ingest':
             return validateMediaIngestTask(obj);
+        case 'media_organize':
+            return validateMediaOrganizeTask(obj);
+        case 'media_transcribe':
+            return validateMediaTranscribeTask(obj);
+        case 'media_tag':
+            return validateMediaTagTask(obj);
+        case 'index_meili':
+            return validateIndexMeiliTask(obj);
+        case 'index_chroma':
+            return validateIndexChromaTask(obj);
+        case 'media_summarize':
+            return validateGenericMediaTask(obj, 'media_summarize');
+        case 'media_recommend':
+            return validateGenericMediaTask(obj, 'media_recommend');
+        case 'video_scene_detect':
+            return validateGenericMediaTask(obj, 'video_scene_detect');
+        case 'video_object_detect':
+            return validateGenericMediaTask(obj, 'video_object_detect');
+        case 'audio_analyze':
+            return validateGenericMediaTask(obj, 'audio_analyze');
+        case 'media_download':
+            return validateGenericMediaTask(obj, 'media_download');
         default:
             return { valid: false, errors: [`Unknown task type: ${obj.type}`] };
     }
@@ -422,6 +544,11 @@ export const TaskValidators = {
     tool: validateToolTask,
     youtube: validateYoutubeTask,
     media_ingest: validateMediaIngestTask,
+    media_organize: validateMediaOrganizeTask,
+    media_transcribe: validateMediaTranscribeTask,
+    media_tag: validateMediaTagTask,
+    index_meili: validateIndexMeiliTask,
+    index_chroma: validateIndexChromaTask,
 } as const;
 
 // Compatibility functions for tests

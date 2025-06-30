@@ -1,440 +1,265 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import {
+    createProcessMock,
+    CommonTestSetup,
+    MCPResponseTestFactory
+} from '../src/test-utils';
 
-// TODO: This test file needs to be updated to match the actual MCPClient implementation
-// The current test expects a WebSocket-based client, but the implementation is process-based
-// Skipping these tests for now to focus on other critical issues
+// Mock process spawning for Bun
+const mockProcess = createProcessMock();
+const mockSpawn = mock(() => mockProcess);
 
-describe.skip('MCP Client (DISABLED - needs implementation update)', () => { });
-
-// Mock WebSocket
-const mockWebSocket = {
-    send: mock(() => { }),
-    close: mock(() => { }),
-    addEventListener: mock(() => { }),
-    removeEventListener: mock(() => { }),
-    readyState: 1, // OPEN
-    CONNECTING: 0,
-    OPEN: 1,
-    CLOSING: 2,
-    CLOSED: 3
-};
-
-// Mock global WebSocket
-global.WebSocket = mock(() => mockWebSocket) as any;
-
-// Mock logger
-const mockLogger = {
-    info: mock(() => Promise.resolve()),
-    error: mock(() => Promise.resolve()),
-    warn: mock(() => Promise.resolve()),
-    debug: mock(() => Promise.resolve())
-};
-
-// Mock modules
-mock.module('../src/utils/logger', () => ({
-    logger: mockLogger
+// Mock Bun's spawn function
+mock.module('bun', () => ({
+    spawn: mockSpawn
 }));
+
+// Setup common mocks
+const { mockLogger } = CommonTestSetup.setupMockModules();
 
 import { MCPClient } from '../src/mcp/mcp-client';
 
 describe('MCP Client', () => {
     let mcpClient: MCPClient;
-    const testServerUrl = 'ws://localhost:8080';
 
     beforeEach(() => {
-        mcpClient = new McpClient(testServerUrl);
+        mcpClient = new MCPClient();
 
         // Reset mocks
-        mockWebSocket.send.mockClear();
-        mockWebSocket.close.mockClear();
-        mockWebSocket.addEventListener.mockClear();
-        mockWebSocket.removeEventListener.mockClear();
-
-        Object.values(mockLogger).forEach(fn => {
-            if (typeof fn === 'function' && 'mockClear' in fn) {
-                fn.mockClear();
-            }
-        });
+        mockSpawn.mockClear();
+        mockProcess.stdin.write.mockClear();
+        mockLogger.info.mockClear();
+        mockLogger.error.mockClear();
+        mockLogger.warn.mockClear();
+        mockLogger.debug.mockClear();
     });
 
-    afterEach(async () => {
-        await mcpClient.disconnect();
+    afterEach(() => {
+        // Cleanup any spawned processes
+        if (mockProcess.kill) {
+            mockProcess.kill.mockClear();
+        }
     });
 
-    describe('Connection Management', () => {
-        it('should connect to MCP server', async () => {
-            const connectPromise = mcpClient.connect();
+    describe('Server Management', () => {
+        it('should start MCP server process', async () => {
+            // Mock successful process spawn
+            mockSpawn.mockReturnValue(mockProcess);
 
-            // Simulate successful connection
-            const onOpenHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'open'
-            )?.[1];
-
-            if (onOpenHandler) {
-                onOpenHandler(new Event('open'));
-            }
-
-            await connectPromise;
-
-            expect(mockWebSocket.addEventListener).toHaveBeenCalledWith('open', expect.any(Function));
-            expect(mockWebSocket.addEventListener).toHaveBeenCalledWith('message', expect.any(Function));
-            expect(mockWebSocket.addEventListener).toHaveBeenCalledWith('error', expect.any(Function));
-            expect(mockWebSocket.addEventListener).toHaveBeenCalledWith('close', expect.any(Function));
-        });
-
-        it('should handle connection errors', async () => {
-            const connectPromise = mcpClient.connect();
-
-            // Simulate connection error
-            const onErrorHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'error'
-            )?.[1];
-
-            if (onErrorHandler) {
-                onErrorHandler(new Event('error'));
-            }
-
-            await expect(connectPromise).rejects.toThrow();
-        });
-
-        it('should disconnect gracefully', async () => {
-            // First connect
-            const connectPromise = mcpClient.connect();
-            const onOpenHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'open'
-            )?.[1];
-
-            if (onOpenHandler) {
-                onOpenHandler(new Event('open'));
-            }
-            await connectPromise;
-
-            // Then disconnect
-            await mcpClient.disconnect();
-
-            expect(mockWebSocket.close).toHaveBeenCalled();
-        });
-
-        it('should check connection status', () => {
-            expect(mcpClient.isConnected()).toBe(false);
-
-            // Simulate connected state
-            mockWebSocket.readyState = mockWebSocket.OPEN;
-            // Note: In real implementation, this would be tracked internally
-        });
-
-        it('should handle reconnection', async () => {
-            // First connection
-            await mcpClient.connect();
-
-            // Simulate connection loss
-            const onCloseHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'close'
-            )?.[1];
-
-            if (onCloseHandler) {
-                onCloseHandler(new CloseEvent('close'));
-            }
-
-            // Attempt reconnection
-            await mcpClient.connect();
-
-            expect(mockLogger.info).toHaveBeenCalledWith(
-                expect.stringContaining('Connecting to MCP server')
-            );
-        });
-    });
-
-    describe('Tool Execution', () => {
-        beforeEach(async () => {
-            // Establish connection first
-            const connectPromise = mcpClient.connect();
-            const onOpenHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'open'
-            )?.[1];
-
-            if (onOpenHandler) {
-                onOpenHandler(new Event('open'));
-            }
-            await connectPromise;
-        });
-
-        it('should call tool with parameters', async () => {
-            const toolName = 'find_similar_tasks';
-            const parameters = {
-                description: 'Test task description',
-                task_type: 'shell',
-                limit: 5
-            };
-
-            const callPromise = mcpClient.callTool(toolName, parameters);
-
-            // Simulate successful response
-            const onMessageHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'message'
-            )?.[1];
-
-            if (onMessageHandler) {
-                const mockResponse = {
-                    data: JSON.stringify({
-                        id: 'test-request-id',
-                        result: {
-                            success: true,
-                            similar_tasks: [
-                                { id: 'task_1', similarity: 0.9, description: 'Similar task' }
-                            ]
-                        }
-                    })
-                };
-                onMessageHandler(mockResponse as MessageEvent);
-            }
-
-            const result = await callPromise;
-
-            expect(result.success).toBe(true);
-            expect(result.similar_tasks).toBeDefined();
-            expect(mockWebSocket.send).toHaveBeenCalledWith(
-                expect.stringContaining(toolName)
-            );
-        });
-
-        it('should handle tool execution errors', async () => {
-            const toolName = 'invalid_tool';
-            const parameters = {};
-
-            const callPromise = mcpClient.callTool(toolName, parameters);
-
-            // Simulate error response
-            const onMessageHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'message'
-            )?.[1];
-
-            if (onMessageHandler) {
-                const mockResponse = {
-                    data: JSON.stringify({
-                        id: 'test-request-id',
-                        error: {
-                            code: -32601,
-                            message: 'Method not found'
-                        }
-                    })
-                };
-                onMessageHandler(mockResponse as MessageEvent);
-            }
-
-            await expect(callPromise).rejects.toThrow('Method not found');
-        });
-
-        it('should handle timeout for tool calls', async () => {
-            const toolName = 'slow_tool';
-            const parameters = {};
-
-            const callPromise = mcpClient.callTool(toolName, parameters, 100); // 100ms timeout
-
-            // Don't send any response to simulate timeout
-            await expect(callPromise).rejects.toThrow('timeout');
-        });
-
-        it('should handle malformed responses', async () => {
-            const toolName = 'test_tool';
-            const parameters = {};
-
-            const callPromise = mcpClient.callTool(toolName, parameters);
-
-            // Simulate malformed response
-            const onMessageHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'message'
-            )?.[1];
-
-            if (onMessageHandler) {
-                const mockResponse = {
-                    data: 'invalid json response'
-                };
-                onMessageHandler(mockResponse as MessageEvent);
-            }
-
-            await expect(callPromise).rejects.toThrow();
-        });
-    });
-
-    describe('Message Handling', () => {
-        beforeEach(async () => {
-            // Establish connection
-            const connectPromise = mcpClient.connect();
-            const onOpenHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'open'
-            )?.[1];
-
-            if (onOpenHandler) {
-                onOpenHandler(new Event('open'));
-            }
-            await connectPromise;
-        });
-
-        it('should handle server notifications', async () => {
-            const onMessageHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'message'
-            )?.[1];
-
-            if (onMessageHandler) {
-                const notification = {
-                    data: JSON.stringify({
-                        method: 'task_completed',
-                        params: {
-                            task_id: 123,
-                            status: 'completed'
-                        }
-                    })
-                };
-                onMessageHandler(notification as MessageEvent);
-            }
-
-            // Should log notification
-            expect(mockLogger.debug).toHaveBeenCalledWith(
-                expect.stringContaining('notification')
-            );
-        });
-
-        it('should handle ping/pong for keepalive', async () => {
-            const onMessageHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'message'
-            )?.[1];
-
-            if (onMessageHandler) {
-                const ping = {
-                    data: JSON.stringify({
-                        method: 'ping'
-                    })
-                };
-                onMessageHandler(ping as MessageEvent);
-            }
-
-            // Should respond with pong
-            expect(mockWebSocket.send).toHaveBeenCalledWith(
-                expect.stringContaining('pong')
-            );
-        });
-
-        it('should queue messages when disconnected', async () => {
-            // Disconnect first
-            await mcpClient.disconnect();
-
-            // Try to call tool while disconnected
-            const toolPromise = mcpClient.callTool('test_tool', {});
-
-            // Reconnect
-            const connectPromise = mcpClient.connect();
-            const onOpenHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'open'
-            )?.[1];
-
-            if (onOpenHandler) {
-                onOpenHandler(new Event('open'));
-            }
-            await connectPromise;
-
-            // Should send queued message
-            expect(mockWebSocket.send).toHaveBeenCalled();
-        });
-    });
-
-    describe('Error Recovery', () => {
-        it('should handle connection drops', async () => {
-            // Establish connection
-            await mcpClient.connect();
-
-            // Simulate connection drop
-            const onCloseHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'close'
-            )?.[1];
-
-            if (onCloseHandler) {
-                onCloseHandler(new CloseEvent('close', { code: 1006 })); // Abnormal closure
-            }
-
-            expect(mockLogger.warn).toHaveBeenCalledWith(
-                expect.stringContaining('Connection closed')
-            );
-        });
-
-        it('should handle network errors', async () => {
-            const onErrorHandler = mockWebSocket.addEventListener.mock.calls.find(
-                call => call[0] === 'error'
-            )?.[1];
-
-            if (onErrorHandler) {
-                onErrorHandler(new Event('error'));
-            }
-
-            expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining('WebSocket error')
-            );
-        });
-
-        it('should retry failed connections', async () => {
-            // Mock connection failure followed by success
-            let connectionAttempts = 0;
-            (global.WebSocket as any).mockImplementation(() => {
-                connectionAttempts++;
-                if (connectionAttempts === 1) {
-                    // First attempt fails
+            // Mock stdout data for initialization
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
                     setTimeout(() => {
-                        const onErrorHandler = mockWebSocket.addEventListener.mock.calls.find(
-                            call => call[0] === 'error'
-                        )?.[1];
-                        if (onErrorHandler) {
-                            onErrorHandler(new Event('error'));
-                        }
-                    }, 10);
-                } else {
-                    // Second attempt succeeds
-                    setTimeout(() => {
-                        const onOpenHandler = mockWebSocket.addEventListener.mock.calls.find(
-                            call => call[0] === 'open'
-                        )?.[1];
-                        if (onOpenHandler) {
-                            onOpenHandler(new Event('open'));
-                        }
+                        callback(Buffer.from(JSON.stringify({
+                            jsonrpc: '2.0',
+                            method: 'initialized'
+                        }) + '\n'));
                     }, 10);
                 }
-                return mockWebSocket;
             });
 
-            // This should eventually succeed after retry
-            await mcpClient.connect();
-            expect(connectionAttempts).toBeGreaterThan(1);
+            await mcpClient.startServer('test-server', 'bun', ['test-script.ts']);
+
+            expect(mockSpawn).toHaveBeenCalledWith({
+                cmd: ['bun', 'test-script.ts'],
+                stdio: ['pipe', 'pipe', 'pipe']
+            });
+        });
+
+        it('should handle server startup failure', async () => {
+            // Mock process spawn failure
+            mockSpawn.mockImplementation(() => {
+                throw new Error('Failed to spawn process');
+            });
+
+            await expect(
+                mcpClient.startServer('test-server', 'bun', ['test-script.ts'])
+            ).rejects.toThrow('Failed to spawn process');
+        });
+
+        it('should stop MCP server process', async () => {
+            // Start server first
+            mockSpawn.mockReturnValue(mockProcess);
+            await mcpClient.startServer('test-server', 'bun', ['test-script.ts']);
+
+            // Stop server
+            await mcpClient.stopServer('test-server');
+
+            expect(mockProcess.kill).toHaveBeenCalled();
         });
     });
 
-    describe('Resource Management', () => {
-        it('should clean up resources on disconnect', async () => {
-            await mcpClient.connect();
-            await mcpClient.disconnect();
+    describe('Tool Operations', () => {
+        beforeEach(async () => {
+            // Setup server
+            mockSpawn.mockReturnValue(mockProcess);
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    // Mock initialization response
+                    setTimeout(() => {
+                        callback(Buffer.from(JSON.stringify({
+                            jsonrpc: '2.0',
+                            method: 'initialized'
+                        }) + '\n'));
+                    }, 10);
+                }
+            });
 
-            expect(mockWebSocket.removeEventListener).toHaveBeenCalled();
-            expect(mockWebSocket.close).toHaveBeenCalled();
+            await mcpClient.startServer('test-server', 'bun', ['test-script.ts']);
         });
 
-        it('should handle multiple disconnect calls', async () => {
-            await mcpClient.connect();
-            await mcpClient.disconnect();
-            await mcpClient.disconnect(); // Second call should be safe
+        it('should send tool request successfully', async () => {
+            const mockResponse = MCPResponseTestFactory.createToolResponse({
+                success: true,
+                data: 'test result'
+            });
 
-            // Should not throw or cause issues
-            expect(mockWebSocket.close).toHaveBeenCalled();
+            // Mock response from server
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    setTimeout(() => {
+                        callback(Buffer.from(JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            result: mockResponse
+                        }) + '\n'));
+                    }, 10);
+                }
+            });
+
+            const result = await mcpClient.sendRequest('test-server', 'tools/call', {
+                name: 'test_tool',
+                arguments: { param: 'value' }
+            });
+
+            expect(mockProcess.stdin.write).toHaveBeenCalled();
+            expect(result).toBeDefined();
         });
 
-        it('should clear pending requests on disconnect', async () => {
-            await mcpClient.connect();
+        it('should handle tool request timeout', async () => {
+            // Don't mock any response to simulate timeout
+            mockProcess.stdout.on.mockImplementation(() => {});
 
-            // Start a tool call but don't respond
-            const toolPromise = mcpClient.callTool('test_tool', {});
+            await expect(
+                mcpClient.sendRequest('test-server', 'tools/call', {
+                    name: 'slow_tool',
+                    arguments: {}
+                })
+            ).rejects.toThrow('timeout');
+        });
 
-            // Disconnect before response
-            await mcpClient.disconnect();
+        it('should handle server error response', async () => {
+            const mockErrorResponse = MCPResponseTestFactory.createErrorResponse('Tool not found');
 
-            // Tool call should be rejected
-            await expect(toolPromise).rejects.toThrow();
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    setTimeout(() => {
+                        callback(Buffer.from(JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            error: mockErrorResponse.error
+                        }) + '\n'));
+                    }, 10);
+                }
+            });
+
+            await expect(
+                mcpClient.sendRequest('test-server', 'tools/call', {
+                    name: 'nonexistent_tool',
+                    arguments: {}
+                })
+            ).rejects.toThrow('Tool not found');
+        });
+    });
+
+    describe('High-level API Methods', () => {
+        beforeEach(async () => {
+            mockSpawn.mockReturnValue(mockProcess);
+            await mcpClient.startServer('meilisearch', 'bun', ['meilisearch-server.ts']);
+        });
+
+        it('should perform smart search', async () => {
+            const mockSearchResult = {
+                hits: [{ id: 1, title: 'Test Result' }],
+                totalHits: 1,
+                processingTimeMs: 50
+            };
+
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    setTimeout(() => {
+                        callback(Buffer.from(JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            result: MCPResponseTestFactory.createToolResponse(mockSearchResult)
+                        }) + '\n'));
+                    }, 10);
+                }
+            });
+
+            const result = await mcpClient.smartSearch('test query', {
+                limit: 10,
+                filters: 'type:video'
+            });
+
+            expect(result.hits).toHaveLength(1);
+            expect(result.totalHits).toBe(1);
+        });
+
+        it('should handle search errors gracefully', async () => {
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    setTimeout(() => {
+                        callback(Buffer.from(JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: 1,
+                            error: { code: -1, message: 'Search failed' }
+                        }) + '\n'));
+                    }, 10);
+                }
+            });
+
+            await expect(
+                mcpClient.smartSearch('invalid query')
+            ).rejects.toThrow('Search failed');
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('should handle malformed JSON responses', async () => {
+            mockSpawn.mockReturnValue(mockProcess);
+            await mcpClient.startServer('test-server', 'bun', ['test-script.ts']);
+
+            mockProcess.stdout.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    setTimeout(() => {
+                        callback(Buffer.from('invalid json\n'));
+                    }, 10);
+                }
+            });
+
+            // Should handle malformed JSON gracefully
+            await mcpClient.sendRequest('test-server', 'test', {}).catch(() => {
+                // Expected to fail
+            });
+
+            expect(mockLogger.error).toHaveBeenCalled();
+        });
+
+        it('should handle process stderr output', async () => {
+            mockSpawn.mockReturnValue(mockProcess);
+
+            mockProcess.stderr.on.mockImplementation((event: string, callback: Function) => {
+                if (event === 'data') {
+                    setTimeout(() => {
+                        callback(Buffer.from('Error: Something went wrong\n'));
+                    }, 10);
+                }
+            });
+
+            await mcpClient.startServer('test-server', 'bun', ['test-script.ts']);
+
+            expect(mockLogger.error).toHaveBeenCalled();
         });
     });
 });

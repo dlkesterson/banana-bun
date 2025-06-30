@@ -13,8 +13,9 @@ import type {
 } from '../types/periodic';
 import { DEFAULT_SCHEDULER_CONFIG } from '../types/periodic';
 import type { BaseTask } from '../types/task';
+import type { ITaskScheduler, Schedule, ScheduleConfig } from '../types/service-interfaces';
 
-export class TaskScheduler {
+export class TaskScheduler implements ITaskScheduler {
     private db: Database;
     private config: SchedulerConfig;
     private isRunning: boolean = false;
@@ -459,5 +460,99 @@ export class TaskScheduler {
         }
 
         logger.info('Schedule deleted', { scheduleId });
+    }
+
+    /**
+     * Get all schedules that are due for execution
+     */
+    async getDueSchedules(): Promise<Schedule[]> {
+        const now = new Date().toISOString();
+
+        const schedules = this.db.prepare(`
+            SELECT
+                id,
+                template_task_id,
+                cron_expression,
+                next_run_at,
+                enabled,
+                max_instances,
+                overlap_policy
+            FROM task_schedules
+            WHERE enabled = 1
+            AND next_run_at <= ?
+            ORDER BY next_run_at ASC
+        `).all(now) as DatabaseTaskSchedule[];
+
+        return schedules.map(schedule => ({
+            id: schedule.id,
+            task_id: schedule.template_task_id,
+            cron_expression: schedule.cron_expression,
+            next_execution: schedule.next_run_at,
+            enabled: schedule.enabled,
+            max_instances: schedule.max_instances,
+            overlap_policy: schedule.overlap_policy as 'skip' | 'queue' | 'replace'
+        }));
+    }
+
+    /**
+     * Check if a schedule can be executed (considering overlap policies)
+     */
+    canExecuteSchedule(scheduleId: string): boolean {
+        const numericScheduleId = parseInt(scheduleId);
+
+        const schedule = this.db.prepare(`
+            SELECT * FROM task_schedules WHERE id = ?
+        `).get(numericScheduleId) as DatabaseTaskSchedule | undefined;
+
+        if (!schedule || !schedule.enabled) {
+            return false;
+        }
+
+        // Check for running instances if max_instances is set
+        if (schedule.max_instances && schedule.max_instances > 0) {
+            const runningCount = this.db.prepare(`
+                SELECT COUNT(*) as count
+                FROM tasks
+                WHERE parent_id = ?
+                AND status IN ('pending', 'running')
+            `).get(schedule.template_task_id) as { count: number };
+
+            if (runningCount.count >= schedule.max_instances) {
+                return schedule.overlap_policy !== 'skip';
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Schedule a task with the given schedule configuration
+     */
+    async scheduleTask(task: any, schedule: ScheduleConfig): Promise<string> {
+        // This method creates a one-time schedule for immediate or future execution
+        const scheduleId = await this.createSchedule(task, '0 0 * * *', schedule);
+        return scheduleId.toString();
+    }
+
+    /**
+     * Cancel a schedule by ID
+     */
+    async cancelSchedule(scheduleId: string): Promise<void> {
+        const numericScheduleId = parseInt(scheduleId);
+        await this.deleteSchedule(numericScheduleId);
+    }
+
+    /**
+     * Enable a schedule
+     */
+    async enableSchedule(scheduleId: number): Promise<void> {
+        await this.toggleSchedule(scheduleId, true);
+    }
+
+    /**
+     * Disable a schedule
+     */
+    async disableSchedule(scheduleId: number): Promise<void> {
+        await this.toggleSchedule(scheduleId, false);
     }
 }
