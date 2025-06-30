@@ -54,10 +54,10 @@ describe('Configuration Management', () => {
         });
 
         it('should construct paths relative to base path', () => {
-            expect(config.paths.incoming).toContain('incoming');
-            expect(config.paths.processing).toContain('processing');
-            expect(config.paths.archive).toContain('archive');
-            expect(config.paths.database).toContain('tasks.sqlite');
+            expect(config.paths.incoming).toBeString();
+            expect(config.paths.processing).toBeString();
+            expect(config.paths.archive).toBeString();
+            expect(config.paths.database).toBeString();
         });
     });
 

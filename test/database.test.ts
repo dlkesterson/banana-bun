@@ -34,18 +34,27 @@ describe('Database Operations', () => {
     let dependencyHelper: DependencyHelper;
 
     beforeEach(async () => {
-        // Initialize database with migrations
-        await initDatabase();
-        db = getDatabase();
-        dependencyHelper = getDependencyHelper();
+        try {
+            // Initialize database with migrations
+            await initDatabase();
+            db = getDatabase();
+            dependencyHelper = getDependencyHelper();
 
-        // Run all migrations to ensure proper schema
-        await runAllMigrations(db);
+            // Run all migrations to ensure proper schema
+            await runAllMigrations(db);
+        } catch (error) {
+            console.error('Database setup failed:', error);
+            throw error;
+        }
     });
 
     afterEach(() => {
-        if (db) {
-            db.close();
+        try {
+            if (db && !db.closed) {
+                db.close();
+            }
+        } catch (error) {
+            // Ignore close errors
         }
     });
 

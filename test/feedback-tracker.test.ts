@@ -65,8 +65,12 @@ describe('FeedbackTracker', () => {
     beforeEach(async () => {
         db = new Database(':memory:');
         createTestTables(db);
+
+        // Clear module cache and re-mock
+        delete require.cache[require.resolve('../src/feedback-tracker')];
         mock.module('../src/db', () => ({ getDatabase: () => db }));
-        const mod = await import('../src/feedback-tracker');
+
+        const mod = await import('../src/feedback-tracker?t=' + Date.now());
         FeedbackTrackerClass = mod.FeedbackTracker;
         tracker = new FeedbackTrackerClass();
         Object.values(mockLogger).forEach(fn => 'mockClear' in fn && fn.mockClear());
