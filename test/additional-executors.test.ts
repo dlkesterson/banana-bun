@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { promises as fs } from 'fs';
+import { Database } from 'bun:sqlite';
 import { executeBatchTask } from '../src/executors/batch';
 import { executePlannerTask } from '../src/executors/planner';
 import { executeReviewTask } from '../src/executors/review';
@@ -18,7 +19,7 @@ const mockFetch = mock(() => Promise.resolve({
 
 // Add missing properties to make it compatible with fetch type
 Object.assign(mockFetch, {
-    preconnect: mock(() => {}),
+    preconnect: mock(() => { }),
     // Add other fetch properties as needed
 });
 
@@ -34,15 +35,30 @@ const mockConfig = {
         outputs: '/tmp/test-outputs',
         tasks: '/tmp/test-tasks'
     },
+    openai: {
+        apiKey: 'test-api-key',
+        model: 'gpt-4'
+    },
     ollama: {
         url: 'http://localhost:11434',
         model: 'qwen3:8b'
     }
 };
 
+// Create test database and dependency helper
+let testDb: Database;
+let mockDependencyHelper: any;
+
 // Mock modules
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 mock.module('../src/config', () => ({ config: mockConfig }));
+
+// Mock database module
+mock.module('../src/db', () => ({
+    getDatabase: () => testDb,
+    getDependencyHelper: () => mockDependencyHelper,
+    initDatabase: mock(() => Promise.resolve())
+}));
 
 // Mock global fetch
 global.fetch = mockFetch;
@@ -55,6 +71,55 @@ describe('Additional Executors', () => {
         await fs.mkdir(mockConfig.paths.outputs, { recursive: true });
         await fs.mkdir(mockConfig.paths.tasks, { recursive: true });
 
+        // Initialize test database
+        testDb = new Database(':memory:');
+
+        // Create test tables
+        testDb.run(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT,
+                file_hash TEXT,
+                parent_id INTEGER,
+                description TEXT,
+                type TEXT,
+                status TEXT,
+                dependencies TEXT,
+                result_summary TEXT,
+                shell_command TEXT,
+                error_message TEXT,
+                args TEXT,
+                generator TEXT,
+                tool TEXT,
+                validation_errors TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                started_at DATETIME,
+                finished_at DATETIME
+            )
+        `);
+
+        testDb.run(`
+            CREATE TABLE IF NOT EXISTS media (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                video_id TEXT UNIQUE,
+                title TEXT,
+                channel TEXT,
+                file_path TEXT,
+                downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create mock dependency helper
+        mockDependencyHelper = {
+            addDependency: mock(() => { }),
+            removeDependency: mock(() => { }),
+            getDependencies: mock(() => []),
+            hasCyclicDependency: mock(() => false),
+            getExecutionOrder: mock(() => []),
+            markTaskCompleted: mock(() => { }),
+            getReadyTasks: mock(() => [])
+        };
+
         // Reset mocks
         mockFetch.mockClear();
         Object.values(mockLogger).forEach(fn => {
@@ -65,6 +130,11 @@ describe('Additional Executors', () => {
     });
 
     afterEach(async () => {
+        // Close test database
+        if (testDb) {
+            testDb.close();
+        }
+
         await fs.rm(testDir, { recursive: true, force: true });
         await fs.rm(mockConfig.paths.outputs, { recursive: true, force: true });
         await fs.rm(mockConfig.paths.tasks, { recursive: true, force: true });
@@ -452,10 +522,10 @@ describe('Additional Executors', () => {
             // Test with read-only directory
             const readOnlyDir = '/tmp/readonly-test';
             await fs.mkdir(readOnlyDir, { recursive: true });
-            
+
             try {
                 await fs.chmod(readOnlyDir, 0o444); // Read-only
-                
+
                 // This should handle permission errors gracefully
                 const testFile = `${readOnlyDir}/test.txt`;
                 await expect(fs.writeFile(testFile, 'test')).rejects.toThrow();
@@ -467,8 +537,8 @@ describe('Additional Executors', () => {
 
         it('should handle network timeouts', async () => {
             // Mock network timeout
-            mockFetch.mockImplementationOnce(() => 
-                new Promise((_, reject) => 
+            mockFetch.mockImplementationOnce(() =>
+                new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Network timeout')), 100)
                 )
             );
