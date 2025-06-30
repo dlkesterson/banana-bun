@@ -1,5 +1,8 @@
 import { getDatabase } from '../db';
 import type { DatabasePlannerResult } from '../types/planner';
+import type { IPlannerService, DecomposeGoalResult } from '../types/service-interfaces';
+import { logger } from '../utils/logger';
+import { config } from '../config';
 
 export interface PlannerMetrics {
     total_plans: number;
@@ -11,7 +14,7 @@ export interface PlannerMetrics {
     most_common_patterns: string[];
 }
 
-class PlannerService {
+class PlannerService implements IPlannerService {
     /**
      * Get planner result for a specific task
      */
@@ -180,6 +183,115 @@ class PlannerService {
         `).all() as any[];
 
         return results.map(r => `${r.model_used} (${r.usage_count})`);
+    }
+
+    /**
+     * Decompose a goal into actionable tasks using LLM planning
+     */
+    async decomposeGoal(goal: string, context?: any): Promise<DecomposeGoalResult> {
+        try {
+            const db = getDatabase();
+
+            // Prepare the planning prompt
+            const prompt = `
+You are a task planning assistant. Break down the following goal into specific, actionable tasks.
+
+Goal: ${goal}
+
+Context: ${context ? JSON.stringify(context, null, 2) : 'No additional context provided'}
+
+Please provide a structured plan with the following format:
+- Each task should be specific and actionable
+- Include task type (shell, llm, code, tool, etc.)
+- Specify dependencies between tasks if any
+- Estimate priority (1-5, where 5 is highest)
+
+Return your response as a JSON object with this structure:
+{
+  "success": true,
+  "tasks": [
+    {
+      "type": "task_type",
+      "description": "specific task description",
+      "dependencies": ["task_1", "task_2"],
+      "priority": 3
+    }
+  ],
+  "plan_id": "unique_plan_identifier",
+  "estimated_duration": 1800
+}
+`;
+
+            // Call LLM for planning
+            const response = await fetch(`${config.ollama.url}/api/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model: config.ollama.model,
+                    prompt: prompt,
+                    stream: false,
+                    format: 'json'
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`LLM request failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            let planResult: DecomposeGoalResult;
+
+            try {
+                planResult = JSON.parse(data.response);
+            } catch (parseError) {
+                // Fallback if JSON parsing fails
+                planResult = {
+                    success: false,
+                    error: 'Failed to parse LLM response as JSON',
+                    tasks: []
+                };
+            }
+
+            // Store the planning result in database
+            if (planResult.success && planResult.tasks) {
+                const planId = planResult.plan_id || `plan_${Date.now()}`;
+
+                db.run(`
+                    INSERT INTO planner_results (
+                        plan_id, goal, context, tasks_json, model_used,
+                        estimated_duration, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                `, [
+                    planId,
+                    goal,
+                    JSON.stringify(context || {}),
+                    JSON.stringify(planResult.tasks),
+                    config.ollama.model,
+                    planResult.estimated_duration || 0
+                ]);
+
+                await logger.info('Goal decomposed successfully', {
+                    goal,
+                    planId,
+                    tasksCount: planResult.tasks.length
+                });
+            }
+
+            return planResult;
+        } catch (error) {
+            await logger.error('Failed to decompose goal', {
+                goal,
+                error: error instanceof Error ? error.message : String(error)
+            });
+
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+                tasks: []
+            };
+        }
     }
 }
 

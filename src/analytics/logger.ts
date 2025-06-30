@@ -1,6 +1,7 @@
 import { getDatabase } from '../db';
 import { logger } from '../utils/logger';
 import type { BaseTask } from '../types';
+import type { TaskTrend, TimeRange, PerformanceMetrics, IAnalyticsLogger } from '../types/service-interfaces';
 
 export interface TaskMetrics {
     task_id: number;
@@ -36,7 +37,7 @@ export interface TaskAnalytics {
     }>;
 }
 
-export class AnalyticsLogger {
+export class AnalyticsLogger implements IAnalyticsLogger {
   private getDb() {
     return getDatabase();
   }
@@ -365,6 +366,140 @@ export class AnalyticsLogger {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
+    }
+  }
+
+  /**
+   * Get task trends over a specified number of days
+   */
+  async getTaskTrends(days: number): Promise<TaskTrend[]> {
+    try {
+      const db = this.getDb();
+      const cutoffTime = new Date(
+        Date.now() - days * 24 * 60 * 60 * 1000
+      ).toISOString();
+
+      const trends = db
+        .prepare(
+          `
+          SELECT
+            DATE(created_at) as date,
+            COUNT(*) as total_tasks,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successful_tasks,
+            SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as failed_tasks,
+            AVG(duration_ms) as avg_duration_ms
+          FROM task_logs
+          WHERE created_at >= ?
+          GROUP BY DATE(created_at)
+          ORDER BY date DESC
+          `
+        )
+        .all(cutoffTime) as TaskTrend[];
+
+      return trends.map(trend => ({
+        ...trend,
+        avg_duration_ms: trend.avg_duration_ms || 0
+      }));
+    } catch (error) {
+      await logger.error("Failed to get task trends", {
+        error: error instanceof Error ? error.message : String(error),
+        days
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Log a specific task metric
+   */
+  async logTaskMetric(taskId: string, metric: string, value: number): Promise<void> {
+    try {
+      const db = this.getDb();
+      const numericTaskId = parseInt(taskId);
+
+      // Create task_metrics table if it doesn't exist
+      db.run(`
+        CREATE TABLE IF NOT EXISTS task_metrics (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          task_id INTEGER NOT NULL,
+          metric_name TEXT NOT NULL,
+          metric_value REAL NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      db.run(
+        `INSERT INTO task_metrics (task_id, metric_name, metric_value) VALUES (?, ?, ?)`,
+        [numericTaskId, metric, value]
+      );
+
+      await logger.debug("Task metric logged", {
+        taskId: numericTaskId,
+        metric,
+        value
+      });
+    } catch (error) {
+      await logger.error("Failed to log task metric", {
+        error: error instanceof Error ? error.message : String(error),
+        taskId,
+        metric,
+        value
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get performance metrics for a specific time range
+   */
+  async getPerformanceMetrics(timeRange: TimeRange): Promise<PerformanceMetrics> {
+    try {
+      const db = this.getDb();
+      const startTime = timeRange.start.toISOString();
+      const endTime = timeRange.end.toISOString();
+
+      // Get basic analytics for the time range
+      const analytics = await this.getTaskAnalytics(
+        Math.ceil((timeRange.end.getTime() - timeRange.start.getTime()) / (1000 * 60 * 60))
+      );
+
+      // Get trends for the time range
+      const daysDiff = Math.ceil((timeRange.end.getTime() - timeRange.start.getTime()) / (1000 * 60 * 60 * 24));
+      const trends = await this.getTaskTrends(daysDiff);
+
+      return {
+        total_tasks: analytics.total_tasks,
+        success_rate: analytics.success_rate,
+        average_duration_ms: analytics.average_duration_ms,
+        bottlenecks: analytics.bottlenecks,
+        trends
+      };
+    } catch (error) {
+      await logger.error("Failed to get performance metrics", {
+        error: error instanceof Error ? error.message : String(error),
+        timeRange
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Log task completion with status and optional error
+   */
+  async logTaskCompletion(task: any, status: string, error?: string): Promise<void> {
+    if (status === 'completed') {
+      // Calculate duration if possible
+      const duration = task.finished_at && task.started_at
+        ? new Date(task.finished_at).getTime() - new Date(task.started_at).getTime()
+        : undefined;
+
+      await this.logTaskComplete(task, duration || 0);
+    } else if (status === 'error') {
+      const duration = task.finished_at && task.started_at
+        ? new Date(task.finished_at).getTime() - new Date(task.started_at).getTime()
+        : undefined;
+
+      await this.logTaskError(task, error || 'Unknown error', duration);
     }
   }
 }
