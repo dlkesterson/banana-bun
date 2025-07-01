@@ -1,5 +1,5 @@
 import { spawn } from 'bun';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 import type { TaskEmbedding } from '../types/index.js';
 
 // Simple MCP client that works with Bun's process spawning
