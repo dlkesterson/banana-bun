@@ -10,8 +10,8 @@ import {
 import { WebSocketServer } from 'ws';
 import { readFile, readdir } from 'fs/promises';
 import { join } from 'path';
-import { config } from '../config.js';
-import { getDatabase, initDatabase } from '../db.js';
+import { config } from '../config';
+import { getDatabase, initDatabase } from '../db';
 import type { DatabaseTask } from '../types/index.js';
 
 interface TaskStatusUpdate {

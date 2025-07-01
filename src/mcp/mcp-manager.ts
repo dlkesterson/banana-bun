@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { mcpClient } from './mcp-client.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 import { embeddingManager } from '../memory/embeddings.js';
 import type { TaskEmbedding } from '../types/index.js';
 

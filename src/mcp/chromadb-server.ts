@@ -8,7 +8,7 @@ import {
     type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 import { ChromaClient } from 'chromadb';
-import { config } from '../config.js';
+import { config } from '../config';
 import { embeddingManager } from '../memory/embeddings.js';
 import type { TaskEmbedding } from '../types/index.js';
 
