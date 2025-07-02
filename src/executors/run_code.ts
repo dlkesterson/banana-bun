@@ -17,6 +17,12 @@ function getInterpreterForExtension(ext: string): { cmd: string[], label: string
 
 export async function executeRunCodeTask(task: RunCodeTask): Promise<{ success: boolean; outputPath?: string; error?: string }> {
     const db = getDatabase();
+
+    // Check if we have direct code to execute
+    if (task.code && task.language) {
+        return executeDirectCode(task);
+    }
+
     // Find the dependency task (should be a code task)
     let depTaskId: string | undefined;
     if (task.dependencies) {
@@ -77,4 +83,82 @@ export async function executeRunCodeTask(task: RunCodeTask): Promise<{ success: 
         await logger.error('Error executing run_code task: ' + error + ' ' + JSON.stringify({ taskId: task.id }));
         return { success: false, error };
     }
-} 
+}
+
+async function executeDirectCode(task: RunCodeTask): Promise<{ success: boolean; outputPath?: string; error?: string }> {
+    if (!task.code || !task.language) {
+        return { success: false, error: 'Code and language are required for direct execution' };
+    }
+
+    // Check for unsupported languages
+    const supportedLanguages = ['python', 'javascript', 'typescript', 'bash', 'sh'];
+    if (!supportedLanguages.includes(task.language.toLowerCase())) {
+        return { success: false, error: `Unsupported language: ${task.language}` };
+    }
+
+    try {
+        // Create temporary file with the code
+        const outputDir = config.paths.outputs;
+        const tempCodeFile = join(outputDir, `temp_code_${task.id || Date.now()}.${getExtensionForLanguage(task.language)}`);
+
+        await writeFile(tempCodeFile, task.code, 'utf-8');
+
+        // Get interpreter for the language
+        const ext = getExtensionForLanguage(task.language);
+        const interpreter = getInterpreterForExtension(`.${ext}`);
+
+        if (!interpreter) {
+            return { success: false, error: `No interpreter found for language: ${task.language}` };
+        }
+
+        // Prepare output file path
+        const outputPath = join(outputDir, `task-${task.id || 'unknown'}-run-code-output.txt`);
+
+        // Run the code
+        const proc = spawn({
+            cmd: [...interpreter.cmd, tempCodeFile],
+            stdout: 'pipe',
+            stderr: 'pipe'
+        });
+
+        const stdout = await new Response(proc.stdout).text();
+        const stderr = await new Response(proc.stderr).text();
+        const exitCode = await proc.exited;
+
+        // Write output to file
+        let outputContent = `# Language\n${task.language}\n\n# Code\n${task.code}\n\n# STDOUT\n${stdout}\n\n# STDERR\n${stderr}\n\n# Exit Code\n${exitCode}`;
+        await writeFile(outputPath, outputContent, 'utf-8');
+
+        // Clean up temp file
+        try {
+            await import('fs').then(fs => fs.promises.unlink(tempCodeFile));
+        } catch (cleanupErr) {
+            // Ignore cleanup errors
+        }
+
+        if (exitCode === 0) {
+            await logger.info('Direct code execution successful', { taskId: task.id, language: task.language, outputPath });
+            return { success: true, outputPath };
+        } else {
+            await logger.error('Direct code execution failed', { taskId: task.id, language: task.language, exitCode, stderr });
+            return { success: false, outputPath, error: stderr || 'Code execution failed' };
+        }
+
+    } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        await logger.error('Error in direct code execution', { taskId: task.id, error });
+        return { success: false, error };
+    }
+}
+
+function getExtensionForLanguage(language: string): string {
+    const lang = language.toLowerCase();
+    switch (lang) {
+        case 'python': return 'py';
+        case 'javascript': return 'js';
+        case 'typescript': return 'ts';
+        case 'bash':
+        case 'sh': return 'sh';
+        default: return 'txt';
+    }
+}

@@ -9,9 +9,13 @@ export async function executeBatchTask(task: BatchTask): Promise<{ success: bool
         return executeGeneratorBatchTask(task);
     }
 
-    // Static batch tasks should be handled by the task processor
-    // This shouldn't happen in the main orchestrator
-    const error = 'Static batch tasks should be handled by the task processor';
+    // Handle static batch tasks with subtasks array
+    if (task.subtasks && Array.isArray(task.subtasks)) {
+        return executeStaticBatchTask(task);
+    }
+
+    // No subtasks or generator provided
+    const error = 'Batch task must have either subtasks array or generator';
     await logger.error(error, { task });
     return { success: false, error };
 }
@@ -109,4 +113,78 @@ async function executeGeneratorBatchTask(task: BaseTask): Promise<{ success: boo
         await logger.error('Error executing batch task', { taskId: task.id, error });
         return { success: false, error };
     }
-} 
+}
+
+async function executeStaticBatchTask(task: BatchTask): Promise<{ success: boolean; subtaskIds?: number[]; error?: string }> {
+    try {
+        const subtasks = task.subtasks || [];
+
+        // Handle empty batch task
+        if (subtasks.length === 0) {
+            await logger.info('Empty batch task executed', { taskId: task.id });
+            return { success: true, subtaskIds: [] };
+        }
+
+        // Validate subtasks
+        for (const subtask of subtasks) {
+            if (!subtask.type) {
+                const error = 'Subtask missing required type field';
+                await logger.error(error, { taskId: task.id, subtask });
+                return { success: false, error: `Invalid subtask: ${error}` };
+            }
+
+            // Check for unsupported task types
+            const supportedTypes = ['shell', 'llm', 'code', 'tool', 'planner', 'review', 'run_code', 'youtube'];
+            if (!supportedTypes.includes(subtask.type)) {
+                const error = `Unsupported subtask type: ${subtask.type}`;
+                await logger.error(error, { taskId: task.id, subtask });
+                return { success: false, error: `Invalid subtask: ${error}` };
+            }
+        }
+
+        // Create subtasks in database
+        const db = getDatabase();
+        const subtaskIds: number[] = [];
+
+        for (const subtask of subtasks) {
+            // Insert subtask into database
+            db.run(
+                `INSERT INTO tasks (type, description, status, parent_id, shell_command, args) VALUES (?, ?, 'pending', ?, ?, ?)`,
+                [
+                    subtask.type,
+                    subtask.description || `Subtask ${subtaskIds.length + 1}`,
+                    task.id,
+                    (subtask as any).shell_command || null,
+                    JSON.stringify((subtask as any).args || {})
+                ]
+            );
+
+            const result = db.query('SELECT last_insert_rowid() as id').get() as { id: number } | undefined;
+            if (result?.id) {
+                subtaskIds.push(result.id);
+            }
+        }
+
+        // Mark parent task with subtask info
+        if (typeof task.id === 'number') {
+            const resultSummary = `Created ${subtaskIds.length} static subtasks`;
+            db.run(
+                `UPDATE tasks SET result_summary = ? WHERE id = ?`,
+                [resultSummary, task.id]
+            );
+        }
+
+        await logger.info('Static batch task executed successfully', {
+            taskId: task.id,
+            subtaskIds,
+            subtaskCount: subtasks.length
+        });
+
+        return { success: true, subtaskIds };
+
+    } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        await logger.error('Error executing static batch task', { taskId: task.id, error });
+        return { success: false, error };
+    }
+}

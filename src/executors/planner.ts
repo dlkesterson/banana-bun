@@ -29,31 +29,58 @@ Use these examples to inform your planning approach.`;
     }
 
     try {
-        // Call OpenAI API
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${config.openai.apiKey}`
-            },
-            body: JSON.stringify({
-                model: config.openai.model || 'gpt-4',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                temperature: 0.2
-            })
-        });
+        // Determine which API to use based on config
+        let response: Response;
+
+        if (config.ollama?.url) {
+            // Use Ollama API
+            response = await fetch(`${config.ollama.url}/api/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: config.ollama.model || 'qwen3:8b',
+                    prompt: `${systemPrompt}\n\nUser: ${userPrompt}\n\nAssistant:`,
+                    stream: false
+                })
+            });
+        } else {
+            // Use OpenAI API
+            response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${config.openai.apiKey}`
+                },
+                body: JSON.stringify({
+                    model: config.openai.model || 'gpt-4',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt }
+                    ],
+                    temperature: 0.2
+                })
+            });
+        }
 
         if (!response.ok) {
-            const error = `OpenAI API error: ${response.status} ${response.statusText}`;
+            const apiName = config.ollama?.url ? 'Ollama' : 'OpenAI';
+            const error = `${apiName} API error: ${response.status} ${response.statusText}`;
             await logger.error(error, { taskId: task.id });
             return { success: false, error };
         }
 
         const data: any = await response.json();
-        const content = data.choices?.[0]?.message?.content || '';
+        let content: string;
+
+        if (config.ollama?.url) {
+            // Ollama response format
+            content = data.response || '';
+        } else {
+            // OpenAI response format
+            content = data.choices?.[0]?.message?.content || '';
+        }
 
         // Parse YAML subtasks
         let subtasksYaml: any;
@@ -62,7 +89,7 @@ Use these examples to inform your planning approach.`;
         } catch (parseErr) {
             const error = 'Failed to parse YAML from GPT-4 response';
             await logger.error(error, { content, parseErr });
-            return { success: false, error };
+            return { success: false, error: `${error}: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}` };
         }
         const subtasks = subtasksYaml?.subtasks;
         if (!Array.isArray(subtasks) || subtasks.length === 0) {
