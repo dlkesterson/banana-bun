@@ -47,14 +47,19 @@ export async function initDatabase() {
             CREATE TABLE IF NOT EXISTS review_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
-                reviewer_type TEXT NOT NULL, -- 'llm', 'human', 'automated'
+                reviewer_type TEXT DEFAULT 'automated', -- 'llm', 'human', 'automated'
                 model_used TEXT,
                 passed BOOLEAN NOT NULL,
                 score INTEGER, -- 0-100 score
-                feedback TEXT NOT NULL,
+                feedback TEXT,
                 suggestions TEXT, -- JSON array of suggestions
                 review_criteria TEXT, -- Original requirements/criteria
                 reviewed_output TEXT, -- What was reviewed
+                criteria_json TEXT, -- JSON of criteria used
+                passed_criteria_json TEXT, -- JSON of passed criteria
+                failed_criteria_json TEXT, -- JSON of failed criteria
+                recommendations_json TEXT, -- JSON of recommendations
+                quality_metrics_json TEXT, -- JSON of quality metrics
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
             )

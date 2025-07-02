@@ -50,12 +50,19 @@ describe('ReviewService', () => {
             CREATE TABLE IF NOT EXISTS review_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
-                criteria_json TEXT NOT NULL,
-                passed_criteria_json TEXT NOT NULL,
-                failed_criteria_json TEXT NOT NULL,
-                score REAL NOT NULL,
+                reviewer_type TEXT DEFAULT 'automated',
+                model_used TEXT,
                 passed BOOLEAN NOT NULL,
+                score INTEGER,
+                feedback TEXT,
+                suggestions TEXT,
+                review_criteria TEXT,
+                reviewed_output TEXT,
+                criteria_json TEXT,
+                passed_criteria_json TEXT,
+                failed_criteria_json TEXT,
                 recommendations_json TEXT,
+                quality_metrics_json TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_id) REFERENCES tasks (id)
             )
