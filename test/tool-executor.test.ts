@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import type { ToolTask } from '../src/types';
 
 const mockToolRunner = {
   executeTool: mock(async () => ({ path: '/tmp/out.txt' }))
 };
 
-// Mock tool_runner module before importing the executor
+// Mock tool_runner module only for this test file
+const originalModule = await import('../src/tools/tool_runner');
 mock.module('../src/tools/tool_runner', () => ({ toolRunner: mockToolRunner }));
 
 let executeToolTask: typeof import('../src/executors/tool').executeToolTask;
@@ -14,6 +15,11 @@ beforeEach(async () => {
   const mod = await import('../src/executors/tool');
   executeToolTask = mod.executeToolTask;
   mockToolRunner.executeTool.mockClear();
+});
+
+afterEach(() => {
+  // Restore the original module after each test
+  mock.module('../src/tools/tool_runner', () => originalModule);
 });
 
 describe('executeToolTask', () => {
