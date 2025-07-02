@@ -61,10 +61,21 @@ export function createLoggerMock() {
 export function createConfigMock(overrides: any = {}) {
     return {
         paths: {
-            database: ':memory:',
+            incoming: '/tmp/test-incoming',
+            processing: '/tmp/test-processing',
+            archive: '/tmp/test-archive',
+            error: '/tmp/test-error',
             tasks: '/tmp/test-tasks',
+            outputs: '/tmp/test-outputs',
             logs: '/tmp/test-logs',
+            dashboard: '/tmp/test-dashboard',
+            database: ':memory:',
             media: '/tmp/test-media',
+            chroma: {
+                host: 'localhost',
+                port: 8000,
+                ssl: false
+            },
             ...overrides.paths
         },
         openai: {
@@ -72,18 +83,113 @@ export function createConfigMock(overrides: any = {}) {
             model: 'gpt-4',
             ...overrides.openai
         },
-        meilisearch: {
-            host: 'http://localhost:7700',
-            apiKey: 'test-key',
-            ...overrides.meilisearch
+        ollama: {
+            url: 'http://localhost:11434',
+            model: 'qwen3:8b',
+            fastModel: 'qwen3:8b',
+            ...overrides.ollama
         },
         chromadb: {
-            host: 'http://localhost:8000',
+            url: 'http://localhost:8000',
+            tenant: 'default_tenant',
             ...overrides.chromadb
         },
+        meilisearch: {
+            url: 'http://localhost:7700',
+            masterKey: 'test-master-key',
+            indexName: 'test-media-index',
+            ...overrides.meilisearch
+        },
         whisper: {
-            model: 'base',
+            model: 'turbo',
+            device: 'cpu',
+            language: 'auto',
+            chunkDuration: 30,
             ...overrides.whisper
+        },
+        vision: {
+            model: 'openai/clip-vit-base-patch32',
+            frameExtraction: {
+                interval: 10,
+                maxFrames: 50,
+                sceneDetection: false
+            },
+            ...overrides.vision
+        },
+        s3: {
+            accessKeyId: 'test-access-key',
+            secretAccessKey: 'test-secret-key',
+            region: 'us-east-1',
+            endpoint: undefined,
+            defaultBucket: 'test-bucket',
+            defaultDownloadPath: '/tmp/test-s3-downloads',
+            syncLogPath: '/tmp/test-s3-sync-logs',
+            ...overrides.s3
+        },
+        media: {
+            collectionTv: '/tmp/test-media/TV',
+            collectionMovies: '/tmp/test-media/Movies',
+            collectionYouTube: '/tmp/test-media/YouTube',
+            collectionCatchAll: '/tmp/test-media/Downloads',
+            tools: {
+                ffprobe: 'ffprobe',
+                mediainfo: 'mediainfo',
+                preferred: 'ffprobe' as 'ffprobe' | 'mediainfo' | 'auto'
+            },
+            extensions: {
+                video: ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.3gp'],
+                audio: ['.mp3', '.flac', '.wav', '.aac', '.ogg', '.m4a', '.wma', '.opus']
+            },
+            extraction: {
+                timeout_ms: 30000,
+                max_file_size_mb: 10000,
+                enable_deduplication: true
+            },
+            organize: {
+                enabled: true,
+                auto_organize_after_ingest: true,
+                categorization: {
+                    useMetadataType: true,
+                    fallbackToFilename: true,
+                    defaultCategory: 'catchall' as 'tv' | 'movies' | 'youtube' | 'catchall'
+                },
+                folderStructure: {
+                    movies: {
+                        pattern: '{title} ({year})',
+                        groupByYear: false,
+                        groupByGenre: false
+                    },
+                    tv: {
+                        pattern: '{series}/Season {season:02d}/{series} - S{season:02d}E{episode:02d} - {title}',
+                        groupBySeries: true
+                    },
+                    youtube: {
+                        pattern: '{channel}/{title}',
+                        groupByChannel: true
+                    }
+                },
+                filenameNormalization: {
+                    maxLength: 180,
+                    case: 'title' as 'title' | 'lower' | 'upper',
+                    replaceSpaces: false,
+                    sanitizeChars: true
+                }
+            },
+            ...overrides.media
+        },
+        downloaders: {
+            ytdlp: {
+                path: 'yt-dlp',
+                defaultFormat: 'best[height<=1080]',
+                defaultQuality: '720p',
+                outputTemplate: '%(title)s [%(id)s].%(ext)s'
+            },
+            rss: {
+                enabled: false,
+                checkInterval: 3600,
+                feeds: []
+            },
+            ...overrides.downloaders
         },
         ...overrides
     };

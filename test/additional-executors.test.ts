@@ -32,8 +32,21 @@ const mockLogger = {
 
 const mockConfig = {
     paths: {
+        incoming: '/tmp/test-incoming',
+        processing: '/tmp/test-processing',
+        archive: '/tmp/test-archive',
+        error: '/tmp/test-error',
+        tasks: '/tmp/test-tasks',
         outputs: '/tmp/test-outputs',
-        tasks: '/tmp/test-tasks'
+        logs: '/tmp/test-logs',
+        dashboard: '/tmp/test-dashboard',
+        database: ':memory:',
+        media: '/tmp/test-media',
+        chroma: {
+            host: 'localhost',
+            port: 8000,
+            ssl: false
+        }
     },
     openai: {
         apiKey: 'test-api-key',
@@ -41,7 +54,8 @@ const mockConfig = {
     },
     ollama: {
         url: 'http://localhost:11434',
-        model: 'qwen3:8b'
+        model: 'qwen3:8b',
+        fastModel: 'qwen3:8b'
     }
 };
 

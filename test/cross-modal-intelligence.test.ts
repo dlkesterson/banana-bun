@@ -6,8 +6,44 @@ let db: Database;
 mock.module('../src/db', () => ({ getDatabase: () => db }));
 mock.module('../src/config', () => ({
     config: {
-        paths: { logs: '/tmp' },
-        services: { chromadb: { url: 'http://localhost:1234' } }
+        paths: {
+            incoming: '/tmp/test-incoming',
+            processing: '/tmp/test-processing',
+            archive: '/tmp/test-archive',
+            error: '/tmp/test-error',
+            tasks: '/tmp/test-tasks',
+            outputs: '/tmp/test-outputs',
+            logs: '/tmp/test-logs',
+            dashboard: '/tmp/test-dashboard',
+            database: ':memory:',
+            media: '/tmp/test-media',
+            chroma: {
+                host: 'localhost',
+                port: 8000,
+                ssl: false
+            }
+        },
+        openai: {
+            apiKey: 'test-api-key',
+            model: 'gpt-4'
+        },
+        ollama: {
+            url: 'http://localhost:11434',
+            model: 'qwen3:8b',
+            fastModel: 'qwen3:8b'
+        },
+        chromadb: {
+            url: 'http://localhost:8000',
+            tenant: 'default_tenant'
+        },
+        meilisearch: {
+            url: 'http://localhost:7700',
+            masterKey: 'test-master-key',
+            indexName: 'test-media-index'
+        },
+        services: {
+            chromadb: { url: 'http://localhost:1234' }
+        }
     }
 }));
 

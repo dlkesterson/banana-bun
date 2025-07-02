@@ -3,8 +3,32 @@ import { promises as fs } from 'fs';
 import type { CodeTask } from '../src/types/task';
 
 const mockConfig = {
-    paths: { outputs: '/tmp/code-executor-tests' },
-    ollama: { url: 'http://localhost:11434', model: 'mock-model' }
+    paths: {
+        incoming: '/tmp/test-incoming',
+        processing: '/tmp/test-processing',
+        archive: '/tmp/test-archive',
+        error: '/tmp/test-error',
+        tasks: '/tmp/test-tasks',
+        outputs: '/tmp/code-executor-tests',
+        logs: '/tmp/test-logs',
+        dashboard: '/tmp/test-dashboard',
+        database: ':memory:',
+        media: '/tmp/test-media',
+        chroma: {
+            host: 'localhost',
+            port: 8000,
+            ssl: false
+        }
+    },
+    openai: {
+        apiKey: 'test-api-key',
+        model: 'gpt-4'
+    },
+    ollama: {
+        url: 'http://localhost:11434',
+        model: 'mock-model',
+        fastModel: 'mock-model'
+    }
 };
 const mockLogger = {
     info: mock(() => Promise.resolve()),

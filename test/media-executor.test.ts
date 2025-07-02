@@ -7,6 +7,32 @@ import type { MediaIngestTask } from '../src/types/task';
 
 // Mock external dependencies
 const mockConfig = {
+    paths: {
+        incoming: '/tmp/test-incoming',
+        processing: '/tmp/test-processing',
+        archive: '/tmp/test-archive',
+        error: '/tmp/test-error',
+        tasks: '/tmp/test-tasks',
+        outputs: '/tmp/test-outputs',
+        logs: '/tmp/test-logs',
+        dashboard: '/tmp/test-dashboard',
+        database: ':memory:',
+        media: '/tmp/test-media',
+        chroma: {
+            host: 'localhost',
+            port: 8000,
+            ssl: false
+        }
+    },
+    openai: {
+        apiKey: 'test-api-key',
+        model: 'gpt-4'
+    },
+    ollama: {
+        url: 'http://localhost:11434',
+        model: 'qwen3:8b',
+        fastModel: 'qwen3:8b'
+    },
     media: {
         tools: {
             ffprobe: 'ffprobe',
