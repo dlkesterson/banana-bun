@@ -42,6 +42,10 @@ export class MCPManager {
     private metricsInterval?: Timer;
 
     async initialize(): Promise<void> {
+        if (this.isInitialized) {
+            return; // Already initialized
+        }
+
         try {
             await this.loadConfig();
             await this.startServers();
@@ -315,6 +319,17 @@ export class MCPManager {
             await logger.error('Error during MCP Manager shutdown', {
                 error: error instanceof Error ? error.message : String(error)
             });
+        }
+    }
+
+    // Connection management methods
+    isConnected(): boolean {
+        return this.isInitialized;
+    }
+
+    async ensureConnection(): Promise<void> {
+        if (!this.isInitialized) {
+            await this.initialize();
         }
     }
 }

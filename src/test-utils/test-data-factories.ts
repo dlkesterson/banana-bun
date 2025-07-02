@@ -393,4 +393,32 @@ export class MCPResponseTestFactory {
             ]
         };
     }
+
+    static createMCPResponse(id: number, result: any) {
+        return {
+            jsonrpc: '2.0',
+            id,
+            result
+        };
+    }
+
+    static createMCPErrorResponse(id: number, error: string) {
+        return {
+            jsonrpc: '2.0',
+            id,
+            error: {
+                code: -1,
+                message: error
+            }
+        };
+    }
+
+    // Helper to create async iterator for mock streams
+    static createMockStreamIterator(responses: string[]) {
+        return (async function* () {
+            for (const response of responses) {
+                yield Buffer.from(response + '\n');
+            }
+        })();
+    }
 }

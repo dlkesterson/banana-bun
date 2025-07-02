@@ -185,21 +185,107 @@ export function createFileSystemMock() {
 
 // Process mock factory for spawn operations
 export function createProcessMock() {
-    return {
-        stdin: {
-            write: mock(() => true),
-            end: mock(() => {})
-        },
-        stdout: {
-            on: mock(() => {}),
-            pipe: mock(() => {})
-        },
-        stderr: {
-            on: mock(() => {}),
-            pipe: mock(() => {})
-        },
+    let responseQueue: string[] = [];
+    let isIterating = false;
+    let pendingRequests: Map<number, any> = new Map();
+
+    const mockStdin = {
+        write: mock((data: string) => {
+            // Parse the request to auto-respond
+            try {
+                const request = JSON.parse(data.trim());
+
+                // Auto-respond to initialize request immediately
+                if (request.method === 'initialize') {
+                    const initResponse = JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: request.id,
+                        result: {
+                            protocolVersion: '2024-11-05',
+                            capabilities: {
+                                tools: {}
+                            },
+                            serverInfo: {
+                                name: 'test-server',
+                                version: '1.0.0'
+                            }
+                        }
+                    });
+                    // Add response immediately to the front of the queue
+                    responseQueue.unshift(initResponse);
+                } else {
+                    // Store other requests for manual response
+                    pendingRequests.set(request.id, request);
+                }
+            } catch (e) {
+                // Ignore parsing errors
+            }
+            return true;
+        }),
+        end: mock(() => {})
+    };
+
+    const mockStdout = {
         on: mock(() => {}),
-        kill: mock(() => true),
+        pipe: mock(() => {}),
+        [Symbol.asyncIterator]: async function* () {
+            isIterating = true;
+
+            // Keep yielding responses as they come
+            while (isIterating) {
+                if (responseQueue.length > 0) {
+                    const response = responseQueue.shift();
+                    if (response) {
+                        yield Buffer.from(response + '\n');
+                        // Small delay after yielding
+                        await new Promise(resolve => setTimeout(resolve, 5));
+                    }
+                } else {
+                    // Wait a bit before checking again
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+            }
+        },
+        // Helper method to add responses to the queue
+        addResponse: (response: string) => {
+            responseQueue.push(response);
+        },
+        // Helper method to respond to pending requests
+        respondToRequest: (id: number, result: any) => {
+            if (pendingRequests.has(id)) {
+                const response = JSON.stringify({
+                    jsonrpc: '2.0',
+                    id,
+                    result
+                });
+                responseQueue.push(response);
+                pendingRequests.delete(id);
+            }
+        },
+        // Helper method to stop the iterator
+        stopIterator: () => {
+            isIterating = false;
+        }
+    };
+
+    const mockStderr = {
+        on: mock(() => {}),
+        pipe: mock(() => {}),
+        [Symbol.asyncIterator]: async function* () {
+            // Empty stderr stream that doesn't block
+            return;
+        }
+    };
+
+    return {
+        stdin: mockStdin,
+        stdout: mockStdout,
+        stderr: mockStderr,
+        on: mock(() => {}),
+        kill: mock(() => {
+            isIterating = false;
+            return true;
+        }),
         pid: 12345,
         exitCode: null,
         signalCode: null,
