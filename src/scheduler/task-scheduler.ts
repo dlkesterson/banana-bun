@@ -390,10 +390,10 @@ export class TaskScheduler implements ITaskScheduler {
         const failedToday = this.db.query('SELECT COUNT(*) as count FROM task_instances WHERE status = "failed" AND completed_at >= ?').get(todayStr) as { count: number };
 
         const upcomingRuns = this.db.query(`
-            SELECT schedule_id, template_task_id, next_run_at as scheduledFor, cron_expression
-            FROM task_schedules 
-            WHERE enabled = TRUE 
-            ORDER BY next_run_at ASC 
+            SELECT id as schedule_id, template_task_id, next_run_at as scheduledFor, cron_expression
+            FROM task_schedules
+            WHERE enabled = TRUE
+            ORDER BY next_run_at ASC
             LIMIT 10
         `).all() as Array<{ schedule_id: number; template_task_id: number; scheduledFor: string; cron_expression: string }>;
 
