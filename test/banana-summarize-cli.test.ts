@@ -3,19 +3,43 @@ import { Database } from 'bun:sqlite';
 
 let cli: typeof import('../src/cli/banana-summarize');
 
-// Helpers for database
+// Use a real database for testing but ensure it's isolated
 let db: Database;
 
 beforeEach(async () => {
-  // In-memory sqlite db
+  // Create a real in-memory database for testing
   db = new Database(':memory:');
-  db.exec(`CREATE TABLE media_metadata (id INTEGER PRIMARY KEY, file_path TEXT);`);
-  db.exec(`CREATE TABLE media_transcripts (id INTEGER PRIMARY KEY, media_id INTEGER, transcript_text TEXT);`);
 
-  // Mock db module before importing CLI
+  // Create the required tables
+  db.exec(`
+    CREATE TABLE media_metadata (
+      id INTEGER PRIMARY KEY,
+      file_path TEXT NOT NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE media_transcripts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      media_id INTEGER NOT NULL,
+      transcript_text TEXT NOT NULL,
+      FOREIGN KEY (media_id) REFERENCES media_metadata(id)
+    )
+  `);
+
+  // Mock the database module to return our test database
   mock.module('../src/db', () => ({
     getDatabase: () => db,
     initDatabase: async () => {},
+    getDependencyHelper: () => ({
+      addDependency: () => {},
+      removeDependency: () => {},
+      getDependencies: () => [],
+      hasCyclicDependency: () => false,
+      getExecutionOrder: () => [],
+      markTaskCompleted: () => {},
+      getReadyTasks: () => []
+    })
   }));
 
   // Mock summarizer service
@@ -37,12 +61,27 @@ beforeEach(async () => {
     createMediaSummarizeTask: mock(async () => 123),
   }));
 
-  // Import CLI after mocks
+  // Import CLI after mocks are set up
   cli = await import('../src/cli/banana-summarize');
 });
 
 afterEach(() => {
-  db.close();
+  // Close the database connection
+  if (db && !db.closed) {
+    try {
+      db.close();
+    } catch (error) {
+      // Ignore close errors in tests
+    }
+  }
+
+  // Clear module cache to prevent interference with other tests
+  try {
+    delete require.cache[require.resolve('../src/db')];
+    delete require.cache[require.resolve('../src/cli/banana-summarize')];
+  } catch (error) {
+    // Ignore cache clearing errors
+  }
 });
 
 describe('parseCliArgs', () => {
@@ -82,6 +121,7 @@ describe('validateMediaExists', () => {
     db.run(`INSERT INTO media_transcripts (media_id, transcript_text) VALUES (1, 'text')`);
 
     const result = await cli.validateMediaExists(1);
+
     expect(result.exists).toBe(true);
     expect(result.hasTranscript).toBe(true);
     expect(result.filePath).toBe('/tmp/file.mp4');

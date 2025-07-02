@@ -1,20 +1,27 @@
 import { describe, it, expect, mock, beforeEach, afterEach, beforeAll, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
+// Create unique mock module names to avoid conflicts with other tests
+const MOCK_MODULE_PREFIX = 'cross-modal-cli-test-';
+
 // Mock database module before importing CLI
-let mockDb: Database;
+let mockDb: any; // Use a fake mock object instead of real Database
+const mockInitDatabase = mock(() => Promise.resolve());
+const mockGetDatabase = mock(() => mockDb);
+const mockGetDependencyHelper = mock(() => ({
+    addDependency: mock(() => {}),
+    removeDependency: mock(() => {}),
+    getDependencies: mock(() => []),
+    hasCyclicDependency: mock(() => false),
+    getExecutionOrder: mock(() => []),
+    markTaskCompleted: mock(() => {}),
+    getReadyTasks: mock(() => [])
+}));
+
 mock.module('../src/db', () => ({
-    initDatabase: mock(() => Promise.resolve()),
-    getDatabase: () => mockDb,
-    getDependencyHelper: () => ({
-        addDependency: mock(() => {}),
-        removeDependency: mock(() => {}),
-        getDependencies: mock(() => []),
-        hasCyclicDependency: mock(() => false),
-        getExecutionOrder: mock(() => []),
-        markTaskCompleted: mock(() => {}),
-        getReadyTasks: mock(() => [])
-    })
+    initDatabase: mockInitDatabase,
+    getDatabase: mockGetDatabase,
+    getDependencyHelper: mockGetDependencyHelper
 }));
 
 // Mock config module
@@ -70,16 +77,46 @@ mock.module('chromadb', () => ({ ChromaClient: class {} }));
 let cli: typeof import('../src/cli/analyze-cross-modal-intelligence');
 
 beforeAll(async () => {
-    // Create in-memory database for testing
-    mockDb = new Database(':memory:');
+    // Create a fake database mock object (no real database needed)
+    mockDb = {
+        run: mock(() => {}),
+        prepare: mock(() => ({
+            get: mock(() => null),
+            all: mock(() => [])
+        })),
+        query: mock(() => ({
+            get: mock(() => null),
+            all: mock(() => [])
+        })),
+        close: mock(() => {}),
+        closed: false
+    };
+
+    // Reset all mocks
+    mockInitDatabase.mockClear();
+    mockGetDatabase.mockClear();
+    mockGetDependencyHelper.mockClear();
 
     // Import CLI after mocks are set up
     cli = await import('../src/cli/analyze-cross-modal-intelligence');
 });
 
 afterAll(() => {
-    if (mockDb) {
-        mockDb.close();
+    // Clear all mocks to prevent interference with other tests
+    mockInitDatabase.mockClear();
+    mockGetDatabase.mockClear();
+    mockGetDependencyHelper.mockClear();
+
+    // Reset the mock database
+    mockDb = null;
+
+    // Important: Reset the module mocks to prevent interference with other tests
+    // This ensures that other tests can import the real database module
+    try {
+        // Clear the module cache for the database module
+        delete require.cache[require.resolve('../src/db')];
+    } catch (error) {
+        // Ignore errors during cleanup
     }
 });
 
@@ -95,6 +132,11 @@ let exitSpy: ReturnType<typeof mock>;
 let service: MockService;
 
 beforeEach(() => {
+    // Clear all mocks before each test
+    mockInitDatabase.mockClear();
+    mockGetDatabase.mockClear();
+    mockGetDependencyHelper.mockClear();
+
     consoleSpy = mock(() => {});
     exitSpy = mock(() => {});
     (console as any).log = consoleSpy;
