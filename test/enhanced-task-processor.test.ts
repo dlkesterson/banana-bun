@@ -109,16 +109,35 @@ describe('Enhanced Task Processor', () => {
                 shell_command: 'echo "test"'
             };
 
-            mockEmbeddingManager.findSimilarTasks.mockResolvedValueOnce([
-                {
-                    id: 'similar-1',
-                    task_id: 2,
-                    description: 'Similar task',
-                    embedding: [0.1, 0.2, 0.3],
-                    similarity: 0.8,
-                    created_at: new Date().toISOString()
-                }
-            ]);
+            // Mock similar tasks with 'completed' status to match the filter
+            // The enhanced task processor calls findSimilarTasks twice - once for recommendations and once for similar tasks
+            mockEmbeddingManager.findSimilarTasks
+                .mockResolvedValueOnce([
+                    {
+                        id: 'similar-1',
+                        taskId: 2,
+                        task_id: 2,
+                        description: 'Similar task',
+                        type: 'shell',
+                        status: 'completed',
+                        result: {},
+                        metadata: {},
+                        similarity: 0.8
+                    }
+                ])
+                .mockResolvedValueOnce([
+                    {
+                        id: 'similar-1',
+                        taskId: 2,
+                        task_id: 2,
+                        description: 'Similar task',
+                        type: 'shell',
+                        status: 'completed',
+                        result: {},
+                        metadata: {},
+                        similarity: 0.8
+                    }
+                ]);
 
             const result = await enhancedTaskProcessor.processTaskWithEnhancements(task);
 
@@ -253,29 +272,30 @@ describe('Enhanced Task Processor', () => {
         it('should calculate system metrics', async () => {
             const metrics = await enhancedTaskProcessor.getSystemMetrics(24);
 
-            expect(metrics).toHaveProperty('pending_tasks');
-            expect(metrics).toHaveProperty('running_tasks');
-            expect(metrics).toHaveProperty('failed_tasks');
-            expect(metrics).toHaveProperty('websocket_connections');
+            expect(metrics).toHaveProperty('system_health');
+            expect(metrics.system_health).toHaveProperty('pending_tasks');
+            expect(metrics.system_health).toHaveProperty('running_tasks');
+            expect(metrics.system_health).toHaveProperty('failed_tasks');
+            expect(metrics.system_health).toHaveProperty('websocket_connections');
 
-            expect(metrics.pending_tasks).toBeNumber();
-            expect(metrics.running_tasks).toBeNumber();
-            expect(metrics.failed_tasks).toBeNumber();
-            expect(metrics.websocket_connections).toBeNumber();
+            expect(metrics.system_health.pending_tasks).toBeNumber();
+            expect(metrics.system_health.running_tasks).toBeNumber();
+            expect(metrics.system_health.failed_tasks).toBeNumber();
+            expect(metrics.system_health.websocket_connections).toBeNumber();
         });
 
         it('should calculate task counts correctly', async () => {
             const metrics = await enhancedTaskProcessor.getSystemMetrics(24);
 
-            expect(metrics.pending_tasks).toBeGreaterThanOrEqual(0);
-            expect(metrics.running_tasks).toBeGreaterThanOrEqual(0);
-            expect(metrics.failed_tasks).toBeGreaterThanOrEqual(0);
+            expect(metrics.system_health.pending_tasks).toBeGreaterThanOrEqual(0);
+            expect(metrics.system_health.running_tasks).toBeGreaterThanOrEqual(0);
+            expect(metrics.system_health.failed_tasks).toBeGreaterThanOrEqual(0);
         });
 
         it('should track websocket connections', async () => {
             const metrics = await enhancedTaskProcessor.getSystemMetrics(24);
 
-            expect(metrics.websocket_connections).toBeGreaterThanOrEqual(0);
+            expect(metrics.system_health.websocket_connections).toBeGreaterThanOrEqual(0);
         });
     });
 
@@ -291,14 +311,14 @@ describe('Enhanced Task Processor', () => {
 
         it('should handle shutdown errors', async () => {
             await enhancedTaskProcessor.initialize();
-            
+
             mockEmbeddingManager.shutdown.mockRejectedValueOnce(new Error('Shutdown failed'));
 
-            // Should not throw
+            // Should not throw, but should log error
             await enhancedTaskProcessor.shutdown();
 
             expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining('Error during shutdown'),
+                expect.stringContaining('Error during Enhanced Task Processor shutdown'),
                 expect.any(Object)
             );
         });

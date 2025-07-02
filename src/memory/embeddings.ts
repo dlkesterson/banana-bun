@@ -41,17 +41,42 @@ export class EmbeddingManager {
     }
 
     async generateEmbedding(text: string): Promise<number[]> {
-        const result = await toolRunner.executeTool('ollama_chat', {
-            model: this.EMBEDDING_MODEL,
-            prompt: text,
-            system: 'You are an embedding model. Convert the input text into a vector representation.'
-        });
-
-        // Parse the embedding from the response
         try {
-            return JSON.parse(result.response);
-        } catch {
-            throw new Error('Failed to parse embedding from model response');
+            // Use a timeout to prevent hanging
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('Embedding generation timeout')), 30000);
+            });
+
+            const embeddingPromise = toolRunner.executeTool('ollama_chat', {
+                model: this.EMBEDDING_MODEL,
+                prompt: text,
+                system: 'You are an embedding model. Convert the input text into a vector representation.'
+            });
+
+            const result = await Promise.race([embeddingPromise, timeoutPromise]);
+
+            // Parse the embedding from the response
+            if (result && result.response) {
+                try {
+                    const parsed = JSON.parse(result.response);
+                    if (Array.isArray(parsed) && parsed.every(n => typeof n === 'number')) {
+                        return parsed;
+                    } else {
+                        throw new Error('Invalid embedding format: expected array of numbers');
+                    }
+                } catch (parseError) {
+                    throw new Error(`Failed to parse embedding from model response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+                }
+            } else {
+                throw new Error('No response received from embedding model');
+            }
+        } catch (error) {
+            await logger.error('Failed to generate embedding', {
+                error: error instanceof Error ? error.message : String(error),
+                textLength: text.length,
+                model: this.EMBEDDING_MODEL
+            });
+            throw error;
         }
     }
 

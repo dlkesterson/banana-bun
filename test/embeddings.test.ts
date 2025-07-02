@@ -323,11 +323,57 @@ describe('Embeddings Manager', () => {
         });
     });
 
+    describe('Embedding Generation', () => {
+        beforeEach(async () => {
+            await embeddingManager.initialize();
+        });
+
+        it('should generate embeddings successfully', async () => {
+            const text = 'Test embedding text';
+            const embedding = await embeddingManager.generateEmbedding(text);
+
+            expect(embedding).toBeArray();
+            expect(embedding.length).toBeGreaterThan(0);
+            expect(embedding.every(n => typeof n === 'number')).toBe(true);
+            expect(mockToolRunner.executeTool).toHaveBeenCalledWith('ollama_chat', {
+                model: 'qwen3:8b',
+                prompt: text,
+                system: 'You are an embedding model. Convert the input text into a vector representation.'
+            });
+        });
+
+        it('should handle embedding generation errors', async () => {
+            mockToolRunner.executeTool.mockRejectedValueOnce(new Error('Model unavailable'));
+
+            await expect(embeddingManager.generateEmbedding('test')).rejects.toThrow('Model unavailable');
+        });
+
+        it('should handle invalid embedding responses', async () => {
+            mockToolRunner.executeTool.mockResolvedValueOnce({
+                response: 'invalid json'
+            });
+
+            await expect(embeddingManager.generateEmbedding('test')).rejects.toThrow('Failed to parse embedding');
+        });
+
+        it('should handle non-array embedding responses', async () => {
+            mockToolRunner.executeTool.mockResolvedValueOnce({
+                response: JSON.stringify({ not: 'an array' })
+            });
+
+            await expect(embeddingManager.generateEmbedding('test')).rejects.toThrow('Invalid embedding format');
+        });
+    });
+
     describe('Error Handling', () => {
         it('should handle network connectivity issues', async () => {
-            mockChromaClient.getOrCreateCollection.mockRejectedValue(new Error('Network error'));
+            // Reset the mock to allow initialization
+            mockChromaClient.getOrCreateCollection.mockResolvedValueOnce(mockCollection);
+            await embeddingManager.initialize();
 
-            await expect(embeddingManager.initialize()).rejects.toThrow('Network error');
+            mockCollection.query.mockRejectedValueOnce(new Error('Network error'));
+
+            await expect(embeddingManager.findSimilarTasks('test', 5)).rejects.toThrow('Network error');
         });
 
         it('should handle malformed responses', async () => {

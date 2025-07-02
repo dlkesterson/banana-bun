@@ -380,11 +380,22 @@ export class EnhancedTaskProcessor {
      * Shutdown the enhanced processor
      */
     async shutdown(): Promise<void> {
-        if (this.wsServer) {
-            this.wsServer.close();
+        try {
+            if (this.wsServer) {
+                this.wsServer.close();
+            }
+
+            // Shutdown embedding manager
+            await embeddingManager.shutdown();
+
+            this.isInitialized = false;
+            await logger.info('Enhanced Task Processor shutdown completed');
+        } catch (error) {
+            await logger.error('Error during Enhanced Task Processor shutdown', {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            // Don't re-throw to allow graceful shutdown
         }
-        this.isInitialized = false;
-        await logger.info('Enhanced Task Processor shutdown completed');
     }
 }
 
