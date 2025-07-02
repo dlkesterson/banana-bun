@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { RetryManager } from '../src/retry/retry-manager';
-import { RetrySystemMigration } from '../src/migrations/002-add-retry-system';
 import type { RetryContext } from '../src/types/retry';
 
 // Mock logger to reduce noise during tests
@@ -15,14 +13,23 @@ const mockLogger = {
 
 describe('Retry System', () => {
     let db: Database;
-    let retryManager: RetryManager;
-    let migration: RetrySystemMigration;
+    let retryManager: any;
+    let migration: any;
+    let RetryManager: any;
+    let RetrySystemMigration: any;
 
     beforeEach(async () => {
-        // Apply logger mock
+        // Apply logger mock before importing modules
         mock.module('../src/utils/logger', () => ({
             logger: mockLogger
         }));
+
+        // Import modules with cache busting to avoid conflicts
+        const retryManagerModule = await import('../src/retry/retry-manager?t=' + Date.now());
+        const migrationModule = await import('../src/migrations/002-add-retry-system?t=' + Date.now());
+
+        RetryManager = retryManagerModule.RetryManager;
+        RetrySystemMigration = migrationModule.RetrySystemMigration;
 
         // Create isolated in-memory database for testing
         db = new Database(':memory:');

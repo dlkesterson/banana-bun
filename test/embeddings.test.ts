@@ -1,113 +1,97 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import type { TaskEmbedding } from '../src/types';
 
-// Mock collection object
-const mockCollection = {
-    add: mock(() => Promise.resolve()),
-    query: mock(() => Promise.resolve({
-        ids: [['1', '2']],
-        distances: [[0.1, 0.3]],
-        metadatas: [[
-            { task_id: 1, task_type: 'shell', success: true, description: 'Test task 1' },
-            { task_id: 2, task_type: 'llm', success: false, description: 'Test task 2' }
-        ]],
-        documents: [['Test task 1', 'Test task 2']]
-    })),
-    delete: mock(() => Promise.resolve()),
-    count: mock(() => Promise.resolve(5)),
-    update: mock(() => Promise.resolve())
-};
-
-// Mock ChromaDB client
-const mockChromaClient = {
-    createCollection: mock(() => Promise.resolve(mockCollection)),
-    getCollection: mock(() => Promise.resolve(mockCollection)),
-    getOrCreateCollection: mock(() => Promise.resolve(mockCollection)),
-    deleteCollection: mock(() => Promise.resolve()),
-    listCollections: mock(() => Promise.resolve([{ name: 'test_collection' }]))
-};
-
-// Mock the ChromaDB import
-mock.module('chromadb', () => ({
-    ChromaClient: mock(() => mockChromaClient)
-}));
-
-// Mock DefaultEmbeddingFunction
-mock.module('@chroma-core/default-embed', () => ({
-    DefaultEmbeddingFunction: mock(() => ({}))
-}));
-
-// Mock logger
-const mockLogger = {
-    info: mock(() => Promise.resolve()),
-    error: mock(() => Promise.resolve()),
-    warn: mock(() => Promise.resolve()),
-    debug: mock(() => Promise.resolve())
-};
-
-mock.module('../src/utils/logger', () => ({
-    logger: mockLogger
-}));
-
-// Mock config
-const mockConfig = {
-    paths: {
-        chroma: {
-            host: 'localhost',
-            port: 8000,
-            ssl: false
-        }
-    }
-};
-
-mock.module('../src/config', () => ({
-    config: mockConfig
-}));
-
-// Mock tool runner
-const mockToolRunner = {
-    executeTool: mock(() => Promise.resolve({
-        response: JSON.stringify([0.1, 0.2, 0.3, 0.4, 0.5]) // Mock embedding vector
-    }))
-};
-
-mock.module('../src/tools/tool_runner', () => ({
-    toolRunner: mockToolRunner
-}));
-
-// Import the embedding manager after mocking all dependencies
-const { embeddingManager } = await import('../src/memory/embeddings');
-
 describe('Embeddings Manager', () => {
+    let embeddingManager: any;
+    let mockCollection: any;
+    let mockChromaClient: any;
+    let mockLogger: any;
+    let mockConfig: any;
+    let mockToolRunner: any;
+
     beforeEach(async () => {
-        // Reset all mocks
-        Object.values(mockChromaClient).forEach(mockFn => {
-            if (typeof mockFn === 'function' && 'mockClear' in mockFn) {
-                mockFn.mockClear();
-            }
-        });
+        // Create fresh mocks for each test
+        mockCollection = {
+            add: mock(() => Promise.resolve()),
+            query: mock(() => Promise.resolve({
+                ids: [['1', '2']],
+                distances: [[0.1, 0.3]],
+                metadatas: [[
+                    { task_id: 1, task_type: 'shell', success: true, description: 'Test task 1' },
+                    { task_id: 2, task_type: 'llm', success: false, description: 'Test task 2' }
+                ]],
+                documents: [['Test task 1', 'Test task 2']]
+            })),
+            delete: mock(() => Promise.resolve()),
+            count: mock(() => Promise.resolve(5)),
+            update: mock(() => Promise.resolve())
+        };
 
-        Object.values(mockCollection).forEach(mockFn => {
-            if (typeof mockFn === 'function' && 'mockClear' in mockFn) {
-                mockFn.mockClear();
-            }
-        });
+        mockChromaClient = {
+            createCollection: mock(() => Promise.resolve(mockCollection)),
+            getCollection: mock(() => Promise.resolve(mockCollection)),
+            getOrCreateCollection: mock(() => Promise.resolve(mockCollection)),
+            deleteCollection: mock(() => Promise.resolve()),
+            listCollections: mock(() => Promise.resolve([{ name: 'test_collection' }]))
+        };
 
-        Object.values(mockLogger).forEach(mockFn => {
-            if (typeof mockFn === 'function' && 'mockClear' in mockFn) {
-                mockFn.mockClear();
-            }
-        });
+        mockLogger = {
+            info: mock(() => Promise.resolve()),
+            error: mock(() => Promise.resolve()),
+            warn: mock(() => Promise.resolve()),
+            debug: mock(() => Promise.resolve())
+        };
 
-        Object.values(mockToolRunner).forEach(mockFn => {
-            if (typeof mockFn === 'function' && 'mockClear' in mockFn) {
-                mockFn.mockClear();
+        mockConfig = {
+            paths: {
+                chroma: {
+                    host: 'localhost',
+                    port: 8000,
+                    ssl: false
+                }
             }
-        });
+        };
+
+        mockToolRunner = {
+            executeTool: mock(() => Promise.resolve({
+                response: JSON.stringify([0.1, 0.2, 0.3, 0.4, 0.5]) // Mock embedding vector
+            }))
+        };
+
+        // Apply mocks before importing
+        mock.module('chromadb', () => ({
+            ChromaClient: mock(() => mockChromaClient)
+        }));
+
+        mock.module('@chroma-core/default-embed', () => ({
+            DefaultEmbeddingFunction: mock(() => ({}))
+        }));
+
+        mock.module('../src/utils/logger', () => ({
+            logger: mockLogger
+        }));
+
+        mock.module('../src/config', () => ({
+            config: mockConfig
+        }));
+
+        mock.module('../src/tools/tool_runner', () => ({
+            toolRunner: mockToolRunner
+        }));
+
+        // Import with cache busting to avoid conflicts
+        const embeddingModule = await import('../src/memory/embeddings?t=' + Date.now());
+        embeddingManager = embeddingModule.embeddingManager;
     });
 
     afterEach(async () => {
-        await embeddingManager.shutdown();
+        try {
+            if (embeddingManager && typeof embeddingManager.shutdown === 'function') {
+                await embeddingManager.shutdown();
+            }
+        } catch (error) {
+            // Ignore cleanup errors
+        }
     });
 
     describe('Initialization', () => {
