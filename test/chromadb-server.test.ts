@@ -84,50 +84,209 @@ mock.module('../src/config', () => ({
     config: mockConfig
 }));
 
-// Note: The chromadb-server is a standalone MCP server, not a module export
-// For testing, we'll create a mock implementation
-const chromaDbServer = {
-    initialize: mock(async () => {}),
-    shutdown: mock(async () => {}),
-    handleToolCall: mock(async (request: any) => {
-        // Return different responses based on method
-        switch (request.method) {
-            case 'find_similar_tasks':
-                return {
-                    success: true,
-                    similar_tasks: [
-                        { id: 1, description: 'Similar task 1', similarity: 0.9 },
-                        { id: 2, description: 'Similar task 2', similarity: 0.8 }
-                    ]
-                };
-            case 'get_collection_stats':
-                return {
-                    success: true,
-                    total_embeddings: 10,
-                    collection_name: 'task_embeddings'
-                };
-            case 'get_task_recommendations':
-                return {
-                    success: true,
-                    recommendations: [
-                        { type: 'optimization', message: 'Consider using caching' },
-                        { type: 'best_practice', message: 'Add error handling' }
-                    ]
-                };
-            case 'store_task_embedding':
-            case 'delete_task_embedding':
-            case 'clear_all_embeddings':
-            case 'search_by_metadata':
-                return { success: true };
-            case 'unknown_method':
-                return { success: false, error: 'Unknown method: unknown_method' };
-            default:
-                return { success: false, error: `Unknown method: ${request.method}` };
-        }
-    }),
-    broadcastUpdate: mock(async (update: any) => {}),
-    checkHealth: mock(async () => ({ healthy: true, status: 'ok' }))
+// Mock embedding manager
+const mockEmbeddingManager = {
+    findSimilarTasks: mock(() => Promise.resolve([
+        { id: 1, description: 'Similar task 1', similarity: 0.9, status: 'completed', type: 'shell' },
+        { id: 2, description: 'Similar task 2', similarity: 0.8, status: 'completed', type: 'llm' }
+    ])),
+    generateEmbedding: mock(() => Promise.resolve([0.1, 0.2, 0.3]))
 };
+
+mock.module('../src/memory/embeddings.js', () => ({
+    embeddingManager: mockEmbeddingManager
+}));
+
+// Create a more realistic mock implementation that simulates the actual server behavior
+class MockChromaDBServer {
+    private collection: any = null;
+    private wsServer: any = null;
+    private clients: Set<any> = new Set();
+    private isInitialized = false;
+
+    async initialize() {
+        try {
+            // Try to get existing collection
+            this.collection = await mockChromaClient.getCollection({ name: 'task_embeddings' });
+            mockLogger.info('ChromaDB server initialized successfully');
+        } catch (error) {
+            // Collection doesn't exist, create it
+            this.collection = await mockChromaClient.createCollection({
+                name: 'task_embeddings',
+                embeddingFunction: {}
+            });
+            mockLogger.info('Created new ChromaDB collection: task_embeddings');
+        }
+
+        // Initialize WebSocket server
+        this.wsServer = mockWebSocketServer;
+        this.wsServer.on('connection', this.handleWebSocketConnection.bind(this));
+
+        this.isInitialized = true;
+        mockLogger.info('ChromaDB server initialized with WebSocket support');
+    }
+
+    private handleWebSocketConnection(ws: any) {
+        this.clients.add(ws);
+        ws.on('message', async (data: any) => {
+            try {
+                const request = JSON.parse(data);
+                const response = await this.handleToolCall(request);
+                ws.send(JSON.stringify({ id: request.id, ...response }));
+            } catch (error) {
+                ws.send(JSON.stringify({ error: 'Invalid message format' }));
+            }
+        });
+        ws.on('close', () => {
+            this.clients.delete(ws);
+        });
+        ws.on('error', (error: any) => {
+            mockLogger.error(`WebSocket error: ${error.message}`);
+        });
+    }
+
+    async handleToolCall(request: any) {
+        if (!this.isInitialized) {
+            return { success: false, error: 'Server not initialized' };
+        }
+
+        // Validate request structure
+        if (!request.params) {
+            return { success: false, error: 'Invalid request: missing params' };
+        }
+
+        try {
+            switch (request.method) {
+                case 'store_task_embedding':
+                    if (!request.params.task_id || !request.params.description) {
+                        return { success: false, error: 'Missing required parameters: task_id, description' };
+                    }
+                    await this.collection.add({
+                        ids: [`task_${request.params.task_id}`],
+                        documents: [request.params.description],
+                        metadatas: [{
+                            task_id: request.params.task_id,
+                            task_type: request.params.task_type,
+                            success: request.params.success,
+                            execution_time: request.params.execution_time,
+                            timestamp: new Date().toISOString()
+                        }]
+                    });
+                    return { success: true };
+
+                case 'find_similar_tasks':
+                    const queryParams: any = {
+                        queryTexts: [request.params.query || request.params.description],
+                        nResults: request.params.limit || 5
+                    };
+
+                    // Add where clause if task_type is specified
+                    if (request.params.task_type) {
+                        queryParams.where = { task_type: request.params.task_type };
+                    }
+
+                    const queryResult = await this.collection.query(queryParams);
+
+                    // Process the query result to create similar_tasks array
+                    const similarTasks = [];
+                    if (queryResult.ids && queryResult.ids[0] && queryResult.ids[0].length > 0) {
+                        for (let i = 0; i < queryResult.ids[0].length; i++) {
+                            similarTasks.push({
+                                id: i + 1,
+                                description: queryResult.documents?.[0]?.[i] || `Similar task ${i + 1}`,
+                                similarity: 1 - (queryResult.distances?.[0]?.[i] || 0.1)
+                            });
+                        }
+                    }
+
+                    return {
+                        success: true,
+                        similar_tasks: similarTasks
+                    };
+
+                case 'delete_task_embedding':
+                    await this.collection.delete({
+                        ids: [`task_${request.params.task_id}`]
+                    });
+                    return { success: true };
+
+                case 'get_collection_stats':
+                    const count = await this.collection.count();
+                    return {
+                        success: true,
+                        total_embeddings: count,
+                        collection_name: 'task_embeddings'
+                    };
+
+                case 'clear_all_embeddings':
+                    await mockChromaClient.deleteCollection({ name: 'task_embeddings' });
+                    await mockChromaClient.createCollection({
+                        name: 'task_embeddings',
+                        embeddingFunction: {}
+                    });
+                    return { success: true };
+
+                case 'search_by_metadata':
+                    const searchResult = await this.collection.get({
+                        where: request.params.where || request.params.metadata_filters,
+                        limit: request.params.limit || 10
+                    });
+                    return { success: true, results: searchResult };
+
+                case 'get_task_recommendations':
+                    return {
+                        success: true,
+                        recommendations: [
+                            { type: 'optimization', message: 'Consider using caching' },
+                            { type: 'best_practice', message: 'Add error handling' }
+                        ]
+                    };
+
+                default:
+                    return { success: false, error: `Unknown method: ${request.method}` };
+            }
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    }
+
+    async broadcastUpdate(update: any) {
+        const message = JSON.stringify(update);
+        for (const client of this.clients) {
+            if (client.readyState === 1) { // WebSocket.OPEN
+                client.send(message);
+            }
+        }
+    }
+
+    async checkHealth() {
+        try {
+            await mockChromaClient.heartbeat();
+            return { healthy: true, status: 'ok' };
+        } catch (error) {
+            return { healthy: false, status: 'error', error: error instanceof Error ? error.message : String(error) };
+        }
+    }
+
+    async shutdown() {
+        try {
+            this.clients.clear();
+            if (this.wsServer) {
+                this.wsServer.close();
+            }
+            this.isInitialized = false;
+            mockLogger.info('ChromaDB server shutdown completed');
+        } catch (error) {
+            mockLogger.error(`Error during shutdown: ${error instanceof Error ? error.message : String(error)}`);
+            // Don't re-throw the error, just log it
+        }
+    }
+}
+
+const chromaDbServer = new MockChromaDBServer();
 
 describe('ChromaDB Server', () => {
     beforeEach(() => {
@@ -137,14 +296,20 @@ describe('ChromaDB Server', () => {
                 fn.mockClear();
             }
         });
-        
+
         Object.values(mockChromaClient).forEach(fn => {
             if (typeof fn === 'function' && 'mockClear' in fn) {
                 fn.mockClear();
             }
         });
-        
+
         Object.values(mockLogger).forEach(fn => {
+            if (typeof fn === 'function' && 'mockClear' in fn) {
+                fn.mockClear();
+            }
+        });
+
+        Object.values(mockEmbeddingManager).forEach(fn => {
             if (typeof fn === 'function' && 'mockClear' in fn) {
                 fn.mockClear();
             }
@@ -352,25 +517,32 @@ describe('ChromaDB Server', () => {
         });
 
         it('should handle empty search results', async () => {
-            mockCollection.query.mockResolvedValueOnce({
+            // Temporarily replace the mock implementation
+            const originalMock = mockCollection.query;
+            mockCollection.query = mock(() => Promise.resolve({
                 ids: [[]],
                 distances: [[]],
                 metadatas: [[]],
                 documents: [[]]
-            });
+            }));
 
-            const request = {
-                method: 'find_similar_tasks',
-                params: {
-                    description: 'No matches',
-                    limit: 5
-                }
-            };
+            try {
+                const request = {
+                    method: 'find_similar_tasks',
+                    params: {
+                        description: 'No matches',
+                        limit: 5
+                    }
+                };
 
-            const result = await chromaDbServer.handleToolCall(request);
+                const result = await chromaDbServer.handleToolCall(request);
 
-            expect(result.success).toBe(true);
-            expect(result.similar_tasks).toEqual([]);
+                expect(result.success).toBe(true);
+                expect(result.similar_tasks).toEqual([]);
+            } finally {
+                // Restore the original mock
+                mockCollection.query = originalMock;
+            }
         });
     });
 
@@ -424,12 +596,18 @@ describe('ChromaDB Server', () => {
         });
 
         it('should broadcast updates to connected clients', async () => {
-            // Simulate multiple connections
-            const mockClient1 = { ...mockWebSocket, send: mock(() => {}) };
-            const mockClient2 = { ...mockWebSocket, send: mock(() => {}) };
-            
-            mockWebSocketServer.clients.add(mockClient1);
-            mockWebSocketServer.clients.add(mockClient2);
+            // Simulate multiple connections by calling the connection handler
+            const connectionCalls = mockWebSocketServer.on.mock.calls || [];
+            const connectionCall = connectionCalls.find(call => call && call[0] === 'connection');
+            const connectionHandler = connectionCall ? connectionCall[1] : undefined;
+
+            const mockClient1 = { ...mockWebSocket, send: mock(() => {}), readyState: 1 };
+            const mockClient2 = { ...mockWebSocket, send: mock(() => {}), readyState: 1 };
+
+            if (connectionHandler) {
+                connectionHandler(mockClient1);
+                connectionHandler(mockClient2);
+            }
 
             await chromaDbServer.broadcastUpdate({
                 type: 'task_added',
