@@ -1,8 +1,21 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { RetryManager } from '../src/retry/retry-manager';
 import { RetrySystemMigration } from '../src/migrations/002-add-retry-system';
 import type { RetryContext } from '../src/types/retry';
+
+// Mock logger to reduce noise during tests
+const mockLogger = {
+    info: mock(() => Promise.resolve()),
+    error: mock(() => Promise.resolve()),
+    warn: mock(() => Promise.resolve()),
+    debug: mock(() => Promise.resolve()),
+    trace: mock(() => Promise.resolve())
+};
+
+mock.module('../src/utils/logger', () => ({
+    logger: mockLogger
+}));
 
 describe('Retry System', () => {
     let db: Database;
@@ -12,19 +25,15 @@ describe('Retry System', () => {
     beforeEach(async () => {
         // Create in-memory database for testing
         db = new Database(':memory:');
-        
-        // Create basic tasks table
+
+        // Create basic tasks table WITHOUT retry columns
+        // The migration will add them
         db.run(`
             CREATE TABLE tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT,
                 status TEXT,
                 description TEXT,
-                retry_count INTEGER DEFAULT 0,
-                max_retries INTEGER DEFAULT 3,
-                next_retry_at DATETIME,
-                retry_policy_id INTEGER,
-                last_retry_error TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -39,7 +48,9 @@ describe('Retry System', () => {
     });
 
     afterEach(() => {
-        db.close();
+        if (db && !db.closed) {
+            db.close();
+        }
     });
 
     describe('RetryManager', () => {

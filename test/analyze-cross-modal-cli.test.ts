@@ -1,4 +1,68 @@
-import { describe, it, expect, mock, beforeEach, afterEach, beforeAll } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, afterEach, beforeAll, afterAll } from 'bun:test';
+import { Database } from 'bun:sqlite';
+
+// Mock database module before importing CLI
+let mockDb: Database;
+mock.module('../src/db', () => ({
+    initDatabase: mock(() => Promise.resolve()),
+    getDatabase: () => mockDb,
+    getDependencyHelper: () => ({
+        addDependency: mock(() => {}),
+        removeDependency: mock(() => {}),
+        getDependencies: mock(() => []),
+        hasCyclicDependency: mock(() => false),
+        getExecutionOrder: mock(() => []),
+        markTaskCompleted: mock(() => {}),
+        getReadyTasks: mock(() => [])
+    })
+}));
+
+// Mock config module
+mock.module('../src/config', () => ({
+    config: {
+        paths: {
+            database: ':memory:',
+            incoming: '/tmp/test-incoming',
+            processing: '/tmp/test-processing',
+            archive: '/tmp/test-archive',
+            error: '/tmp/test-error',
+            tasks: '/tmp/test-tasks',
+            outputs: '/tmp/test-outputs',
+            logs: '/tmp/test-logs',
+            dashboard: '/tmp/test-dashboard',
+            media: '/tmp/test-media',
+            chroma: {
+                host: 'localhost',
+                port: 8000,
+                ssl: false
+            }
+        },
+        openai: {
+            apiKey: 'test-api-key',
+            model: 'gpt-4'
+        },
+        ollama: {
+            url: 'http://localhost:11434',
+            model: 'qwen3:8b',
+            fastModel: 'qwen3:8b'
+        },
+        chromadb: {
+            url: 'http://localhost:8000',
+            tenant: 'default_tenant'
+        }
+    }
+}));
+
+// Mock logger module
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve()),
+        trace: mock(() => Promise.resolve())
+    }
+}));
 
 // Mock chromadb module to avoid dependency issues
 mock.module('chromadb', () => ({ ChromaClient: class {} }));
@@ -6,7 +70,17 @@ mock.module('chromadb', () => ({ ChromaClient: class {} }));
 let cli: typeof import('../src/cli/analyze-cross-modal-intelligence');
 
 beforeAll(async () => {
+    // Create in-memory database for testing
+    mockDb = new Database(':memory:');
+
+    // Import CLI after mocks are set up
     cli = await import('../src/cli/analyze-cross-modal-intelligence');
+});
+
+afterAll(() => {
+    if (mockDb) {
+        mockDb.close();
+    }
 });
 
 type MockService = {
