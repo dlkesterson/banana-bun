@@ -1,15 +1,83 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { EnhancedLearningService } from '../src/services/enhanced-learning-service';
-import { feedbackTracker } from '../src/feedback-tracker';
+
+// Mock the database module first
+let testDb: Database;
+const mockGetDatabase = mock(() => testDb);
+
+mock.module('../src/db', () => ({
+    getDatabase: mockGetDatabase
+}));
+
+// Mock the feedback tracker to avoid initialization issues
+const mockFeedbackTracker = {
+    addFeedback: mock(() => Promise.resolve()),
+    getFeedbackStats: mock(() => ({ total: 0, byType: {} })),
+    getRecentFeedback: mock(() => []),
+    analyzeFeedbackPatterns: mock((minFrequency = 1) => Promise.resolve([
+        {
+            pattern_type: 'tag_correction',
+            frequency: Math.max(5, minFrequency + 1), // Ensure frequency is above minimum
+            confidence: 0.8,
+            examples: [
+                { media_id: 1, original_value: 'cat', corrected_value: 'dog' },
+                { media_id: 2, original_value: 'cat', corrected_value: 'dog' },
+                { media_id: 3, original_value: 'cat', corrected_value: 'dog' }
+            ]
+        },
+        {
+            pattern_type: 'title_correction',
+            frequency: Math.max(3, minFrequency + 1),
+            confidence: 0.9,
+            examples: [
+                { media_id: 4, original_value: 'old title', corrected_value: 'new title' }
+            ]
+        }
+    ]))
+};
+
+mock.module('../src/feedback-tracker', () => ({
+    feedbackTracker: mockFeedbackTracker
+}));
+
+// Mock the config module
+mock.module('../src/config', () => ({
+    config: {
+        services: {
+            chromadb: {
+                enabled: false
+            }
+        }
+    }
+}));
+
+// Mock the logger
+const mockLogger = {
+    info: mock(() => {}),
+    error: mock(() => {}),
+    warn: mock(() => {}),
+    debug: mock(() => {})
+};
+
+mock.module('../src/utils/logger', () => ({
+    logger: mockLogger
+}));
+
+// Import after mocks are set up
+let EnhancedLearningService: any;
 
 describe('Enhanced Learning Service', () => {
     let db: Database;
     let learningService: EnhancedLearningService;
 
     beforeAll(async () => {
+        // Import service after mocks are set up
+        const serviceModule = await import('../src/services/enhanced-learning-service.ts?t=' + Date.now());
+        EnhancedLearningService = serviceModule.EnhancedLearningService;
+
         // Create in-memory database for testing
         db = new Database(':memory:');
+        testDb = db;
         
         // Create required tables
         db.run(`
@@ -95,9 +163,7 @@ describe('Enhanced Learning Service', () => {
             enable_temporal_analysis: true
         });
 
-        // Mock the database getter
-        const originalGetDatabase = require('../src/db').getDatabase;
-        require('../src/db').getDatabase = () => db;
+        // Database is already set up in beforeAll
     });
 
     afterAll(() => {
@@ -106,7 +172,10 @@ describe('Enhanced Learning Service', () => {
 
     test('should generate enhanced learning rules from feedback patterns', async () => {
         const rules = await learningService.generateEnhancedLearningRules(2);
-        
+
+        console.log('Generated rules:', rules);
+        console.log('Mock was called:', mockFeedbackTracker.analyzeFeedbackPatterns.mock.calls);
+
         expect(rules.length).toBeGreaterThan(0);
         
         // Check that rules have enhanced properties

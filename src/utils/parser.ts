@@ -82,12 +82,13 @@ function buildTaskFromMetadata(metadata: any, filePath: string, markdownContent:
             type: 'tool',
             tool: metadata.tool,
             args: metadata.args || {},
+            description: metadata.description || markdownContent,
             metadata: {
                 ...metadata.metadata,
                 source_file: filePath,
                 markdown_content: markdownContent
             },
-            status: 'pending',
+            status: metadata.status || 'pending',
             result: null,
             dependencies: metadata.dependencies || [],
             dependents: metadata.dependents || []
@@ -102,7 +103,7 @@ function buildTaskFromMetadata(metadata: any, filePath: string, markdownContent:
                 source_file: filePath,
                 markdown_content: markdownContent
             },
-            status: 'pending',
+            status: metadata.status || 'pending',
             result: null,
             dependencies: metadata.dependencies || [],
             dependents: metadata.dependents || [],

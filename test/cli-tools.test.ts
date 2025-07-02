@@ -308,7 +308,7 @@ describe('CLI Tools', () => {
             mockDb.run('DELETE FROM task_schedules WHERE id = 1');
             
             const schedule = mockDb.query('SELECT * FROM task_schedules WHERE id = 1').get();
-            expect(schedule).toBeUndefined();
+            expect(schedule).toBeNull();
         });
 
         it('should validate cron expressions', () => {

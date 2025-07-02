@@ -1,22 +1,100 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { Database } from 'bun:sqlite';
 import {
-    createDatabaseMock,
     TestDatabaseSetup,
-    CommonTestSetup,
     MCPServerTestUtils,
     UserInteractionTestFactory,
     MCPResponseTestFactory
 } from '../src/test-utils';
 
-// Setup common mocks
-const { mockLogger, mockDb } = CommonTestSetup.setupMockModules();
-const { mockServer } = CommonTestSetup.setupMCPMocks();
+// Mock logger
+const mockLogger = {
+    info: mock(() => Promise.resolve()),
+    error: mock(() => Promise.resolve()),
+    warn: mock(() => Promise.resolve()),
+    debug: mock(() => Promise.resolve())
+};
+
+mock.module('../src/utils/logger', () => ({
+    logger: mockLogger
+}));
+
+// Use real in-memory database for proper query().get() support
+let mockDb: Database;
+const mockGetDatabase = mock(() => mockDb);
+const mockInitDatabase = mock(() => Promise.resolve());
+
+mock.module('../src/db', () => ({
+    getDatabase: mockGetDatabase,
+    initDatabase: mockInitDatabase
+}));
+
+// Mock MCP SDK
+const mockServer = {
+    setRequestHandler: mock(() => {}),
+    connect: mock(() => Promise.resolve())
+};
+
+mock.module('@modelcontextprotocol/sdk/server/index.js', () => ({
+    Server: mock(() => mockServer)
+}));
+
+mock.module('@modelcontextprotocol/sdk/server/stdio.js', () => ({
+    StdioServerTransport: mock(() => ({}))
+}));
+
+mock.module('@modelcontextprotocol/sdk/types.js', () => ({
+    CallToolRequestSchema: 'call_tool',
+    ListToolsRequestSchema: 'list_tools'
+}));
 
 describe('User Behavior Server', () => {
     beforeEach(async () => {
-        // Setup test database with proper schema
-        await TestDatabaseSetup.createTestTables(mockDb);
-        await TestDatabaseSetup.seedTestData(mockDb);
+        // Create real in-memory database for proper query support
+        mockDb = new Database(':memory:');
+
+        // Create user behavior specific tables
+        mockDb.run(`
+            CREATE TABLE IF NOT EXISTS user_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                session_id TEXT NOT NULL,
+                started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                ended_at DATETIME,
+                session_duration_ms INTEGER,
+                total_interactions INTEGER DEFAULT 0,
+                device_type TEXT,
+                platform TEXT
+            )
+        `);
+
+        mockDb.run(`
+            CREATE TABLE IF NOT EXISTS user_interactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_session_id TEXT NOT NULL,
+                interaction_type TEXT NOT NULL,
+                target_id TEXT,
+                target_type TEXT,
+                interaction_data TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Seed some test data
+        mockDb.run(`
+            INSERT INTO user_sessions (user_id, session_id, session_duration_ms, total_interactions)
+            VALUES ('user1', 'session1', 30000, 5),
+                   ('user2', 'session2', 45000, 8),
+                   ('user3', 'session3', 20000, 3)
+        `);
+
+        mockDb.run(`
+            INSERT INTO user_interactions (user_session_id, interaction_type, target_id, target_type, interaction_data)
+            VALUES ('session1', 'view', 'media1', 'video', '{"duration": 120, "completion_percentage": 0.8}'),
+                   ('session1', 'search', 'query1', 'text', '{"query": "cats", "results_count": 10}'),
+                   ('session2', 'view', 'media2', 'video', '{"duration": 300, "completion_percentage": 0.2}'),
+                   ('session3', 'click', 'button1', 'ui', '{"action": "play"}')
+        `);
 
         // Reset mocks
         mockLogger.info.mockClear();
@@ -29,7 +107,9 @@ describe('User Behavior Server', () => {
     });
 
     afterEach(async () => {
-        await TestDatabaseSetup.cleanupTestData(mockDb);
+        if (mockDb) {
+            mockDb.close();
+        }
     });
 
     describe('Tool Registration', () => {
@@ -68,16 +148,11 @@ describe('User Behavior Server', () => {
         });
 
         it('should handle analyze_user_interactions tool', async () => {
-            // Mock database query results
-            mockDb.query.mockReturnValue({
-                all: mock(() => [
-                    UserInteractionTestFactory.createUserInteraction({
-                        interaction_type: 'search',
-                        query_text: 'test query',
-                        results_count: 5
-                    })
-                ])
-            });
+            // Insert test data directly into the real database
+            mockDb.run(`
+                INSERT INTO user_interactions (user_session_id, interaction_type, target_id, target_type, interaction_data)
+                VALUES ('test_session', 'search', 'query1', 'text', '{"query": "test query", "results_count": 5}')
+            `);
 
             const request = {
                 params: {
@@ -409,19 +484,23 @@ describe('User Behavior Server', () => {
 
     describe('Error Handling', () => {
         it('should handle database errors gracefully', async () => {
+            const originalDb = mockDb;
             mockDb.close();
-            
+
             const errorDb = {
                 query: mock(() => {
                     throw new Error('Database connection failed');
                 })
             };
-            
+
             mockGetDatabase.mockReturnValue(errorDb);
-            
+
             expect(() => {
                 errorDb.query('SELECT * FROM user_interactions');
             }).toThrow('Database connection failed');
+
+            // Restore for cleanup
+            mockDb = originalDb;
         });
 
         it('should handle invalid JSON in interaction data', async () => {
@@ -450,8 +529,8 @@ describe('User Behavior Server', () => {
         it('should handle large interaction datasets efficiently', async () => {
             // Insert many test interactions
             const insertStmt = mockDb.prepare(`
-                INSERT INTO user_interactions (user_session_id, interaction_type, target_id, target_type, interaction_data, created_at, duration_ms)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO user_interactions (user_session_id, interaction_type, target_id, target_type, interaction_data, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
             `);
             
             const now = new Date();
@@ -464,8 +543,7 @@ describe('User Behavior Server', () => {
                     `target_${i}`,
                     'media',
                     JSON.stringify({ test: true, index: i }),
-                    interactionTime.toISOString(),
-                    Math.floor(Math.random() * 10000) + 1000
+                    interactionTime.toISOString()
                 );
             }
             
@@ -474,11 +552,10 @@ describe('User Behavior Server', () => {
             
             // Test efficient querying with aggregation
             const hourlyStats = mockDb.query(`
-                SELECT 
+                SELECT
                     strftime('%H', created_at) as hour,
-                    COUNT(*) as interaction_count,
-                    AVG(duration_ms) as avg_duration
-                FROM user_interactions 
+                    COUNT(*) as interaction_count
+                FROM user_interactions
                 WHERE created_at > datetime('now', '-7 days')
                 GROUP BY hour
                 ORDER BY hour

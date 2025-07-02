@@ -74,7 +74,7 @@ mock.module('../src/utils/logger', () => ({
 // Mock chromadb module to avoid dependency issues
 mock.module('chromadb', () => ({ ChromaClient: class {} }));
 
-let cli: typeof import('../src/cli/analyze-cross-modal-intelligence');
+let cli: any;
 
 beforeAll(async () => {
     // Create a fake database mock object (no real database needed)
@@ -97,8 +97,8 @@ beforeAll(async () => {
     mockGetDatabase.mockClear();
     mockGetDependencyHelper.mockClear();
 
-    // Import CLI after mocks are set up
-    cli = await import('../src/cli/analyze-cross-modal-intelligence');
+    // Import CLI after mocks are set up with cache busting
+    cli = await import('../src/cli/analyze-cross-modal-intelligence.ts?t=' + Date.now());
 });
 
 afterAll(() => {

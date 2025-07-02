@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
-let cli: typeof import('../src/cli/banana-summarize');
+let cli: any;
 
 // Use a real database for testing but ensure it's isolated
 let db: Database;
@@ -61,8 +61,8 @@ beforeEach(async () => {
     createMediaSummarizeTask: mock(async () => 123),
   }));
 
-  // Import CLI after mocks are set up
-  cli = await import('../src/cli/banana-summarize');
+  // Import CLI after mocks are set up with cache busting
+  cli = await import('../src/cli/banana-summarize.ts?t=' + Date.now());
 });
 
 afterEach(() => {

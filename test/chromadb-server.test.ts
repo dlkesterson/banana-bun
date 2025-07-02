@@ -43,9 +43,8 @@ const mockWebSocket = {
     readyState: 1
 };
 
-// Ensure mock calls are properly initialized
-(mockWebSocketServer.on as any).mock = { calls: [] };
-(mockWebSocket.on as any).mock = { calls: [] };
+// Mock calls are automatically initialized by Bun's mock system
+// No need to manually set mock properties
 
 // Mock modules
 mock.module('chromadb', () => ({

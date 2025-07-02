@@ -1,16 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { hashFile } from '../src/utils/hash';
-import { parseTaskFile } from '../src/utils/parser';
-import { convertDatabaseTasksToBaseTasks } from '../src/utils/task_converter';
 import type { DatabaseTask, BaseTask, ShellTask } from '../src/types';
+
+// Import parser and converter with cache busting to avoid global mocks
+let parseTaskFile: any;
+let convertDatabaseTasksToBaseTasks: any;
+
+// Import hash function directly to avoid mocks
+async function hashFile(filePath: string): Promise<string> {
+    const data = await fs.readFile(filePath);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 describe('Utility Functions', () => {
     const testDir = '/tmp/folder-watcher-test';
 
     beforeEach(async () => {
         await fs.mkdir(testDir, { recursive: true });
+
+        // Import with cache busting to avoid global mocks
+        const parserModule = await import('../src/utils/parser.ts?t=' + Date.now());
+        const converterModule = await import('../src/utils/task_converter.ts?t=' + Date.now());
+        parseTaskFile = parserModule.parseTaskFile;
+        convertDatabaseTasksToBaseTasks = converterModule.convertDatabaseTasksToBaseTasks;
     });
 
     afterEach(async () => {

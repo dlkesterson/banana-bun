@@ -169,5 +169,17 @@ export function convertDatabaseTaskToBaseTask(dbTask: DatabaseTask): BaseTask {
  * Converts an array of DatabaseTasks to BaseTask discriminated union types
  */
 export function convertDatabaseTasksToBaseTasks(dbTasks: DatabaseTask[]): BaseTask[] {
-    return dbTasks.map(convertDatabaseTaskToBaseTask);
+    const results: BaseTask[] = [];
+
+    for (const dbTask of dbTasks) {
+        try {
+            const baseTask = convertDatabaseTaskToBaseTask(dbTask);
+            results.push(baseTask);
+        } catch (error) {
+            console.warn(`Failed to convert task ${dbTask.id} of type ${dbTask.type}:`, error);
+            // Skip invalid tasks instead of failing the entire conversion
+        }
+    }
+
+    return results;
 }

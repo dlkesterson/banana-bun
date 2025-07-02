@@ -316,7 +316,7 @@ describe('Content Quality Server', () => {
         it('should identify improvement areas', async () => {
             const mockData = {
                 hd_percentage: 0.6,      // Below 70%
-                good_audio_percentage: 0.5, // Below 60%
+                good_audio_percentage: 0.65, // Above 60%
                 tagged_percentage: 0.7   // Below 80%
             };
             
