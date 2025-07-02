@@ -9,15 +9,17 @@ const mockLogger = {
   debug: mock(() => Promise.resolve()),
 };
 
-const tempDir = '/tmp/tool-runner-test';
+const tempDir = '/tmp/tool-runner-basic-test';
 const mockConfig = {
   paths: { outputs: tempDir, logs: tempDir },
 };
 
+// Apply mocks before importing
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 mock.module('../src/config', () => ({ config: mockConfig }));
 
-import { toolRunner } from '../src/tools/tool_runner';
+// Import with cache busting to avoid conflicts
+const { toolRunner } = await import('../src/tools/tool_runner?t=' + Date.now());
 
 describe('ToolRunner Basic Tools', () => {
   beforeEach(async () => {
@@ -26,6 +28,11 @@ describe('ToolRunner Basic Tools', () => {
 
   afterEach(async () => {
     await fs.rm(tempDir, { recursive: true, force: true });
+    // Clear all mocks
+    mockLogger.info.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.debug.mockClear();
   });
 
   it('reads files using read_file', async () => {

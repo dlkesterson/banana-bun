@@ -1,18 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import type { ToolTask } from '../src/types';
 
+// Create a unique mock for this test file to avoid conflicts
 const mockToolRunner = {
   executeTool: mock(async () => ({ path: '/tmp/out.txt' }))
 };
 
-// Mock tool_runner module only for this test file
-const originalModule = await import('../src/tools/tool_runner');
-mock.module('../src/tools/tool_runner', () => ({ toolRunner: mockToolRunner }));
-
+// Store original module reference
+let originalModule: any;
 let executeToolTask: typeof import('../src/executors/tool').executeToolTask;
 
 beforeEach(async () => {
-  const mod = await import('../src/executors/tool');
+  // Import original module if not already done
+  if (!originalModule) {
+    originalModule = await import('../src/tools/tool_runner');
+  }
+
+  // Apply mock only for this test suite
+  mock.module('../src/tools/tool_runner', () => ({
+    toolRunner: mockToolRunner,
+    ToolRunner: originalModule.ToolRunner
+  }));
+
+  // Import the module under test after mocking
+  const mod = await import('../src/executors/tool?t=' + Date.now());
   executeToolTask = mod.executeToolTask;
   mockToolRunner.executeTool.mockClear();
 });

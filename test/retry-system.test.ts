@@ -13,17 +13,18 @@ const mockLogger = {
     trace: mock(() => Promise.resolve())
 };
 
-mock.module('../src/utils/logger', () => ({
-    logger: mockLogger
-}));
-
 describe('Retry System', () => {
     let db: Database;
     let retryManager: RetryManager;
     let migration: RetrySystemMigration;
 
     beforeEach(async () => {
-        // Create in-memory database for testing
+        // Apply logger mock
+        mock.module('../src/utils/logger', () => ({
+            logger: mockLogger
+        }));
+
+        // Create isolated in-memory database for testing
         db = new Database(':memory:');
 
         // Create basic tasks table WITHOUT retry columns
@@ -48,9 +49,17 @@ describe('Retry System', () => {
     });
 
     afterEach(() => {
+        // Close the isolated database
         if (db && !db.closed) {
             db.close();
         }
+
+        // Clear mock calls
+        mockLogger.info.mockClear();
+        mockLogger.error.mockClear();
+        mockLogger.warn.mockClear();
+        mockLogger.debug.mockClear();
+        mockLogger.trace?.mockClear();
     });
 
     describe('RetryManager', () => {

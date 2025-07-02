@@ -37,28 +37,28 @@ const mockSpawn = mock(() => ({
     exited: Promise.resolve(0)
 }));
 
-// Mock modules
-mock.module('../src/config', () => ({ config: mockConfig }));
-mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
-mock.module('bun', () => ({
-    spawn: mockSpawn,
-    file: (path: string) => ({
-        exists: () => Promise.resolve(true),
-        size: 1024
-    })
-}));
-
 describe('ToolRunner', () => {
     let ToolRunner: any;
     let toolRunner: any;
 
     beforeEach(async () => {
+        // Apply mocks before importing
+        mock.module('../src/config', () => ({ config: mockConfig }));
+        mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
+        mock.module('bun', () => ({
+            spawn: mockSpawn,
+            file: (path: string) => ({
+                exists: () => Promise.resolve(true),
+                size: 1024
+            })
+        }));
+
         // Create test directories
         await fs.mkdir(mockConfig.paths.outputs, { recursive: true });
         await fs.mkdir(mockConfig.paths.logs, { recursive: true });
 
-        // Import modules after mocking
-        const module = await import('../src/tools/tool_runner');
+        // Import modules after mocking with cache busting
+        const module = await import('../src/tools/tool_runner?t=' + Date.now());
         ToolRunner = module.ToolRunner;
         toolRunner = module.toolRunner;
     });
@@ -71,9 +71,13 @@ describe('ToolRunner', () => {
         } catch (error) {
             // Ignore cleanup errors
         }
+
+        // Clear all mocks
         mockSpawn.mockClear();
         mockLogger.info.mockClear();
         mockLogger.error.mockClear();
+        mockLogger.warn.mockClear();
+        mockLogger.debug.mockClear();
     });
 
     describe('Tool Execution', () => {
