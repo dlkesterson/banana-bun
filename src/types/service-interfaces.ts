@@ -69,6 +69,7 @@ export interface DecomposeGoalResult {
     error?: string;
     plan_id?: string;
     estimated_duration?: number;
+    warnings?: string[];
 }
 
 export interface ReviewResult {

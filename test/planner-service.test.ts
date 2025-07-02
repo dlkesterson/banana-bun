@@ -28,27 +28,25 @@ mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 const mockFetch = mock(() => Promise.resolve({
     ok: true,
     json: () => Promise.resolve({
-        message: {
-            content: JSON.stringify({
-                success: true,
-                tasks: [
-                    {
-                        type: 'shell',
-                        description: 'Download video files',
-                        dependencies: [],
-                        priority: 4
-                    },
-                    {
-                        type: 'transcribe',
-                        description: 'Transcribe audio from videos',
-                        dependencies: ['Download video files'],
-                        priority: 3
-                    }
-                ],
-                plan_id: 'test_plan_123',
-                estimated_duration: 3600
-            })
-        }
+        response: JSON.stringify({
+            success: true,
+            tasks: [
+                {
+                    type: 'shell',
+                    description: 'Download video files',
+                    dependencies: [],
+                    priority: 4
+                },
+                {
+                    type: 'transcribe',
+                    description: 'Transcribe audio from videos',
+                    dependencies: ['Download video files'],
+                    priority: 3
+                }
+            ],
+            plan_id: 'test_plan_123',
+            estimated_duration: 3600
+        })
     })
 }));
 
@@ -72,6 +70,13 @@ describe('PlannerService', () => {
                 tasks_json TEXT NOT NULL,
                 model_used TEXT,
                 estimated_duration INTEGER,
+                task_id INTEGER,
+                goal_description TEXT,
+                generated_plan TEXT,
+                similar_tasks_used TEXT,
+                context_embeddings TEXT,
+                subtask_count INTEGER DEFAULT 0,
+                plan_version INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -175,11 +180,11 @@ describe('PlannerService', () => {
         beforeEach(() => {
             // Insert test data
             db.run(`
-                INSERT INTO planner_results (plan_id, goal, tasks_json, estimated_duration)
-                VALUES 
-                    ('plan1', 'Goal 1', '[{"type":"shell"}]', 1800),
-                    ('plan2', 'Goal 2', '[{"type":"shell"},{"type":"llm"}]', 3600),
-                    ('plan3', 'Goal 3', '[{"type":"transcribe"}]', 2400)
+                INSERT INTO planner_results (plan_id, goal, tasks_json, estimated_duration, subtask_count)
+                VALUES
+                    ('plan1', 'Goal 1', '[{"type":"shell"}]', 1800, 1),
+                    ('plan2', 'Goal 2', '[{"type":"shell"},{"type":"llm"}]', 3600, 2),
+                    ('plan3', 'Goal 3', '[{"type":"transcribe"}]', 2400, 1)
             `);
 
             db.run(`

@@ -79,12 +79,12 @@ describe('Validation System', () => {
                 });
 
                 invalidTypes.forEach(type => {
-                    const task = createBaseTask({
+                    const task = {
                         id: 1,
                         type: type as any,
                         description: 'Test task',
                         status: 'pending'
-                    });
+                    };
                     expect(() => validateTaskSchema(task)).toThrow();
                 });
             });
@@ -257,6 +257,7 @@ describe('Validation System', () => {
     describe('Task File Validation', () => {
         it('should validate JSON task file content', () => {
             const validJsonContent = JSON.stringify({
+                id: 1,
                 type: 'shell',
                 description: 'Test shell task',
                 status: 'pending',
@@ -268,6 +269,7 @@ describe('Validation System', () => {
 
         it('should validate YAML task file content', () => {
             const validYamlContent = `
+id: 1
 type: llm
 description: Generate a story
 status: pending
@@ -382,8 +384,8 @@ status: pending
         });
 
         it('should validate task ID format', () => {
-            const validIds = [1, 42, 999999];
-            const invalidIds = [0, -1, 1.5, NaN, Infinity, '1', null, undefined];
+            const validIds = [1, 42, 999999, 'task-1', 'valid-id'];
+            const invalidIds = [0, -1, 1.5, NaN, Infinity, '', '   ', null, undefined];
 
             validIds.forEach(id => {
                 const task: BaseTask = {

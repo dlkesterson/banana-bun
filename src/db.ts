@@ -69,12 +69,17 @@ export async function initDatabase() {
         db.run(`
             CREATE TABLE IF NOT EXISTS planner_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                task_id INTEGER NOT NULL,
+                plan_id TEXT,
+                goal TEXT NOT NULL,
+                context TEXT,
+                tasks_json TEXT NOT NULL,
                 model_used TEXT NOT NULL,
-                goal_description TEXT NOT NULL,
-                generated_plan TEXT NOT NULL, -- JSON of the full plan
-                similar_tasks_used TEXT, -- JSON array of similar task IDs used for context
-                context_embeddings TEXT, -- JSON of embedding IDs used
+                estimated_duration INTEGER DEFAULT 0,
+                task_id INTEGER,
+                goal_description TEXT,
+                generated_plan TEXT,
+                similar_tasks_used TEXT,
+                context_embeddings TEXT,
                 subtask_count INTEGER DEFAULT 0,
                 plan_version INTEGER DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

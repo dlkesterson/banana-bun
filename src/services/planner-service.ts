@@ -190,6 +190,15 @@ class PlannerService implements IPlannerService {
      */
     async decomposeGoal(goal: string, context?: any): Promise<DecomposeGoalResult> {
         try {
+            // Validate input
+            if (!goal || goal.trim() === '') {
+                return {
+                    success: false,
+                    error: 'Goal cannot be empty',
+                    tasks: []
+                };
+            }
+
             const db = getDatabase();
 
             // Prepare the planning prompt
@@ -244,7 +253,11 @@ Return your response as a JSON object with this structure:
             let planResult: DecomposeGoalResult;
 
             try {
-                planResult = JSON.parse(data.response);
+                const rawResult = JSON.parse(data.response);
+
+                // Validate and filter tasks
+                const validatedResult = this.validateTasks(rawResult);
+                planResult = validatedResult;
             } catch (parseError) {
                 // Fallback if JSON parsing fails
                 planResult = {
@@ -290,6 +303,263 @@ Return your response as a JSON object with this structure:
                 success: false,
                 error: error instanceof Error ? error.message : String(error),
                 tasks: []
+            };
+        }
+    }
+
+    /**
+     * Get metrics (async version for tests)
+     */
+    async getMetrics(): Promise<PlannerMetrics> {
+        return this.getPlannerMetrics();
+    }
+
+    /**
+     * Generate planning efficiency badge
+     */
+    generatePlanningEfficiencyBadge(efficiency: number): string {
+        let color = 'red';
+        if (efficiency >= 80) {
+            color = 'brightgreen';
+        } else if (efficiency >= 60) {
+            color = 'yellow';
+        }
+
+        return `<span class="badge planning-efficiency ${color}">Planning Efficiency: ${efficiency}%</span>`;
+    }
+
+    /**
+     * Optimize task sequence for dependencies
+     */
+    async optimizeTaskSequence(tasks: any[]): Promise<any> {
+        // Simple topological sort implementation
+        const result = [];
+        const visited = new Set();
+        const visiting = new Set();
+
+        const visit = (task: any) => {
+            if (visiting.has(task.id)) {
+                // Circular dependency detected - return error instead of throwing
+                return {
+                    success: false,
+                    error: 'circular dependency detected',
+                    circular_tasks: Array.from(visiting)
+                };
+            }
+            if (visited.has(task.id)) {
+                return null;
+            }
+
+            visiting.add(task.id);
+
+            // Visit dependencies first
+            if (task.dependencies) {
+                for (const depId of task.dependencies) {
+                    const depTask = tasks.find(t => t.id.toString() === depId);
+                    if (depTask) {
+                        const depResult = visit(depTask);
+                        if (depResult && !depResult.success) {
+                            return depResult; // Propagate circular dependency error
+                        }
+                    }
+                }
+            }
+
+            visiting.delete(task.id);
+            visited.add(task.id);
+            result.push(task);
+            return null;
+        };
+
+        for (const task of tasks) {
+            if (!visited.has(task.id)) {
+                const visitResult = visit(task);
+                if (visitResult && !visitResult.success) {
+                    return visitResult; // Return circular dependency error
+                }
+            }
+        }
+
+        return {
+            success: true,
+            sequence: result,
+            optimized_tasks: result,
+            parallel_opportunities: this.findParallelOpportunities(result),
+            parallelGroups: this.findParallelGroups(result)
+        };
+    }
+
+    /**
+     * Find parallel execution opportunities
+     */
+    private findParallelOpportunities(tasks: any[]): string[] {
+        const opportunities = [];
+        const taskMap = new Map(tasks.map(t => [t.id, t]));
+
+        for (let i = 0; i < tasks.length; i++) {
+            const task = tasks[i];
+            const parallelTasks = [];
+
+            for (let j = i + 1; j < tasks.length; j++) {
+                const otherTask = tasks[j];
+
+                // Check if tasks can run in parallel (no dependencies between them)
+                const hasDirectDep = task.dependencies?.includes(otherTask.id.toString()) ||
+                                   otherTask.dependencies?.includes(task.id.toString());
+
+                if (!hasDirectDep) {
+                    parallelTasks.push(otherTask.id);
+                }
+            }
+
+            if (parallelTasks.length > 0) {
+                opportunities.push(`Task ${task.id} can run parallel with: ${parallelTasks.join(', ')}`);
+            }
+        }
+
+        return opportunities;
+    }
+
+    /**
+     * Find parallel execution groups
+     */
+    private findParallelGroups(tasks: any[]): any[] {
+        const groups = [];
+        const processed = new Set();
+
+        for (let i = 0; i < tasks.length; i++) {
+            if (processed.has(tasks[i].id)) continue;
+
+            const group = [tasks[i]];
+            processed.add(tasks[i].id);
+
+            // Find tasks that can run in parallel with this one
+            for (let j = i + 1; j < tasks.length; j++) {
+                if (processed.has(tasks[j].id)) continue;
+
+                const canRunParallel = !this.hasDependencyRelation(tasks[i], tasks[j], tasks);
+                if (canRunParallel) {
+                    group.push(tasks[j]);
+                    processed.add(tasks[j].id);
+                }
+            }
+
+            groups.push(group);
+        }
+
+        return groups;
+    }
+
+    /**
+     * Check if two tasks have a dependency relation
+     */
+    private hasDependencyRelation(task1: any, task2: any, allTasks: any[]): boolean {
+        // Direct dependency
+        if (task1.dependencies?.includes(task2.id.toString()) ||
+            task2.dependencies?.includes(task1.id.toString())) {
+            return true;
+        }
+
+        // Indirect dependency (simplified check)
+        return false;
+    }
+
+    /**
+     * Validate tasks and filter out invalid ones
+     */
+    private validateTasks(rawResult: any): DecomposeGoalResult {
+        if (!rawResult.tasks || !Array.isArray(rawResult.tasks)) {
+            return {
+                success: false,
+                error: 'Invalid task structure',
+                tasks: []
+            };
+        }
+
+        const validTaskTypes = ['shell', 'llm', 'code', 'tool', 'transcribe', 'batch'];
+        const validTasks = [];
+        const warnings = [];
+
+        for (const task of rawResult.tasks) {
+            if (!task.type || !validTaskTypes.includes(task.type)) {
+                warnings.push('Invalid task type');
+                continue;
+            }
+
+            if (!task.description) {
+                warnings.push('Task missing description');
+                continue;
+            }
+
+            validTasks.push(task);
+        }
+
+        return {
+            success: true,
+            tasks: validTasks,
+            plan_id: rawResult.plan_id,
+            estimated_duration: rawResult.estimated_duration,
+            warnings: warnings.length > 0 ? warnings : undefined
+        };
+    }
+
+    /**
+     * Save plan to database
+     */
+    async savePlan(plan: any): Promise<any> {
+        try {
+            const db = getDatabase();
+
+            const result = db.run(`
+                INSERT INTO tasks (type, description, generator, metadata, created_at)
+                VALUES (?, ?, ?, ?, datetime('now'))
+            `, [
+                'batch',
+                plan.goal || 'Generated plan',
+                'planner-service',
+                JSON.stringify(plan)
+            ]);
+
+            return {
+                success: true,
+                task_id: result.lastInsertRowid,
+                planId: result.lastInsertRowid
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    }
+
+    /**
+     * Load plan from database
+     */
+    async loadPlan(taskId: number): Promise<any> {
+        try {
+            const db = getDatabase();
+
+            const task = db.query(`
+                SELECT * FROM tasks WHERE id = ? AND generator = 'planner-service'
+            `).get(taskId);
+
+            if (!task) {
+                return {
+                    success: false,
+                    error: 'Plan not found'
+                };
+            }
+
+            return {
+                success: true,
+                plan: JSON.parse(task.metadata || '{}'),
+                task_id: taskId
+            };
+        } catch (error) {
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
             };
         }
     }
