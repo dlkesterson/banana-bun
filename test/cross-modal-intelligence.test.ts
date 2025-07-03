@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 let db: Database;
@@ -109,6 +109,19 @@ describe('Cross-Modal Intelligence Service', () => {
             }
         }
         delete process.env.CHROMA_URL;
+    });
+
+    afterAll(() => {
+        // Clean up database and restore mocks
+        if (db) {
+            try {
+                db.close();
+            } catch (error) {
+                // Ignore cleanup errors
+            }
+        }
+
+        // Note: Not calling mock.restore() to avoid interfering with other tests' mocks
     });
 
     test('should analyze search-transcript-tag correlations', async () => {
@@ -359,6 +372,82 @@ function createTestTables(db: Database): void {
             source TEXT DEFAULT 'user'
         )
     `);
+
+    // Search behavior table
+    db.run(`
+        CREATE TABLE search_behavior (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            query TEXT NOT NULL,
+            results_count INTEGER NOT NULL,
+            interactions INTEGER NOT NULL,
+            satisfaction_score REAL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Content engagement table
+    db.run(`
+        CREATE TABLE content_engagement (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_id INTEGER NOT NULL,
+            view_count INTEGER DEFAULT 0,
+            total_watch_time INTEGER DEFAULT 0,
+            completion_rate REAL DEFAULT 0,
+            engagement_score REAL DEFAULT 0,
+            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // View sessions table
+    db.run(`
+        CREATE TABLE view_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            media_id INTEGER NOT NULL,
+            start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            duration_ms INTEGER,
+            completion_percentage REAL
+        )
+    `);
+
+    // Engagement analytics table
+    db.run(`
+        CREATE TABLE engagement_analytics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_id INTEGER NOT NULL,
+            metric_name TEXT NOT NULL,
+            metric_value REAL NOT NULL,
+            calculated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Cross modal embeddings table
+    db.run(`
+        CREATE TABLE cross_modal_embeddings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_id INTEGER NOT NULL,
+            text_embedding TEXT,
+            metadata_features TEXT,
+            combined_embedding TEXT,
+            embedding_quality REAL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Quality assessments table
+    db.run(`
+        CREATE TABLE quality_assessments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_id INTEGER NOT NULL,
+            overall_quality REAL NOT NULL,
+            engagement_score REAL,
+            search_discoverability REAL,
+            tag_accuracy REAL,
+            transcript_quality REAL,
+            assessed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 }
 
 function insertTestData(db: Database): void {
@@ -405,5 +494,38 @@ function insertTestData(db: Database): void {
     db.run(`
         INSERT INTO user_feedback (media_id, feedback_type, original_value, corrected_value, confidence_score)
         VALUES (1, 'tag_correction', 'pets', 'domestic animals', 0.9)
+    `);
+
+    // Insert test content engagement data
+    db.run(`
+        INSERT INTO content_engagement (media_id, view_count, total_watch_time, completion_rate, engagement_score)
+        VALUES (1, 10, 2500, 0.83, 0.75)
+    `);
+
+    db.run(`
+        INSERT INTO content_engagement (media_id, view_count, total_watch_time, completion_rate, engagement_score)
+        VALUES (2, 5, 1800, 0.60, 0.65)
+    `);
+
+    // Insert test view sessions
+    db.run(`
+        INSERT INTO view_sessions (session_id, media_id, duration_ms, completion_percentage)
+        VALUES ('session1', 1, 120000, 75.0)
+    `);
+
+    db.run(`
+        INSERT INTO view_sessions (session_id, media_id, duration_ms, completion_percentage)
+        VALUES ('session2', 2, 180000, 60.0)
+    `);
+
+    // Insert test search behavior
+    db.run(`
+        INSERT INTO search_behavior (session_id, query, results_count, interactions, satisfaction_score)
+        VALUES ('search1', 'cats playing', 5, 3, 0.8)
+    `);
+
+    db.run(`
+        INSERT INTO search_behavior (session_id, query, results_count, interactions, satisfaction_score)
+        VALUES ('search2', 'funny animals', 8, 2, 0.7)
     `);
 }

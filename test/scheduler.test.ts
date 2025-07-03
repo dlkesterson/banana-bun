@@ -1,7 +1,27 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { Database } from 'bun:sqlite';
+
+// Mock logger to avoid conflicts with other tests that mock the logger
+const mockLogger = {
+    info: mock(() => Promise.resolve()),
+    error: mock(() => Promise.resolve()),
+    warn: mock(() => Promise.resolve()),
+    debug: mock(() => Promise.resolve()),
+    taskStart: mock(() => Promise.resolve()),
+    taskComplete: mock(() => Promise.resolve()),
+    taskError: mock(() => Promise.resolve())
+};
+
+mock.module('../src/utils/logger', () => ({
+    logger: mockLogger
+}));
+
+// Import scheduler components after setting up mocks
 import { CronParser } from '../src/scheduler/cron-parser';
 import { TaskScheduler } from '../src/scheduler/task-scheduler';
-import { Database } from 'bun:sqlite';
+
+// Ensure we're working with clean imports for scheduler tests
+// This helps avoid conflicts with global mocks from other tests
 
 describe('Scheduler System', () => {
     describe('CronParser', () => {
@@ -94,7 +114,12 @@ describe('Scheduler System', () => {
         beforeEach(async () => {
             // Create in-memory database for testing
             db = new Database(':memory:');
-            
+
+            // Verify database is working
+            if (!db || typeof db.run !== 'function') {
+                throw new Error('Failed to create test database for scheduler tests');
+            }
+
             // Create required tables
             db.run(`
                 CREATE TABLE tasks (
@@ -156,6 +181,11 @@ describe('Scheduler System', () => {
             `);
 
             scheduler = new TaskScheduler(db);
+
+            // Verify scheduler was created successfully
+            if (!scheduler) {
+                throw new Error('Failed to create TaskScheduler instance');
+            }
         });
 
         afterEach(() => {
@@ -165,6 +195,10 @@ describe('Scheduler System', () => {
 
         describe('Schedule Creation', () => {
             it('should create a new schedule for a task', async () => {
+                // Verify scheduler is available
+                expect(scheduler).toBeDefined();
+                expect(typeof scheduler.createSchedule).toBe('function');
+
                 // Insert a test task
                 db.run(`
                     INSERT INTO tasks (id, type, description, shell_command, status)
@@ -172,6 +206,8 @@ describe('Scheduler System', () => {
                 `);
 
                 const task = db.query('SELECT * FROM tasks WHERE id = 1').get() as any;
+                expect(task).toBeDefined();
+
                 const scheduleId = await scheduler.createSchedule(task, '0 9 * * *');
 
                 expect(scheduleId).toBeNumber();

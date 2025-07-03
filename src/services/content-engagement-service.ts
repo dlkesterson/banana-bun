@@ -57,9 +57,10 @@ export interface EngagementInsight {
 }
 
 export class ContentEngagementService {
-    private db = getDatabase();
+    private db: any;
 
     constructor() {
+        this.db = getDatabase();
         try {
             this.initializeTables();
         } catch (error) {

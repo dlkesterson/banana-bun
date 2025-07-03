@@ -79,10 +79,11 @@ export interface TaggingImprovement {
 }
 
 export class CrossModalIntelligenceService {
-    private db = getDatabase();
+    private db: any;
     private chromaClient?: ChromaClient;
 
     constructor() {
+        this.db = getDatabase();
         this.initializeChromaClient();
         try {
             this.initializeTables();

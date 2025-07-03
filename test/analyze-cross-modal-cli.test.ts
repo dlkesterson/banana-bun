@@ -4,10 +4,32 @@ import { Database } from 'bun:sqlite';
 // Create unique mock module names to avoid conflicts with other tests
 const MOCK_MODULE_PREFIX = 'cross-modal-cli-test-';
 
+// Store original environment variables
+let originalEnv: Record<string, string | undefined> = {};
+
 // Mock database module before importing CLI
 let mockDb: any; // Use a fake mock object instead of real Database
+let useMockDb = false; // Flag to control when to use the mock
 const mockInitDatabase = mock(() => Promise.resolve());
-const mockGetDatabase = mock(() => mockDb);
+const mockGetDatabase = mock(() => {
+    if (useMockDb && mockDb) {
+        return mockDb;
+    }
+    // If not using mock or mockDb is not set, try to return a basic mock
+    return {
+        prepare: mock(() => ({
+            get: mock(() => null),
+            all: mock(() => [])
+        })),
+        run: mock(() => {}),
+        query: mock(() => ({
+            get: mock(() => null),
+            all: mock(() => [])
+        })),
+        close: mock(() => {}),
+        closed: false
+    };
+});
 const mockGetDependencyHelper = mock(() => ({
     addDependency: mock(() => {}),
     removeDependency: mock(() => {}),
@@ -18,6 +40,9 @@ const mockGetDependencyHelper = mock(() => ({
     getReadyTasks: mock(() => [])
 }));
 
+// Clear any existing mocks before setting up new ones
+mock.restore();
+
 mock.module('../src/db', () => ({
     initDatabase: mockInitDatabase,
     getDatabase: mockGetDatabase,
@@ -26,6 +51,8 @@ mock.module('../src/db', () => ({
 
 // Mock config module
 mock.module('../src/config', () => ({
+    BASE_PATH: '/tmp/test-base',
+    MEDIA_COLLECTION_PATH: '/tmp/test-media-collection',
     config: {
         paths: {
             database: ':memory:',
@@ -77,6 +104,17 @@ mock.module('chromadb', () => ({ ChromaClient: class {} }));
 let cli: any;
 
 beforeAll(async () => {
+    // Store original environment variables
+    originalEnv = {
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        OLLAMA_URL: process.env.OLLAMA_URL,
+        OLLAMA_MODEL: process.env.OLLAMA_MODEL,
+        OLLAMA_FAST_MODEL: process.env.OLLAMA_FAST_MODEL
+    };
+
+    // Enable mock database for this test
+    useMockDb = true;
+
     // Create a fake database mock object (no real database needed)
     mockDb = {
         run: mock(() => {}),
@@ -102,6 +140,18 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+    // Disable mock database for other tests
+    useMockDb = false;
+
+    // Restore original environment variables
+    for (const [key, value] of Object.entries(originalEnv)) {
+        if (value === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = value;
+        }
+    }
+
     // Clear all mocks to prevent interference with other tests
     mockInitDatabase.mockClear();
     mockGetDatabase.mockClear();
