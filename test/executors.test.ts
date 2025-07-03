@@ -1,11 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
+import { createTestIsolation, type TestIsolationSetup } from './utils/test-isolation';
 import { promises as fs } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { mkdirSync, rmSync } from 'fs';
 import { executeShellTask } from '../src/executors/shell';
 import { executeLlmTask } from '../src/executors/llm';
 import { executeCodeTask } from '../src/executors/code';
 import { executeToolTask } from '../src/executors/tool';
 import { executeTask } from '../src/executors/dispatcher';
 import type { ShellTask, LlmTask, CodeTask, ToolTask, BaseTask } from '../src/types';
+
+// Create test directory
+const TEST_DIR = join(tmpdir(), `executors-test-${Date.now()}`);
+const OUTPUT_DIR = join(TEST_DIR, 'outputs');
 
 // Mock external dependencies
 const mockFetch = mock(() => Promise.resolve({
@@ -16,29 +24,65 @@ const mockFetch = mock(() => Promise.resolve({
 const mockToolRunner = {
     executeTool: mock(() => Promise.resolve({
         success: true,
-        output_path: '/test/output.txt'
+        output_path: join(OUTPUT_DIR, 'test-output.txt')
     }))
 };
-
-// Mock modules
-mock.module('../src/tools/tool_runner', () => ({
-    toolRunner: mockToolRunner
-}));
 
 global.fetch = mockFetch as any;
 
 describe('Task Executors', () => {
-    const testDir = '/tmp/folder-watcher-executor-test';
+    let testSetup: TestIsolationSetup;
 
-    beforeEach(async () => {
-        await fs.mkdir(testDir, { recursive: true });
-        // Reset mocks
+    beforeEach(() => {
+        // Create test directories
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        mkdirSync(TEST_DIR, { recursive: true });
+        mkdirSync(OUTPUT_DIR, { recursive: true });
+
+        testSetup = createTestIsolation({
+            '../src/tools/tool_runner': () => ({
+                toolRunner: mockToolRunner
+            }),
+            '../src/config': () => ({
+                config: {
+                    paths: {
+                        database: ':memory:',
+                        logs: join(TEST_DIR, 'logs'),
+                        outputs: OUTPUT_DIR,
+                        tasks: join(TEST_DIR, 'tasks'),
+                        incoming: join(TEST_DIR, 'incoming'),
+                        processing: join(TEST_DIR, 'processing'),
+                        archive: join(TEST_DIR, 'archive'),
+                        error: join(TEST_DIR, 'error'),
+                        dashboard: join(TEST_DIR, 'dashboard'),
+                        media: join(TEST_DIR, 'media'),
+                        chroma: {
+                            host: 'localhost',
+                            port: 8000,
+                            ssl: false
+                        }
+                    },
+                    ollama: {
+                        model: 'llama2',
+                        url: 'http://localhost:11434'
+                    }
+                }
+            })
+        });
+
+        // Clear mocks
         mockFetch.mockClear();
         mockToolRunner.executeTool.mockClear();
     });
 
-    afterEach(async () => {
-        await fs.rm(testDir, { recursive: true, force: true });
+    afterEach(() => {
+        testSetup.cleanup();
+    });
+
+    afterAll(() => {
+        // Clean up test directory
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        mock.restore();
     });
 
     describe('Shell Executor', () => {
@@ -392,14 +436,11 @@ describe('Task Executors', () => {
 
     describe('Error Handling', () => {
         it('should handle file system errors gracefully', async () => {
-            // Mock fs.writeFile to fail
-            const originalWriteFile = fs.writeFile;
-            (fs as any).writeFile = mock(() => Promise.reject(new Error('Disk full')));
-
+            // Test with an invalid output path to trigger file system error
             const task: ShellTask = {
                 id: 1,
                 type: 'shell',
-                shell_command: 'echo "test"',
+                shell_command: 'echo "test" > /invalid/path/file.txt',
                 status: 'pending',
                 result: null
             };
@@ -408,9 +449,6 @@ describe('Task Executors', () => {
 
             expect(result.success).toBe(false);
             expect(result.error).toBeDefined();
-
-            // Restore original function
-            (fs as any).writeFile = originalWriteFile;
         });
     });
 });

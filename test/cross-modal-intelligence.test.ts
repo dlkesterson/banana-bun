@@ -126,6 +126,17 @@ describe('Cross-Modal Intelligence Service', () => {
 
     test('should analyze search-transcript-tag correlations', async () => {
         expect(crossModalService).toBeDefined();
+
+        // Set up test data for media ID 1
+        db.run(`INSERT OR REPLACE INTO media_metadata (id, task_id, file_path, file_hash, metadata_json, tool_used)
+                VALUES (1, 1, '/test/video.mp4', 'test-hash-1', '{"title":"Test Video"}', 'ffprobe')`);
+        db.run(`INSERT OR REPLACE INTO media_transcripts (media_id, task_id, transcript_text, language, whisper_model)
+                VALUES (1, 1, 'This is a test transcript about machine learning', 'en', 'base')`);
+        db.run(`INSERT OR REPLACE INTO media_tags (media_id, task_id, tags_json, llm_model)
+                VALUES (1, 1, '["machine-learning", "tutorial"]', 'gpt-3.5-turbo')`);
+        db.run(`INSERT OR REPLACE INTO search_behavior (session_id, query, clicked_media_ids)
+                VALUES ('test-session', 'machine learning tutorial', '[1]')`);
+
         const correlation = await crossModalService.analyzeSearchTranscriptTagCorrelation(1);
         
         expect(correlation.media_id).toBe(1);
@@ -141,9 +152,18 @@ describe('Cross-Modal Intelligence Service', () => {
 
     test('should assess content quality', async () => {
         expect(crossModalService).toBeDefined();
-        const quality = await crossModalService.assessContentQuality(1);
+
+        // Set up test data for content quality assessment
+        db.run(`INSERT OR REPLACE INTO media_metadata (id, task_id, file_path, file_hash, metadata_json, tool_used)
+                VALUES (2, 2, '/test/video2.mp4', 'test-hash-2', '{"title":"Test Video 2"}', 'ffprobe')`);
+        db.run(`INSERT OR REPLACE INTO content_engagement (media_id, view_count, avg_view_duration_ms, completion_rate, user_rating)
+                VALUES (2, 10, 30000, 0.8, 4.5)`);
+        db.run(`INSERT OR REPLACE INTO user_feedback (media_id, feedback_type, original_value, corrected_value)
+                VALUES (2, 'tag_correction', 'old-tag', 'new-tag')`);
+
+        const quality = await crossModalService.assessContentQuality(2);
         
-        expect(quality.media_id).toBe(1);
+        expect(quality.media_id).toBe(2);
         expect(quality.engagement_score).toBeGreaterThanOrEqual(0);
         expect(quality.engagement_score).toBeLessThanOrEqual(1);
         expect(quality.search_discoverability).toBeGreaterThanOrEqual(0);

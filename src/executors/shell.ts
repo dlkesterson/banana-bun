@@ -41,6 +41,9 @@ export async function executeShellTask(task: ShellTask): Promise<{ success: bool
     } catch (err) {
         const error = err instanceof Error ? err.message : String(err);
         await logger.error('Error executing shell task', { taskId: task.id, error });
-        return { success: false, error };
+        // Still try to provide outputPath if it was defined
+        const outputDir = config.paths.outputs;
+        const outputPath = join(outputDir, `task-${task.id || 'unknown'}-shell-output.txt`);
+        return { success: false, outputPath, error };
     }
 } 

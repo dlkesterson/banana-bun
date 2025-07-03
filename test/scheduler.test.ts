@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock logger to avoid conflicts with other tests that mock the logger
@@ -189,8 +189,16 @@ describe('Scheduler System', () => {
         });
 
         afterEach(() => {
-            scheduler.stop();
-            db.close();
+            if (scheduler) {
+                scheduler.stop();
+            }
+            if (db && !db.closed) {
+                db.close();
+            }
+        });
+
+        afterAll(() => {
+            mock.restore();
         });
 
         describe('Schedule Creation', () => {

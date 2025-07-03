@@ -40,9 +40,6 @@ const mockGetDependencyHelper = mock(() => ({
     getReadyTasks: mock(() => [])
 }));
 
-// Clear any existing mocks before setting up new ones
-mock.restore();
-
 mock.module('../src/db', () => ({
     initDatabase: mockInitDatabase,
     getDatabase: mockGetDatabase,

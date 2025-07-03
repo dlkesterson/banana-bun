@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import type { MediaSummarizeTask } from '../src/types/task';
 
@@ -80,11 +80,20 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  db.close();
+  // Clean up test data but don't close the database
+  db.run('DELETE FROM tasks');
+  db.run('DELETE FROM media_metadata');
+  db.run('DELETE FROM media_transcripts');
+
   mockSummarizerService.generateSummaryForMedia.mockClear();
   mockSummarizerService.isInitialized.mockClear();
   mockMeiliService.indexDocument.mockClear();
   Object.values(mockLogger).forEach((fn) => (fn as any).mockClear?.());
+});
+
+afterAll(() => {
+  db.close();
+  mock.restore();
 });
 
 describe('createMediaSummarizeTask', () => {

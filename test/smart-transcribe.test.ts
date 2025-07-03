@@ -150,8 +150,13 @@ describe('File Validation', () => {
 
   it('rejects non-existent files', async () => {
     const file = join(dir, 'missing.mp3');
-    await expect(cli.validateAudioFile(file))
-      .rejects.toThrow(`Audio file not found: ${file}`);
+    try {
+      await cli.validateAudioFile(file);
+      expect(true).toBe(false); // Should not reach here
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain(`Audio file not found: ${file}`);
+    }
   });
 
   it('rejects unsupported file formats', async () => {
