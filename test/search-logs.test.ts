@@ -21,7 +21,7 @@ mock.module('../src/utils/logger', () => ({
     logger: mockLogger
 }));
 
-mock.module('../src/config', () => ({
+mock.module('../src/config.js', () => ({
     config: mockConfig
 }));
 
@@ -31,6 +31,8 @@ describe('Search Logs', () => {
     const testLogsDir = '/tmp/test-logs';
 
     beforeEach(async () => {
+        // Set the logs path to our test directory
+        searchLogs.setLogsPath(testLogsDir);
         await fs.mkdir(testLogsDir, { recursive: true });
 
         // Create test log files
@@ -359,6 +361,9 @@ describe('Search Logs', () => {
         });
 
         it('should provide search statistics', async () => {
+            // Reset statistics before this test
+            searchLogs.resetStatistics();
+
             await searchLogs.search('ERROR');
             await searchLogs.search('INFO');
             await searchLogs.search('DEBUG');
