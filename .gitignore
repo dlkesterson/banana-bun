@@ -215,8 +215,10 @@ dmypy.json
 
 # Local development files
 dev-test.*
-test-*.ts
-test-*.js
+test-temp-*.ts
+test-temp-*.js
+test-results-*.ts
+test-results-*.js
 
 # Banana Bun specific ignores
 # User data directories (will vary by platform)
