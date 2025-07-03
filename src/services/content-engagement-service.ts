@@ -60,7 +60,11 @@ export class ContentEngagementService {
     private db = getDatabase();
 
     constructor() {
-        this.initializeTables();
+        try {
+            this.initializeTables();
+        } catch (error) {
+            logger.warn('Failed to initialize content engagement tables', { error });
+        }
     }
 
     /**

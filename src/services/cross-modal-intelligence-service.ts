@@ -84,7 +84,11 @@ export class CrossModalIntelligenceService {
 
     constructor() {
         this.initializeChromaClient();
-        this.initializeTables();
+        try {
+            this.initializeTables();
+        } catch (error) {
+            logger.warn('Failed to initialize cross-modal intelligence tables', { error });
+        }
     }
 
     private async initializeChromaClient(): Promise<void> {

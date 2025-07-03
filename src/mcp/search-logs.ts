@@ -31,7 +31,10 @@ async function searchTaskLogs() {
     }
 }
 
-searchTaskLogs().catch(console.error);
+// Export the function for testing
+export { searchTaskLogs as searchLogs };
 
-
-
+// Run if called directly
+if (import.meta.main) {
+    searchTaskLogs().catch(console.error);
+}

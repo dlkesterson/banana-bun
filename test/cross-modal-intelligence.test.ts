@@ -1,9 +1,15 @@
-import { describe, test, expect, beforeAll, afterAll, mock } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 let db: Database;
-// mock database module before importing services
-mock.module('../src/db', () => ({ getDatabase: () => db }));
+let originalGetDatabase: any;
+
+// Store original getDatabase function and mock it
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
 mock.module('../src/config', () => ({
     config: {
         paths: {
@@ -54,29 +60,59 @@ describe('Cross-Modal Intelligence Service', () => {
     let crossModalService: CrossModalIntelligenceService;
     let engagementService: ContentEngagementService;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
         // Create in-memory database for testing
         db = new Database(':memory:');
-        
+
         // Create required tables
         createTestTables(db);
-        
+
         // Insert test data
         insertTestData(db);
 
         process.env.CHROMA_URL = 'http://localhost:1234';
 
-        // Initialize services
-        crossModalService = new CrossModalIntelligenceService();
-        engagementService = new ContentEngagementService();
+        // Initialize services with error handling
+        try {
+            crossModalService = new CrossModalIntelligenceService();
+        } catch (error) {
+            console.error('Failed to initialize CrossModalIntelligenceService:', error);
+            throw error;
+        }
+
+        try {
+            engagementService = new ContentEngagementService();
+        } catch (error) {
+            console.error('Failed to initialize ContentEngagementService:', error);
+            throw error;
+        }
     });
 
-    afterAll(() => {
-        db.close();
+    afterEach(() => {
+        // Clean up test data but don't close the database
+        // as it might be shared with other tests
+        if (db) {
+            try {
+                // Clean up test tables
+                db.run('DELETE FROM content_engagement');
+                db.run('DELETE FROM view_sessions');
+                db.run('DELETE FROM engagement_analytics');
+                db.run('DELETE FROM search_behavior');
+                db.run('DELETE FROM cross_modal_embeddings');
+                db.run('DELETE FROM quality_assessments');
+                db.run('DELETE FROM user_feedback');
+                db.run('DELETE FROM media_tags');
+                db.run('DELETE FROM media_transcripts');
+                db.run('DELETE FROM media_metadata');
+            } catch (error) {
+                // Ignore cleanup errors
+            }
+        }
         delete process.env.CHROMA_URL;
     });
 
     test('should analyze search-transcript-tag correlations', async () => {
+        expect(crossModalService).toBeDefined();
         const correlation = await crossModalService.analyzeSearchTranscriptTagCorrelation(1);
         
         expect(correlation.media_id).toBe(1);
@@ -91,6 +127,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should assess content quality', async () => {
+        expect(crossModalService).toBeDefined();
         const quality = await crossModalService.assessContentQuality(1);
         
         expect(quality.media_id).toBe(1);
@@ -104,6 +141,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should generate cross-modal embeddings', async () => {
+        expect(crossModalService).toBeDefined();
         const embedding = await crossModalService.generateCrossModalEmbedding(1);
 
         expect(embedding.media_id).toBe(1);
@@ -149,6 +187,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should track search behavior', async () => {
+        expect(crossModalService).toBeDefined();
         const sessionId = 'test-session-123';
         const query = 'test search query';
         const results = [{ id: 1, title: 'Test Video' }];
@@ -185,6 +224,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should track view sessions', async () => {
+        expect(engagementService).toBeDefined();
         const session = {
             session_id: 'view-session-123',
             media_id: 1,
@@ -213,6 +253,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should get engagement metrics', async () => {
+        expect(engagementService).toBeDefined();
         const metrics = await engagementService.getEngagementMetrics(1, 30);
         
         expect(metrics.media_id).toBe(1);
@@ -228,6 +269,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should analyze content trends', async () => {
+        expect(engagementService).toBeDefined();
         const trends = await engagementService.analyzeContentTrends(7);
         
         expect(Array.isArray(trends)).toBe(true);
@@ -243,6 +285,7 @@ describe('Cross-Modal Intelligence Service', () => {
     });
 
     test('should generate engagement insights', async () => {
+        expect(engagementService).toBeDefined();
         const insights = await engagementService.generateEngagementInsights(30);
         
         expect(Array.isArray(insights)).toBe(true);

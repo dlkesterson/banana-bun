@@ -638,7 +638,11 @@ class MonitorMCPServer {
     }
 }
 
-// Run the server
-const server = new MonitorMCPServer();
-server.run().catch(console.error);
+// Export for testing
+export const monitorServer = new MonitorMCPServer();
+
+// Run the server if called directly
+if (import.meta.main) {
+    monitorServer.run().catch(console.error);
+}
 
