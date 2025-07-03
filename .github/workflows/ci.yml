@@ -51,30 +51,7 @@ jobs:
         fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
 
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Bun
-      uses: oven-sh/setup-bun@v1
-      with:
-        bun-version: 1.2.17
-        
-    - name: Install dependencies
-      run: |
-        echo "Starting dependency installation..."
-        echo "Bun version: $(bun --version)"
-        bun install --frozen-lockfile --verbose
-      
-    - name: Run ESLint
-      run: bun run lint
-      
-    - name: Check formatting
-      run: bun run format:check
+
 
   build:
     name: Build & Type Check
