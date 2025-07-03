@@ -56,9 +56,10 @@ beforeEach(async () => {
     },
   }));
 
-  // Mock task creation
+  // Mock task creation and execution
   mock.module('../src/executors/summarize', () => ({
     createMediaSummarizeTask: mock(async () => 123),
+    executeMediaSummarizeTask: mock(async () => ({ success: true, summary: 'test summary' }))
   }));
 
   // Import CLI after mocks are set up with cache busting

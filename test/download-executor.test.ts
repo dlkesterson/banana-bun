@@ -3,10 +3,19 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Database } from 'bun:sqlite';
 
+// Mock dependencies for summarize executor (needed by dispatcher)
 const mockLogger = {
   info: mock(() => Promise.resolve()),
   error: mock(() => Promise.resolve()),
+  warn: mock(() => Promise.resolve()),
+  debug: mock(() => Promise.resolve())
 };
+
+const mockSummarizerService = {
+  isInitialized: mock(() => true),
+  generateSummaryForMedia: mock(() => Promise.resolve({ success: true, summary: 'test summary' }))
+};
+mock.module('../src/services/summarizer', () => ({ summarizerService: mockSummarizerService }));
 
 const downloadDir = '/tmp/download-test';
 

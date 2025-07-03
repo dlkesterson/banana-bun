@@ -40,6 +40,7 @@ const mockGetDependencyHelper = mock(() => ({
     getReadyTasks: mock(() => [])
 }));
 
+// Set up the database mock before any imports
 mock.module('../src/db', () => ({
     initDatabase: mockInitDatabase,
     getDatabase: mockGetDatabase,

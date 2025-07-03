@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 const mockLogger = {
@@ -15,6 +15,19 @@ const mockConfig = {
 
 let db: Database = new Database(':memory:');
 const mockGetDatabase = mock(() => db);
+
+// Mock fetch to prevent real HTTP requests
+const mockFetch = mock(() => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+        response: JSON.stringify({
+            tasks: [{ type: 'shell', command: 'echo test' }],
+            dependencies: [],
+            optimization_score: 85
+        })
+    })
+}));
+global.fetch = mockFetch as any;
 
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 mock.module('../src/config', () => ({ config: mockConfig }));
@@ -182,4 +195,8 @@ describe('LlmPlanningService Core Functions', () => {
         expect(patterns[0].pattern_description).toContain('fail connect');
         expect(patterns[0].severity).toBe('medium');
     });
+});
+
+afterAll(() => {
+    mock.restore();
 });

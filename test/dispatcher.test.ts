@@ -1,5 +1,28 @@
 import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test';
 
+// Mock all dependencies that the summarize module needs
+const mockLogger = {
+  info: mock(() => Promise.resolve()),
+  error: mock(() => Promise.resolve()),
+  warn: mock(() => Promise.resolve()),
+  debug: mock(() => Promise.resolve())
+};
+mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
+
+const mockSummarizerService = {
+  isInitialized: mock(() => true),
+  generateSummaryForMedia: mock(() => Promise.resolve({ success: true, summary: 'test summary' }))
+};
+mock.module('../src/services/summarizer', () => ({ summarizerService: mockSummarizerService }));
+
+const mockGetDatabase = mock(() => ({
+  prepare: mock(() => ({
+    get: mock(() => undefined),
+    run: mock(() => ({ lastInsertRowid: 1 }))
+  }))
+}));
+mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
+
 // Mock analytics logger so we can verify calls
 const mockAnalyticsLogger = {
   logTaskStart: mock(() => Promise.resolve()),
