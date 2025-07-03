@@ -69,10 +69,9 @@ describe('Configuration Management', () => {
         });
 
         it('should use environment variable for API key', () => {
-            // Test that config respects environment variables or has a test value
+            // Test that config respects environment variables
             const expectedKey = process.env.OPENAI_API_KEY || '';
-            // Allow for test mocks that might set a test API key
-            expect(config.openai.apiKey).toMatch(/^(test-api-key|)$/);
+            expect(config.openai.apiKey).toBe(expectedKey);
         });
 
         it('should default to empty string when no API key is set', () => {
@@ -85,18 +84,20 @@ describe('Configuration Management', () => {
         it('should have ollama configuration with defaults', () => {
             expect(config.ollama).toBeDefined();
             expect(config.ollama.url).toBe('http://localhost:11434');
-            // Allow for test mocks that might set different models
-            expect(config.ollama.model).toMatch(/^(qwen3:8b|mock-model)$/);
-            expect(config.ollama.fastModel).toMatch(/^(qwen3:8b|mock-model)$/);
+            // Test that models are defined and non-empty strings
+            expect(typeof config.ollama.model).toBe('string');
+            expect(config.ollama.model.length).toBeGreaterThan(0);
+            expect(typeof config.ollama.fastModel).toBe('string');
+            expect(config.ollama.fastModel.length).toBeGreaterThan(0);
         });
 
         it('should use environment variables when provided', () => {
-            // Test that config respects environment variables or uses defaults/test values
+            // Test that config respects environment variables
             expect(config.ollama.url).toBe(process.env.OLLAMA_URL || 'http://localhost:11434');
-            // Allow for test mocks that might set different models
             const expectedModel = process.env.OLLAMA_MODEL || 'qwen3:8b';
-            expect(config.ollama.model).toMatch(/^(qwen3:8b|mock-model)$/);
-            expect(config.ollama.fastModel).toMatch(/^(qwen3:8b|mock-model)$/);
+            const expectedFastModel = process.env.OLLAMA_FAST_MODEL || 'qwen3:8b';
+            expect(config.ollama.model).toBe(expectedModel);
+            expect(config.ollama.fastModel).toBe(expectedFastModel);
         });
     });
 
