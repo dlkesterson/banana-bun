@@ -2,8 +2,54 @@ import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { executeMediaIngestTask } from '../src/executors/media';
 import type { MediaIngestTask } from '../src/types/task';
+
+// Mock spawn function BEFORE importing the media executor
+const mockSpawn = mock((options: any) => {
+    // Return successful ffprobe output
+    const ffprobeOutput = JSON.stringify({
+        format: {
+            format_name: 'mp4',
+            duration: '120.5',
+            bit_rate: '1000000'
+        },
+        streams: [
+            {
+                codec_type: 'video',
+                codec_name: 'h264',
+                width: 1920,
+                height: 1080,
+                r_frame_rate: '30/1'
+            }
+        ]
+    });
+
+    return {
+        stdout: new ReadableStream({
+            start(controller) {
+                controller.enqueue(new TextEncoder().encode(ffprobeOutput));
+                controller.close();
+            }
+        }),
+        stderr: new ReadableStream({
+            start(controller) {
+                controller.close();
+            }
+        }),
+        exited: Promise.resolve(0)
+    };
+});
+
+mock.module('bun', () => ({
+    spawn: mockSpawn
+}));
+
+// Now import the media executor after mocking
+import { executeMediaIngestTask } from '../src/executors/media';
+
+// Test configuration
+const OUTPUT_DIR = '/tmp/media-executor-test/outputs';
+const TEST_FILE = '/tmp/media-executor-test/test.mp4';
 
 // Mock external dependencies
 const mockConfig = {
@@ -35,8 +81,8 @@ const mockConfig = {
     },
     media: {
         tools: {
-            ffprobe: 'ffprobe',
-            mediainfo: 'mediainfo',
+            ffprobe: '/usr/bin/ffprobe', // Use absolute path for mocking
+            mediainfo: '/usr/bin/mediainfo',
             preferred: 'ffprobe' as const
         },
         extensions: {
@@ -208,41 +254,6 @@ describe('Media Executor', () => {
                 }))
             }));
 
-            // Mock spawn to simulate successful ffprobe execution
-            const mockSpawn = mock(() => ({
-                stdout: new ReadableStream({
-                    start(controller) {
-                        controller.enqueue(new TextEncoder().encode(JSON.stringify({
-                            format: {
-                                format_name: 'mp4',
-                                duration: '120.5',
-                                bit_rate: '1000000'
-                            },
-                            streams: [
-                                {
-                                    codec_type: 'video',
-                                    codec_name: 'h264',
-                                    width: 1920,
-                                    height: 1080,
-                                    r_frame_rate: '30/1'
-                                }
-                            ]
-                        })));
-                        controller.close();
-                    }
-                }),
-                stderr: new ReadableStream({
-                    start(controller) {
-                        controller.close();
-                    }
-                }),
-                exited: Promise.resolve(0)
-            }));
-
-            mock.module('bun', () => ({
-                spawn: mockSpawn
-            }));
-
             // Insert existing metadata
             db.run(
                 'INSERT INTO media_metadata (task_id, file_path, file_hash, metadata_json, tool_used) VALUES (?, ?, ?, ?, ?)',
@@ -256,6 +267,9 @@ describe('Media Executor', () => {
 
             const result = await executeMediaIngestTask(forceTask);
 
+            if (!result.success) {
+                console.log('Media ingest failed:', result.error);
+            }
             expect(result.success).toBe(true);
             expect(mockSpawn).toHaveBeenCalled();
         });

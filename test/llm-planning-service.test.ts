@@ -30,6 +30,90 @@ describe('LlmPlanningService Core Functions', () => {
     beforeEach(async () => {
         db.close();
         db = new Database(':memory:');
+
+        // Create required tables for LlmPlanningService
+        db.run(`
+            CREATE TABLE IF NOT EXISTS analytics_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                level TEXT NOT NULL,
+                message TEXT NOT NULL,
+                metadata TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS log_analysis_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pattern_type TEXT NOT NULL,
+                pattern_description TEXT NOT NULL,
+                frequency INTEGER NOT NULL,
+                severity TEXT NOT NULL,
+                first_detected DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_detected DATETIME DEFAULT CURRENT_TIMESTAMP,
+                resolved BOOLEAN DEFAULT FALSE
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS plan_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                template_data TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                success_rate REAL DEFAULT 0.0,
+                usage_count INTEGER DEFAULT 0
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS system_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                metric_type TEXT NOT NULL,
+                metric_value REAL NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS optimization_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recommendation_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                impact_score INTEGER NOT NULL,
+                implementation_difficulty TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                implemented BOOLEAN DEFAULT FALSE,
+                llm_model_used TEXT
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS planner_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id TEXT,
+                goal TEXT NOT NULL,
+                context TEXT,
+                tasks_json TEXT NOT NULL,
+                model_used TEXT NOT NULL,
+                estimated_duration INTEGER DEFAULT 0,
+                optimization_score REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                type TEXT,
+                description TEXT,
+                status TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         const mod = await import('../src/services/llm-planning-service');
         service = new mod.LlmPlanningService();
         Object.values(mockLogger).forEach(fn => 'mockClear' in fn && fn.mockClear());

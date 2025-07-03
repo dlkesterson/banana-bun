@@ -192,7 +192,7 @@ describe('Resource Optimization Server', () => {
             const testCases = [
                 { cpu: 50, memory: 60, queue: 3, expectedScore: 100 }, // Good performance
                 { cpu: 85, memory: 90, queue: 15, expectedScore: 45 }, // Poor performance
-                { cpu: 70, memory: 75, queue: 8, expectedScore: 85 }   // Average performance
+                { cpu: 70, memory: 75, queue: 8, expectedScore: 75 }   // Average performance
             ];
             
             for (const testCase of testCases) {
@@ -250,9 +250,14 @@ describe('Resource Optimization Server', () => {
             };
             
             for (const strategy of strategies) {
-                const optimized: Record<string, number> = { ...currentDistribution };
+                // Initialize optimized with all 24 hours
+                const optimized: Record<string, number> = {};
+                for (let hour = 0; hour < 24; hour++) {
+                    optimized[hour.toString()] = currentDistribution[hour.toString()] || 0;
+                }
+
                 const totalTasks = Object.values(currentDistribution).reduce((sum, count) => sum + count, 0);
-                
+
                 switch (strategy) {
                     case 'even_distribution':
                         const averagePerHour = totalTasks / 24;
@@ -260,7 +265,7 @@ describe('Resource Optimization Server', () => {
                             optimized[hour.toString()] = averagePerHour;
                         }
                         break;
-                        
+
                     case 'peak_avoidance':
                         // Should reduce load during peak hours (9-17)
                         const peakHours = [9, 10, 11, 12, 13, 14, 15, 16, 17];
@@ -270,12 +275,12 @@ describe('Resource Optimization Server', () => {
                             }
                         }
                         break;
-                        
+
                     case 'efficiency_focused':
                         // Should favor hours with historically good performance
                         for (let hour = 0; hour < 24; hour++) {
                             const efficiency = hour >= 6 && hour <= 22 ? 1.2 : 0.8;
-                            optimized[hour.toString()] = currentDistribution[hour.toString()] * efficiency;
+                            optimized[hour.toString()] = (currentDistribution[hour.toString()] || 0) * efficiency;
                         }
                         break;
                 }

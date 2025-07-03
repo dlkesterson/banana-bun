@@ -168,7 +168,7 @@ describe('Enhanced Learning Service', () => {
             enable_temporal_analysis: true
         });
 
-        // Database is already set up in beforeAll
+        // The enhanced schema is already set up in the learning_rules table creation above
     });
 
     afterAll(() => {
