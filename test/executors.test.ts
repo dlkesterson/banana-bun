@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { promises as fs } from 'fs';
 import { executeShellTask } from '../src/executors/shell';
 import { executeLlmTask } from '../src/executors/llm';
@@ -413,4 +413,9 @@ describe('Task Executors', () => {
             (fs as any).writeFile = originalWriteFile;
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

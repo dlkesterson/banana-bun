@@ -61,74 +61,8 @@ export class ContentEngagementService {
 
     constructor() {
         this.db = getDatabase();
-        try {
-            this.initializeTables();
-        } catch (error) {
-            logger.warn('Failed to initialize content engagement tables', { error });
-        }
-    }
-
-    /**
-     * Initialize engagement tracking tables
-     */
-    private initializeTables(): void {
-        // View sessions table
-        this.db.run(`
-            CREATE TABLE IF NOT EXISTS view_sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                media_id INTEGER NOT NULL,
-                user_id TEXT,
-                start_time DATETIME NOT NULL,
-                end_time DATETIME,
-                duration_ms INTEGER DEFAULT 0,
-                completion_percentage REAL DEFAULT 0,
-                interaction_events TEXT, -- JSON array
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (media_id) REFERENCES media_metadata (id)
-            )
-        `);
-
-        // Engagement analytics table
-        this.db.run(`
-            CREATE TABLE IF NOT EXISTS engagement_analytics (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                media_id INTEGER NOT NULL,
-                date DATE NOT NULL,
-                views_count INTEGER DEFAULT 0,
-                unique_viewers INTEGER DEFAULT 0,
-                total_watch_time_ms INTEGER DEFAULT 0,
-                avg_completion_rate REAL DEFAULT 0,
-                search_discoveries INTEGER DEFAULT 0,
-                tag_corrections INTEGER DEFAULT 0,
-                user_ratings_sum REAL DEFAULT 0,
-                user_ratings_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (media_id) REFERENCES media_metadata (id),
-                UNIQUE(media_id, date)
-            )
-        `);
-
-        // Content trends table
-        this.db.run(`
-            CREATE TABLE IF NOT EXISTS content_trends (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                media_id INTEGER NOT NULL,
-                trend_type TEXT NOT NULL,
-                trend_score REAL NOT NULL,
-                period_days INTEGER NOT NULL,
-                growth_rate REAL NOT NULL,
-                factors TEXT, -- JSON array
-                detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (media_id) REFERENCES media_metadata (id)
-            )
-        `);
-
-        // Create indexes
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_media ON view_sessions(media_id)');
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_start_time ON view_sessions(start_time)');
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_engagement_analytics_media_date ON engagement_analytics(media_id, date)');
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_content_trends_media ON content_trends(media_id)');
+        // Tables are now created in the main database initialization
+        // No need to create them here
     }
 
     /**

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 
 // Mock ChromaDB client
 const mockCollection = {
@@ -747,4 +747,9 @@ describe('ChromaDB Server', () => {
             );
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

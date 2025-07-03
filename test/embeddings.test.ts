@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import type { TaskEmbedding } from '../src/types';
 
 describe('Embeddings Manager', () => {
@@ -378,4 +378,9 @@ describe('Embeddings Manager', () => {
             expect(results.length).toBe(0);
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

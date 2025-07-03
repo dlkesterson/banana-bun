@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Database } from 'bun:sqlite';
@@ -137,4 +137,9 @@ describe('executeMediaDownloadTask', () => {
     // Note: Bun.write mock may not work as expected in test environment
     // The important thing is that the download logic works
   });
+});
+
+afterAll(() => {
+  // Restore all mocks after all tests in this file complete
+  mock.restore();
 });

@@ -319,7 +319,7 @@ describe('Cross-Modal Intelligence Service', () => {
 function createTestTables(db: Database): void {
     // Media metadata table
     db.run(`
-        CREATE TABLE media_metadata (
+        CREATE TABLE IF NOT EXISTS media_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             task_id INTEGER NOT NULL,
             file_path TEXT NOT NULL,
@@ -332,7 +332,7 @@ function createTestTables(db: Database): void {
 
     // Media transcripts table
     db.run(`
-        CREATE TABLE media_transcripts (
+        CREATE TABLE IF NOT EXISTS media_transcripts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_id INTEGER NOT NULL,
             task_id INTEGER NOT NULL,
@@ -347,7 +347,7 @@ function createTestTables(db: Database): void {
 
     // Media tags table
     db.run(`
-        CREATE TABLE media_tags (
+        CREATE TABLE IF NOT EXISTS media_tags (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_id INTEGER NOT NULL,
             task_id INTEGER NOT NULL,
@@ -361,7 +361,7 @@ function createTestTables(db: Database): void {
 
     // User feedback table
     db.run(`
-        CREATE TABLE user_feedback (
+        CREATE TABLE IF NOT EXISTS user_feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_id INTEGER NOT NULL,
             feedback_type TEXT NOT NULL,
@@ -373,54 +373,84 @@ function createTestTables(db: Database): void {
         )
     `);
 
-    // Search behavior table
+    // Search behavior table (updated schema)
     db.run(`
-        CREATE TABLE search_behavior (
+        CREATE TABLE IF NOT EXISTS search_behavior (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL,
             query TEXT NOT NULL,
-            results_count INTEGER NOT NULL,
-            interactions INTEGER NOT NULL,
-            satisfaction_score REAL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            clicked_media_ids TEXT, -- JSON array of media IDs
+            result_count INTEGER DEFAULT 0,
+            satisfaction_score REAL DEFAULT 0,
+            user_interactions TEXT, -- JSON array of interactions
+            search_duration_ms INTEGER DEFAULT 0
         )
     `);
 
-    // Content engagement table
+    // Content engagement table (updated schema)
     db.run(`
-        CREATE TABLE content_engagement (
+        CREATE TABLE IF NOT EXISTS content_engagement (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_id INTEGER NOT NULL,
             view_count INTEGER DEFAULT 0,
-            total_watch_time INTEGER DEFAULT 0,
+            avg_view_duration_ms INTEGER DEFAULT 0,
             completion_rate REAL DEFAULT 0,
-            engagement_score REAL DEFAULT 0,
-            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+            user_rating REAL DEFAULT 0,
+            last_viewed DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
     // View sessions table
     db.run(`
-        CREATE TABLE view_sessions (
+        CREATE TABLE IF NOT EXISTS view_sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id TEXT NOT NULL,
             media_id INTEGER NOT NULL,
-            start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            duration_ms INTEGER,
-            completion_percentage REAL
+            user_id TEXT,
+            start_time DATETIME NOT NULL,
+            end_time DATETIME,
+            duration_ms INTEGER DEFAULT 0,
+            completion_percentage REAL DEFAULT 0,
+            interaction_events TEXT, -- JSON array
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
     // Engagement analytics table
     db.run(`
-        CREATE TABLE engagement_analytics (
+        CREATE TABLE IF NOT EXISTS engagement_analytics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_id INTEGER NOT NULL,
-            metric_name TEXT NOT NULL,
-            metric_value REAL NOT NULL,
-            calculated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            date DATE NOT NULL,
+            views_count INTEGER DEFAULT 0,
+            unique_viewers INTEGER DEFAULT 0,
+            total_watch_time_ms INTEGER DEFAULT 0,
+            avg_completion_rate REAL DEFAULT 0,
+            search_discoveries INTEGER DEFAULT 0,
+            tag_corrections INTEGER DEFAULT 0,
+            user_ratings_sum REAL DEFAULT 0,
+            user_ratings_count INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    // Content trends table
+    db.run(`
+        CREATE TABLE IF NOT EXISTS content_trends (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            media_id INTEGER NOT NULL,
+            trend_type TEXT NOT NULL,
+            trend_score REAL NOT NULL,
+            period_days INTEGER NOT NULL,
+            growth_rate REAL NOT NULL,
+            factors TEXT, -- JSON array
+            detected_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+
 
     // Cross modal embeddings table
     db.run(`
@@ -498,34 +528,37 @@ function insertTestData(db: Database): void {
 
     // Insert test content engagement data
     db.run(`
-        INSERT INTO content_engagement (media_id, view_count, total_watch_time, completion_rate, engagement_score)
-        VALUES (1, 10, 2500, 0.83, 0.75)
+        INSERT INTO content_engagement (media_id, view_count, avg_view_duration_ms, completion_rate, user_rating)
+        VALUES (1, 10, 2500, 0.83, 4.2)
     `);
 
     db.run(`
-        INSERT INTO content_engagement (media_id, view_count, total_watch_time, completion_rate, engagement_score)
-        VALUES (2, 5, 1800, 0.60, 0.65)
+        INSERT INTO content_engagement (media_id, view_count, avg_view_duration_ms, completion_rate, user_rating)
+        VALUES (2, 5, 1800, 0.60, 3.8)
     `);
 
     // Insert test view sessions
     db.run(`
-        INSERT INTO view_sessions (session_id, media_id, duration_ms, completion_percentage)
-        VALUES ('session1', 1, 120000, 75.0)
+        INSERT INTO view_sessions (session_id, media_id, user_id, start_time, duration_ms, completion_percentage)
+        VALUES ('session1', 1, 'user1', '2024-01-01 10:00:00', 120000, 75.0)
     `);
 
     db.run(`
-        INSERT INTO view_sessions (session_id, media_id, duration_ms, completion_percentage)
-        VALUES ('session2', 2, 180000, 60.0)
+        INSERT INTO view_sessions (session_id, media_id, user_id, start_time, duration_ms, completion_percentage)
+        VALUES ('session2', 2, 'user2', '2024-01-01 11:00:00', 180000, 60.0)
     `);
 
-    // Insert test search behavior
+    // Insert test search behavior data
     db.run(`
-        INSERT INTO search_behavior (session_id, query, results_count, interactions, satisfaction_score)
-        VALUES ('search1', 'cats playing', 5, 3, 0.8)
+        INSERT INTO search_behavior (session_id, query, clicked_media_ids, result_count, satisfaction_score)
+        VALUES ('search1', 'funny animals', '[1, 2]', 5, 0.8)
     `);
 
+    // Insert test engagement analytics data
     db.run(`
-        INSERT INTO search_behavior (session_id, query, results_count, interactions, satisfaction_score)
-        VALUES ('search2', 'funny animals', 8, 2, 0.7)
+        INSERT INTO engagement_analytics (media_id, date, views_count, avg_completion_rate)
+        VALUES (1, '2024-01-01', 10, 0.75)
     `);
+
+
 }

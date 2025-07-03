@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { promises as fs } from 'fs';
 import { Database } from 'bun:sqlite';
 import { executeBatchTask } from '../src/executors/batch';
@@ -620,4 +620,9 @@ describe('Additional Executors', () => {
             });
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

@@ -5,8 +5,21 @@ import { Database } from 'bun:sqlite';
 let testDb: Database;
 const mockGetDatabase = mock(() => testDb);
 
+const mockInitDatabase = mock(() => Promise.resolve());
+const mockGetDependencyHelper = mock(() => ({
+    addDependency: mock(() => {}),
+    removeDependency: mock(() => {}),
+    getDependencies: mock(() => []),
+    hasCyclicDependency: mock(() => false),
+    getExecutionOrder: mock(() => []),
+    markTaskCompleted: mock(() => {}),
+    getReadyTasks: mock(() => [])
+}));
+
 mock.module('../src/db', () => ({
-    getDatabase: mockGetDatabase
+    getDatabase: mockGetDatabase,
+    initDatabase: mockInitDatabase,
+    getDependencyHelper: mockGetDependencyHelper
 }));
 
 // Mock the feedback tracker to avoid initialization issues
@@ -315,3 +328,8 @@ function insertTestData(db: Database): void {
         VALUES (2, 2, 'Beautiful classical piano composition by Mozart', 'whisper-1')
     `);
 }
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
+});

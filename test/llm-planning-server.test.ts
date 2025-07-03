@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test';
 
 const mockLogger = {
     info: mock(() => Promise.resolve()),
@@ -155,4 +155,9 @@ describe('LLM Planning MCP Server', () => {
         expect(data.resource_type).toBe('cpu');
         expect(data.status).toBe('coming_soon');
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

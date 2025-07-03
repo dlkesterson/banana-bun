@@ -180,6 +180,89 @@ export async function initDatabase() {
             )
         `);
 
+        // Create search_behavior table for cross-modal intelligence
+        db.run(`
+            CREATE TABLE IF NOT EXISTS search_behavior (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                query TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                clicked_media_ids TEXT, -- JSON array of media IDs
+                result_count INTEGER DEFAULT 0,
+                satisfaction_score REAL DEFAULT 0,
+                user_interactions TEXT, -- JSON array of interactions
+                search_duration_ms INTEGER DEFAULT 0
+            )
+        `);
+
+        // Create view_sessions table for content engagement
+        db.run(`
+            CREATE TABLE IF NOT EXISTS view_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                media_id INTEGER NOT NULL,
+                user_id TEXT,
+                start_time DATETIME NOT NULL,
+                end_time DATETIME,
+                duration_ms INTEGER DEFAULT 0,
+                completion_percentage REAL DEFAULT 0,
+                interaction_events TEXT, -- JSON array
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (media_id) REFERENCES media_metadata (id)
+            )
+        `);
+
+        // Create engagement_analytics table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS engagement_analytics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                media_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                views_count INTEGER DEFAULT 0,
+                unique_viewers INTEGER DEFAULT 0,
+                total_watch_time_ms INTEGER DEFAULT 0,
+                avg_completion_rate REAL DEFAULT 0,
+                search_discoveries INTEGER DEFAULT 0,
+                tag_corrections INTEGER DEFAULT 0,
+                user_ratings_sum REAL DEFAULT 0,
+                user_ratings_count INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (media_id) REFERENCES media_metadata (id),
+                UNIQUE(media_id, date)
+            )
+        `);
+
+        // Create content_engagement table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS content_engagement (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                media_id INTEGER NOT NULL,
+                view_count INTEGER DEFAULT 0,
+                avg_view_duration_ms INTEGER DEFAULT 0,
+                completion_rate REAL DEFAULT 0,
+                user_rating REAL DEFAULT 0,
+                last_viewed DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (media_id) REFERENCES media_metadata (id),
+                UNIQUE(media_id)
+            )
+        `);
+
+        // Create content_trends table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS content_trends (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                media_id INTEGER NOT NULL,
+                trend_type TEXT NOT NULL,
+                trend_score REAL NOT NULL,
+                period_days INTEGER NOT NULL,
+                growth_rate REAL NOT NULL,
+                factors TEXT, -- JSON array
+                detected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (media_id) REFERENCES media_metadata (id)
+            )
+        `);
+
         // Add missing columns if they don't exist (for backward compatibility)
         try {
             db.run('ALTER TABLE tasks ADD COLUMN filename TEXT');
@@ -197,6 +280,116 @@ export async function initDatabase() {
             db.run('ALTER TABLE tasks ADD COLUMN args TEXT');
         } catch (error) {
             // Column already exists, ignore
+        }
+
+        // Add summary columns to media_transcripts table
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
+
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_style TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
+
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_model TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
+
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_tokens_used INTEGER');
+        } catch (error) {
+            // Column already exists, ignore
+        }
+
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_processing_time_ms INTEGER');
+        } catch (error) {
+            // Column already exists, ignore
+        }
+
+        // Create task_schedules table for scheduler
+        db.run(`
+            CREATE TABLE IF NOT EXISTS task_schedules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_task_id INTEGER,
+                cron_expression TEXT,
+                timezone TEXT DEFAULT 'UTC',
+                enabled BOOLEAN DEFAULT TRUE,
+                max_instances INTEGER DEFAULT 1,
+                overlap_policy TEXT DEFAULT 'skip',
+                next_run_at DATETIME,
+                last_run_at DATETIME,
+                execution_count INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (template_task_id) REFERENCES tasks(id)
+            )
+        `);
+
+        // Create task_instances table for scheduler
+        db.run(`
+            CREATE TABLE IF NOT EXISTS task_instances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                schedule_id INTEGER,
+                instance_task_id INTEGER,
+                status TEXT DEFAULT 'pending',
+                started_at DATETIME,
+                finished_at DATETIME,
+                result_summary TEXT,
+                error_message TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (schedule_id) REFERENCES task_schedules(id),
+                FOREIGN KEY (instance_task_id) REFERENCES tasks(id)
+            )
+        `);
+
+        // Create learning_rules table for enhanced learning service
+        db.run(`
+            CREATE TABLE IF NOT EXISTS learning_rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pattern_type TEXT NOT NULL,
+                pattern_value TEXT NOT NULL,
+                rule_type TEXT NOT NULL,
+                rule_action TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                frequency INTEGER DEFAULT 1,
+                success_rate REAL DEFAULT 0.0,
+                last_applied DATETIME,
+                enabled BOOLEAN DEFAULT TRUE,
+                pattern_strength REAL DEFAULT 0.0,
+                effectiveness_score REAL DEFAULT 0.0,
+                strategy_type TEXT,
+                cross_modal_score REAL,
+                search_correlation REAL,
+                temporal_consistency REAL,
+                user_validation_score REAL,
+                similar_rules TEXT, -- JSON array of rule IDs
+                embedding_id TEXT,
+                auto_apply_threshold REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create indexes for performance
+        try {
+            db.run('CREATE INDEX IF NOT EXISTS idx_search_behavior_session ON search_behavior(session_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_search_behavior_timestamp ON search_behavior(timestamp)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_media ON view_sessions(media_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_start_time ON view_sessions(start_time)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_engagement_analytics_media_date ON engagement_analytics(media_id, date)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_content_engagement_media ON content_engagement(media_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_content_trends_media ON content_trends(media_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_task_schedules_next_run ON task_schedules(next_run_at)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_task_instances_schedule ON task_instances(schedule_id)');
+        } catch (error) {
+            // Indexes might already exist, ignore
         }
 
         try {

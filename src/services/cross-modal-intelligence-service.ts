@@ -344,8 +344,8 @@ export class CrossModalIntelligenceService {
             // Store search behavior
             this.db.run(`
                 INSERT INTO search_behavior (
-                    session_id, query, results_count, clicked_media_ids,
-                    interaction_duration_ms, satisfaction_score
+                    session_id, query, result_count, clicked_media_ids,
+                    search_duration_ms, satisfaction_score
                 ) VALUES (?, ?, ?, ?, ?, ?)
             `, [
                 sessionId,
@@ -639,15 +639,17 @@ export class CrossModalIntelligenceService {
      */
     private async calculateDiscoverabilityScore(mediaId: number): Promise<number> {
         const searchData = this.db.prepare(`
-            SELECT search_discovery_count
-            FROM content_engagement
+            SELECT search_discoveries
+            FROM engagement_analytics
             WHERE media_id = ?
-        `).get(mediaId) as { search_discovery_count: number } | undefined;
+            ORDER BY date DESC
+            LIMIT 1
+        `).get(mediaId) as { search_discoveries: number } | undefined;
 
         if (!searchData) return 0;
 
         // Score based on how often this content is discovered through search
-        return Math.min(1, searchData.search_discovery_count / 20); // Max score at 20 discoveries
+        return Math.min(1, searchData.search_discoveries / 20); // Max score at 20 discoveries
     }
 
     /**
@@ -957,23 +959,19 @@ export class CrossModalIntelligenceService {
         if (current) {
             // Update existing record
             const newViewCount = current.view_count + (interaction.interaction_type === 'view' ? 1 : 0);
-            const newTotalTime = current.total_view_time_ms + (interaction.duration_ms || 0);
+            const currentAvgDuration = current.avg_view_duration_ms || 0;
+            const newTotalTime = currentAvgDuration * current.view_count + (interaction.duration_ms || 0);
             const newAvgDuration = newViewCount > 0 ? newTotalTime / newViewCount : 0;
 
             this.db.run(`
                 UPDATE content_engagement
-                SET view_count = ?, total_view_time_ms = ?, avg_view_duration_ms = ?,
-                    search_discovery_count = search_discovery_count + ?,
-                    tag_correction_count = tag_correction_count + ?,
+                SET view_count = ?, avg_view_duration_ms = ?,
                     user_rating = COALESCE(?, user_rating),
-                    last_accessed = CURRENT_TIMESTAMP
+                    last_viewed = CURRENT_TIMESTAMP
                 WHERE media_id = ?
             `, [
                 newViewCount,
-                newTotalTime,
                 newAvgDuration,
-                interaction.interaction_type === 'click' ? 1 : 0,
-                interaction.interaction_type === 'correct_tags' ? 1 : 0,
                 interaction.satisfaction_score,
                 interaction.media_id
             ]);
@@ -981,16 +979,12 @@ export class CrossModalIntelligenceService {
             // Create new record
             this.db.run(`
                 INSERT INTO content_engagement (
-                    media_id, view_count, total_view_time_ms, avg_view_duration_ms,
-                    search_discovery_count, tag_correction_count, user_rating
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    media_id, view_count, avg_view_duration_ms, user_rating
+                ) VALUES (?, ?, ?, ?)
             `, [
                 interaction.media_id,
                 interaction.interaction_type === 'view' ? 1 : 0,
                 interaction.duration_ms || 0,
-                interaction.duration_ms || 0,
-                interaction.interaction_type === 'click' ? 1 : 0,
-                interaction.interaction_type === 'correct_tags' ? 1 : 0,
                 interaction.satisfaction_score
             ]);
         }

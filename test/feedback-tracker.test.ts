@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock config to use in-memory database and temporary log path
@@ -236,4 +236,9 @@ describe('FeedbackTracker', () => {
 
         expect(mockLogger.error.mock.calls.length).toBe(1);
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

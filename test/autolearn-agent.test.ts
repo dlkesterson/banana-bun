@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock logger
@@ -98,7 +98,22 @@ mock.module('../src/services/enhanced-learning-service', () => ({
 
 let db: Database;
 const mockGetDatabase = mock(() => db);
-mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
+const mockInitDatabase = mock(() => Promise.resolve());
+const mockGetDependencyHelper = mock(() => ({
+  addDependency: mock(() => {}),
+  removeDependency: mock(() => {}),
+  getDependencies: mock(() => []),
+  hasCyclicDependency: mock(() => false),
+  getExecutionOrder: mock(() => []),
+  markTaskCompleted: mock(() => {}),
+  getReadyTasks: mock(() => [])
+}));
+
+mock.module('../src/db', () => ({
+  getDatabase: mockGetDatabase,
+  initDatabase: mockInitDatabase,
+  getDependencyHelper: mockGetDependencyHelper
+}));
 
 describe('AutolearnAgent', () => {
   let agent: any;
@@ -185,4 +200,9 @@ describe('AutolearnAgent', () => {
       expect(result.recommendations.length).toBeGreaterThan(0);
     });
   });
+});
+
+afterAll(() => {
+  // Restore all mocks after all tests in this file complete
+  mock.restore();
 });

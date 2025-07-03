@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test';
 
 // Mock analytics logger so we can verify calls
 const mockAnalyticsLogger = {
@@ -61,4 +61,9 @@ describe('executeTask dispatcher', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('fail');
   });
+});
+
+afterAll(() => {
+  // Restore all mocks after all tests in this file complete
+  mock.restore();
 });

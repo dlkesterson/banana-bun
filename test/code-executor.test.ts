@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { promises as fs } from 'fs';
 import type { CodeTask } from '../src/types/task';
 
@@ -119,4 +119,9 @@ describe('executeCodeTask', () => {
         expect(result.error).toContain('500');
         expect(mockLogger.error).toHaveBeenCalled();
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

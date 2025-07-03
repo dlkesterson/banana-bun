@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import type { DatabaseTask } from '../src/types';
 
@@ -35,31 +35,147 @@ describe('Database Operations', () => {
 
     beforeEach(async () => {
         try {
-            // Initialize database with migrations
-            await initDatabase();
-            db = getDatabase();
+            // Create a fresh in-memory database for each test to avoid conflicts
+            db = new Database(':memory:');
 
-            // Check if we got a real database or a mock
-            if (!db || typeof db.query !== 'function') {
-                // We got a mock database, skip this test
-                console.warn('Skipping database test due to mocked database module');
-                return;
-            }
+            // Initialize the database directly instead of using the potentially mocked function
+            // This ensures we have a real database for testing
 
-            dependencyHelper = getDependencyHelper();
+            // Create tasks table with all expected columns
+            db.run(`
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    file_hash TEXT,
+                    parent_id INTEGER,
+                    description TEXT,
+                    type TEXT,
+                    status TEXT,
+                    dependencies TEXT,
+                    result_summary TEXT,
+                    shell_command TEXT,
+                    error_message TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    started_at DATETIME,
+                    finished_at DATETIME,
+                    args TEXT,
+                    generator TEXT,
+                    tool TEXT,
+                    validation_errors TEXT,
+                    retry_count INTEGER DEFAULT 0,
+                    retry_policy_id INTEGER,
+                    last_retry_at DATETIME,
+                    next_retry_at DATETIME,
+                    schedule_id INTEGER,
+                    max_retries INTEGER DEFAULT 3,
+                    is_template BOOLEAN DEFAULT FALSE,
+                    cron_expression TEXT
+                )
+            `);
 
-            // Check if tasks table exists before running migrations
-            const tableExists = db.query(`
-                SELECT name FROM sqlite_master
-                WHERE type='table' AND name='tasks'
-            `).get();
+            // Create task_dependencies table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS task_dependencies (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    depends_on_id TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+                    UNIQUE(task_id, depends_on_id)
+                )
+            `);
 
-            if (tableExists) {
-                // Run all migrations to ensure proper schema
-                await runAllMigrations(db);
-            } else {
-                throw new Error('Tasks table was not created by initDatabase()');
-            }
+            // Create retry_history table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS retry_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    retry_attempt INTEGER NOT NULL,
+                    error_message TEXT,
+                    retry_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+                )
+            `);
+
+            // Create retry_policies table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS retry_policies (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    max_retries INTEGER NOT NULL,
+                    base_delay_ms INTEGER NOT NULL,
+                    max_delay_ms INTEGER NOT NULL,
+                    backoff_multiplier REAL NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Create task_schedules table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS task_schedules (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    template_task_id INTEGER,
+                    cron_expression TEXT,
+                    timezone TEXT DEFAULT 'UTC',
+                    enabled BOOLEAN DEFAULT TRUE,
+                    max_instances INTEGER DEFAULT 1,
+                    overlap_policy TEXT DEFAULT 'skip',
+                    next_run_at DATETIME,
+                    last_run_at DATETIME,
+                    execution_count INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (template_task_id) REFERENCES tasks(id)
+                )
+            `);
+
+            // Create task_instances table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS task_instances (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    schedule_id INTEGER,
+                    instance_task_id INTEGER,
+                    status TEXT DEFAULT 'pending',
+                    started_at DATETIME,
+                    finished_at DATETIME,
+                    result_summary TEXT,
+                    error_message TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (schedule_id) REFERENCES task_schedules(id),
+                    FOREIGN KEY (instance_task_id) REFERENCES tasks(id)
+                )
+            `);
+
+            // Create migrations table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS migrations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    version TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Create media table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS media (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    video_id TEXT UNIQUE,
+                    title TEXT,
+                    channel TEXT,
+                    file_path TEXT,
+                    downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Create indexes
+            db.run('CREATE INDEX IF NOT EXISTS idx_status ON tasks(status)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_parent ON tasks(parent_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(task_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends_on ON task_dependencies(depends_on_id)');
+
+            // Initialize dependency helper with our test database
+            dependencyHelper = new DependencyHelper(db);
         } catch (error) {
             console.error('Database setup failed:', error);
             throw error;
@@ -74,6 +190,11 @@ describe('Database Operations', () => {
         } catch (error) {
             // Ignore close errors
         }
+    });
+
+    afterAll(() => {
+        // Restore all mocks after all tests in this file complete
+        mock.restore();
     });
 
     describe('Database Initialization', () => {

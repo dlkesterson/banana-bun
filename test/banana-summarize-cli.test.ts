@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 let cli: any;
@@ -74,14 +74,11 @@ afterEach(() => {
       // Ignore close errors in tests
     }
   }
+});
 
-  // Clear module cache to prevent interference with other tests
-  try {
-    delete require.cache[require.resolve('../src/db')];
-    delete require.cache[require.resolve('../src/cli/banana-summarize')];
-  } catch (error) {
-    // Ignore cache clearing errors
-  }
+afterAll(() => {
+  // Restore all mocks after all tests in this file complete
+  mock.restore();
 });
 
 describe('parseCliArgs', () => {

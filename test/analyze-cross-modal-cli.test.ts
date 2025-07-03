@@ -240,6 +240,16 @@ beforeEach(() => {
 afterEach(() => {
     (console as any).log = console.log;
     (process as any).exit = process.exit;
+
+    // Clear all mocks to prevent interference with other tests
+    mockInitDatabase.mockClear();
+    mockGetDatabase.mockClear();
+    mockGetDependencyHelper.mockClear();
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });
 
 describe('Cross-Modal CLI parseArgs', () => {

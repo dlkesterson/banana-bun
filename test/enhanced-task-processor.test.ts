@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { enhancedTaskProcessor } from '../src/mcp/enhanced-task-processor';
 import type { BaseTask, DatabaseTask } from '../src/types';
@@ -323,4 +323,9 @@ describe('Enhanced Task Processor', () => {
             );
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });
