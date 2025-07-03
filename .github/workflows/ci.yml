@@ -29,7 +29,17 @@ jobs:
         bun-version: 1.2.17
         
     - name: Install dependencies
-      run: bun install --frozen-lockfile
+      run: |
+        echo "Starting dependency installation..."
+        echo "Node version: $(node --version)"
+        echo "Bun version: $(bun --version)"
+        echo "Current directory: $(pwd)"
+        echo "Package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+        echo "Lockfile exists: $(test -f bun.lock && echo 'yes' || echo 'no')"
+        echo "Environment variables:"
+        env | grep -E "(NODE_ENV|OPENAI|OLLAMA)" || echo "No relevant env vars found"
+        echo "Installing dependencies with verbose output..."
+        bun install --frozen-lockfile --verbose
       
     - name: Run tests with coverage
       run: bun test --coverage --coverage-reporter=lcov
@@ -55,7 +65,10 @@ jobs:
         bun-version: 1.2.17
         
     - name: Install dependencies
-      run: bun install --frozen-lockfile
+      run: |
+        echo "Starting dependency installation..."
+        echo "Bun version: $(bun --version)"
+        bun install --frozen-lockfile --verbose
       
     - name: Run ESLint
       run: bun run lint
@@ -77,7 +90,10 @@ jobs:
         bun-version: 1.2.17
         
     - name: Install dependencies
-      run: bun install --frozen-lockfile
+      run: |
+        echo "Starting dependency installation..."
+        echo "Bun version: $(bun --version)"
+        bun install --frozen-lockfile --verbose
       
     - name: Type check
       run: echo "Skipping type check temporarily to focus on Codecov integration"
@@ -100,7 +116,10 @@ jobs:
         bun-version: 1.2.17
         
     - name: Install dependencies
-      run: bun install --frozen-lockfile
+      run: |
+        echo "Starting dependency installation..."
+        echo "Bun version: $(bun --version)"
+        bun install --frozen-lockfile --verbose
       
     - name: Run security audit
       run: bun audit
@@ -120,7 +139,10 @@ jobs:
         bun-version: 1.2.17
         
     - name: Install dependencies
-      run: bun install --frozen-lockfile
+      run: |
+        echo "Starting dependency installation..."
+        echo "Bun version: $(bun --version)"
+        bun install --frozen-lockfile --verbose
       
     - name: Generate coverage report
       run: bun test --coverage --coverage-reporter=json-summary
@@ -152,7 +174,10 @@ jobs:
         bun-version: 1.2.17
 
     - name: Install dependencies
-      run: bun install --frozen-lockfile
+      run: |
+        echo "Starting dependency installation..."
+        echo "Bun version: $(bun --version)"
+        bun install --frozen-lockfile --verbose
 
     - name: Get changed test files
       id: changed
