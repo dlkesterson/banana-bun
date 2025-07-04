@@ -6,32 +6,36 @@ import {
   getStandardDirectoryStructure,
 } from "./utils/cross-platform-paths.js";
 
-// Cross-platform configuration using utility functions
-export const BASE_PATH = getDefaultBasePath();
-export const MEDIA_COLLECTION_PATH = getDefaultMediaPath();
+// Cross-platform configuration using utility functions with reactive getters
+export function getBasePath(): string {
+  return getDefaultBasePath();
+}
 
-// Get cross-platform media type paths
-const mediaTypePaths = getDefaultMediaTypePaths();
-const s3Paths = getDefaultS3Paths();
-const standardDirs = getStandardDirectoryStructure(BASE_PATH);
+export function getMediaCollectionPath(): string {
+  return getDefaultMediaPath();
+}
 
 export const config = {
-  paths: {
-    incoming: standardDirs.incoming,
-    processing: standardDirs.processing,
-    archive: standardDirs.archive,
-    error: standardDirs.error,
-    tasks: standardDirs.tasks,
-    outputs: standardDirs.outputs,
-    logs: standardDirs.logs,
-    dashboard: standardDirs.dashboard,
-    database: standardDirs.database,
-    media: standardDirs.media,
-    chroma: {
-      host: "localhost",
-      port: 8000,
-      ssl: false,
-    },
+  get paths() {
+    const basePath = getDefaultBasePath();
+    const standardDirs = getStandardDirectoryStructure(basePath);
+    return {
+      incoming: standardDirs.incoming,
+      processing: standardDirs.processing,
+      archive: standardDirs.archive,
+      error: standardDirs.error,
+      tasks: standardDirs.tasks,
+      outputs: standardDirs.outputs,
+      logs: standardDirs.logs,
+      dashboard: standardDirs.dashboard,
+      database: standardDirs.database,
+      media: standardDirs.media,
+      chroma: {
+        host: "localhost",
+        port: 8000,
+        ssl: false,
+      },
+    };
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY || "",
@@ -65,75 +69,81 @@ export const config = {
       sceneDetection: process.env.ENABLE_SCENE_DETECTION === "true",
     },
   },
-  s3: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: process.env.AWS_DEFAULT_REGION,
-    endpoint: process.env.S3_ENDPOINT,
-    defaultBucket: process.env.S3_DEFAULT_BUCKET,
-    defaultDownloadPath: s3Paths.downloadPath,
-    syncLogPath: s3Paths.syncLogPath,
+  get s3() {
+    const s3Paths = getDefaultS3Paths();
+    return {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      region: process.env.AWS_DEFAULT_REGION,
+      endpoint: process.env.S3_ENDPOINT,
+      defaultBucket: process.env.S3_DEFAULT_BUCKET,
+      defaultDownloadPath: s3Paths.downloadPath,
+      syncLogPath: s3Paths.syncLogPath,
+    };
   },
-  media: {
-    collectionTv: mediaTypePaths.tv,
-    collectionMovies: mediaTypePaths.movies,
-    collectionYouTube: mediaTypePaths.youtube,
-    collectionCatchAll: mediaTypePaths.catchall,
-    tools: {
-      ffprobe: process.env.FFPROBE_PATH || "ffprobe",
-      mediainfo: process.env.MEDIAINFO_PATH || "mediainfo",
-      preferred: "ffprobe" as "ffprobe" | "mediainfo" | "auto",
-    },
-    extensions: {
-      video: [
-        ".mp4",
-        ".mkv",
-        ".avi",
-        ".mov",
-        ".wmv",
-        ".flv",
-        ".webm",
-        ".m4v",
-        ".3gp",
-      ],
-      audio: [".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a", ".wma", ".opus"],
-    },
-    extraction: {
-      timeout_ms: 30000,
-      max_file_size_mb: 10000,
-      enable_deduplication: true,
-    },
-    organize: {
-      enabled: true,
-      auto_organize_after_ingest: true,
-      categorization: {
-        useMetadataType: true,
-        fallbackToFilename: true,
-        defaultCategory: "catchall" as "tv" | "movies" | "youtube" | "catchall",
+  get media() {
+    const mediaTypePaths = getDefaultMediaTypePaths();
+    return {
+      collectionTv: mediaTypePaths.tv,
+      collectionMovies: mediaTypePaths.movies,
+      collectionYouTube: mediaTypePaths.youtube,
+      collectionCatchAll: mediaTypePaths.catchall,
+      tools: {
+        ffprobe: process.env.FFPROBE_PATH || "ffprobe",
+        mediainfo: process.env.MEDIAINFO_PATH || "mediainfo",
+        preferred: "ffprobe" as "ffprobe" | "mediainfo" | "auto",
       },
-      folderStructure: {
-        movies: {
-          pattern: "{title} ({year})",
-          groupByYear: false,
-          groupByGenre: false,
+      extensions: {
+        video: [
+          ".mp4",
+          ".mkv",
+          ".avi",
+          ".mov",
+          ".wmv",
+          ".flv",
+          ".webm",
+          ".m4v",
+          ".3gp",
+        ],
+        audio: [".mp3", ".flac", ".wav", ".aac", ".ogg", ".m4a", ".wma", ".opus"],
+      },
+      extraction: {
+        timeout_ms: 30000,
+        max_file_size_mb: 10000,
+        enable_deduplication: true,
+      },
+      organize: {
+        enabled: true,
+        auto_organize_after_ingest: true,
+        categorization: {
+          useMetadataType: true,
+          fallbackToFilename: true,
+          defaultCategory: "catchall" as "tv" | "movies" | "youtube" | "catchall",
         },
-        tv: {
-          pattern:
-            "{series}/Season {season:02d}/{series} - S{season:02d}E{episode:02d} - {title}",
-          groupBySeries: true,
+        folderStructure: {
+          movies: {
+            pattern: "{title} ({year})",
+            groupByYear: false,
+            groupByGenre: false,
+          },
+          tv: {
+            pattern:
+              "{series}/Season {season:02d}/{series} - S{season:02d}E{episode:02d} - {title}",
+            groupBySeries: true,
+          },
+          youtube: {
+            pattern: "{channel}/{title}",
+            groupByChannel: true,
+          },
         },
-        youtube: {
-          pattern: "{channel}/{title}",
-          groupByChannel: true,
+        filenameNormalization: {
+          maxLength: 180,
+          case: "title" as "title" | "lower" | "upper",
+          replaceSpaces: false,
+          sanitizeChars: true,
         },
       },
-      filenameNormalization: {
-        maxLength: 180,
-        case: "title" as "title" | "lower" | "upper",
-        replaceSpaces: false,
-        sanitizeChars: true,
-      },
-    },
+    };
   },
   downloaders: {
     ytdlp: {
@@ -151,3 +161,8 @@ export const config = {
     },
   },
 };
+
+// For backward compatibility, we'll need to update code that uses these constants
+// to call the functions instead. For now, export the current values but they won't be reactive.
+export const BASE_PATH = getDefaultBasePath();
+export const MEDIA_COLLECTION_PATH = getDefaultMediaPath();

@@ -565,5 +565,19 @@ Return your response as a JSON object with this structure:
     }
 }
 
-// Export a singleton instance
-export const plannerService = new PlannerService();
+// Export lazy singleton instance
+let _plannerService: PlannerService | null = null;
+
+export function getPlannerService(): PlannerService {
+    if (!_plannerService) {
+        _plannerService = new PlannerService();
+    }
+    return _plannerService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const plannerService = new Proxy({} as PlannerService, {
+    get(target, prop) {
+        return getPlannerService()[prop as keyof PlannerService];
+    }
+});

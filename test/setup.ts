@@ -194,6 +194,16 @@ beforeAll(async () => {
     // Set test environment
     process.env.NODE_ENV = 'test';
 
+    // Set BASE_PATH for consistent test environment
+    if (!process.env.BASE_PATH) {
+        const { mkdtempSync } = await import('fs');
+        const { tmpdir } = await import('os');
+        const { join } = await import('path');
+        const testBasePath = mkdtempSync(join(tmpdir(), 'banana-bun-test-setup-'));
+        process.env.BASE_PATH = testBasePath;
+        console.log(`🧪 Test setup BASE_PATH: ${testBasePath}`);
+    }
+
     // Initialize global test database
     globalTestDb = new Database(':memory:');
     createTestTables(globalTestDb);
@@ -232,6 +242,15 @@ afterAll(async () => {
 beforeEach(async () => {
     // Reset any global state
     process.env.NODE_ENV = 'test';
+
+    // Ensure BASE_PATH is maintained
+    if (!process.env.BASE_PATH) {
+        const { mkdtempSync } = await import('fs');
+        const { tmpdir } = await import('os');
+        const { join } = await import('path');
+        const testBasePath = mkdtempSync(join(tmpdir(), 'banana-bun-test-each-'));
+        process.env.BASE_PATH = testBasePath;
+    }
 
     // Clear all tables but keep schema
     if (globalTestDb) {

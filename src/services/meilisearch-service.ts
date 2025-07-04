@@ -300,5 +300,19 @@ export class MeilisearchService implements IMeilisearchService {
     }
 }
 
-// Export singleton instance
-export const meilisearchService = new MeilisearchService();
+// Export lazy singleton instance
+let _meilisearchService: MeilisearchService | null = null;
+
+export function getMeilisearchService(): MeilisearchService {
+    if (!_meilisearchService) {
+        _meilisearchService = new MeilisearchService();
+    }
+    return _meilisearchService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const meilisearchService = new Proxy({} as MeilisearchService, {
+    get(target, prop) {
+        return getMeilisearchService()[prop as keyof MeilisearchService];
+    }
+});

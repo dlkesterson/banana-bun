@@ -269,5 +269,19 @@ export class MediaEmbeddingService {
     }
 }
 
-// Export singleton instance
-export const mediaEmbeddingService = new MediaEmbeddingService();
+// Export lazy singleton instance
+let _mediaEmbeddingService: MediaEmbeddingService | null = null;
+
+export function getMediaEmbeddingService(): MediaEmbeddingService {
+    if (!_mediaEmbeddingService) {
+        _mediaEmbeddingService = new MediaEmbeddingService();
+    }
+    return _mediaEmbeddingService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const mediaEmbeddingService = new Proxy({} as MediaEmbeddingService, {
+    get(target, prop) {
+        return getMediaEmbeddingService()[prop as keyof MediaEmbeddingService];
+    }
+});

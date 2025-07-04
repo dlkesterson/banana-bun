@@ -27,27 +27,31 @@ export function createTestIsolation(additionalMocks: Record<string, any> = {}): 
                 debug: mock(() => Promise.resolve())
             }
         }),
-        '../src/config': () => ({
-            config: {
-                paths: {
-                    database: ':memory:',
-                    logs: '/tmp/test-logs',
-                    tasks: '/tmp/test-tasks',
-                    outputs: '/tmp/test-outputs',
-                    incoming: '/tmp/test-incoming',
-                    processing: '/tmp/test-processing',
-                    archive: '/tmp/test-archive',
-                    error: '/tmp/test-error',
-                    dashboard: '/tmp/test-dashboard',
-                    media: '/tmp/test-media',
-                    chroma: {
-                        host: 'localhost',
-                        port: 8000,
-                        ssl: false
+        '../src/config': () => {
+            // Use BASE_PATH environment variable if available, otherwise fallback to /tmp
+            const basePath = process.env.BASE_PATH || '/tmp/test-isolation';
+            return {
+                config: {
+                    paths: {
+                        database: ':memory:',
+                        logs: `${basePath}/logs`,
+                        tasks: `${basePath}/tasks`,
+                        outputs: `${basePath}/outputs`,
+                        incoming: `${basePath}/incoming`,
+                        processing: `${basePath}/processing`,
+                        archive: `${basePath}/archive`,
+                        error: `${basePath}/error`,
+                        dashboard: `${basePath}/dashboard`,
+                        media: `${basePath}/media`,
+                        chroma: {
+                            host: 'localhost',
+                            port: 8000,
+                            ssl: false
+                        }
                     }
                 }
-            }
-        })
+            };
+        }
     };
 
     // Combine standard mocks with additional ones

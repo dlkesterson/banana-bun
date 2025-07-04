@@ -919,8 +919,23 @@ class ReviewService implements IReviewService {
     }
 }
 
-// Export both the class and a singleton instance
+// Export both the class and a lazy singleton instance
 export { ReviewService };
-export const reviewService = new ReviewService();
+
+let _reviewService: ReviewService | null = null;
+
+export function getReviewService(): ReviewService {
+    if (!_reviewService) {
+        _reviewService = new ReviewService();
+    }
+    return _reviewService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const reviewService = new Proxy({} as ReviewService, {
+    get(target, prop) {
+        return getReviewService()[prop as keyof ReviewService];
+    }
+});
 
 
