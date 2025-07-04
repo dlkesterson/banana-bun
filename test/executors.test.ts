@@ -52,11 +52,15 @@ describe('Task Executors', () => {
     });
 
     beforeEach(async () => {
+        // Set BASE_PATH environment variable for shell executor
+        process.env.BASE_PATH = TEST_BASE_DIR;
         // Create test directory and subdirectories
         await fs.mkdir(OUTPUT_DIR, { recursive: true });
     });
 
     afterEach(async () => {
+        // Clean up environment variable
+        delete process.env.BASE_PATH;
         // Always clean up our test directory
         await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
     });
