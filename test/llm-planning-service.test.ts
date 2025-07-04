@@ -14,13 +14,15 @@ mock.module('../src/db', () => ({
     getDependencyHelper: mock(() => ({}))
 }));
 
+const mockLogger = {
+    info: mock(() => Promise.resolve()),
+    error: mock(() => Promise.resolve()),
+    warn: mock(() => Promise.resolve()),
+    debug: mock(() => Promise.resolve())
+};
+
 mock.module('../src/utils/logger', () => ({
-    logger: {
-        info: mock(() => Promise.resolve()),
-        error: mock(() => Promise.resolve()),
-        warn: mock(() => Promise.resolve()),
-        debug: mock(() => Promise.resolve())
-    }
+    logger: mockLogger
 }));
 
 // Mock fetch to prevent real HTTP requests

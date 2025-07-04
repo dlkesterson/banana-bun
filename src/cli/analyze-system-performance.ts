@@ -13,7 +13,7 @@
 
 import { parseArgs } from 'util';
 import { logger } from '../utils/logger';
-import { llmPlanningService } from '../services/llm-planning-service';
+import { getLlmPlanningService } from '../services/llm-planning-service';
 import { initDatabase } from '../db';
 
 interface CliArgs {
@@ -68,6 +68,7 @@ async function main() {
         console.log(`🔍 Min severity: ${values['min-severity'] || 'all'}`);
 
         const startTime = Date.now();
+        const llmPlanningService = getLlmPlanningService();
 
         // Analyze system logs
         console.log('\n🔍 Analyzing system logs for patterns...');

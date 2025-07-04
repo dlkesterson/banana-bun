@@ -13,7 +13,7 @@
 
 import { parseArgs } from 'util';
 import { logger } from '../utils/logger';
-import { llmPlanningService } from '../services/llm-planning-service';
+import { getLlmPlanningService } from '../services/llm-planning-service';
 import { initDatabase } from '../db';
 import type { LlmPlanningRequest } from '../types/llm-planning';
 
@@ -102,6 +102,7 @@ async function main() {
 
         // Generate the optimized plan
         const startTime = Date.now();
+        const llmPlanningService = getLlmPlanningService();
         const result = await llmPlanningService.generateOptimizedPlan(request);
         const duration = Date.now() - startTime;
 

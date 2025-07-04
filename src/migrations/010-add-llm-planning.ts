@@ -96,6 +96,21 @@ export async function migration010(db: Database): Promise<void> {
             )
         `);
 
+        // Ensure planner_results table exists before adding columns
+        db.run(`
+            CREATE TABLE IF NOT EXISTS planner_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id TEXT,
+                goal TEXT NOT NULL,
+                context TEXT,
+                tasks_json TEXT NOT NULL,
+                model_used TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                task_id INTEGER,
+                FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+            )
+        `);
+
         // Add new columns to existing planner_results table
         try {
             db.run(`ALTER TABLE planner_results ADD COLUMN optimization_score REAL DEFAULT 0.0`);

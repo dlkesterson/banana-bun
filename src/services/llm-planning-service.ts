@@ -720,5 +720,19 @@ Format your response as JSON with the following structure:
     }
 }
 
-// Export singleton instance
-export const llmPlanningService = new LlmPlanningService();
+// Export singleton instance with lazy initialization
+let _llmPlanningService: LlmPlanningService | null = null;
+
+export function getLlmPlanningService(): LlmPlanningService {
+    if (!_llmPlanningService) {
+        _llmPlanningService = new LlmPlanningService();
+    }
+    return _llmPlanningService;
+}
+
+// For backward compatibility
+export const llmPlanningService = {
+    get instance() {
+        return getLlmPlanningService();
+    }
+};

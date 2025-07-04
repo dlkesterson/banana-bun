@@ -23,7 +23,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { initDatabase } from '../db';
 import { logger } from '../utils/logger';
-import { llmPlanningService } from '../services/llm-planning-service';
+import { getLlmPlanningService } from '../services/llm-planning-service';
 import type { 
     LlmPlanningRequest, 
     LogAnalysisRequest,
@@ -196,6 +196,7 @@ class LlmPlanningMCPServer {
             include_similar_tasks: true
         };
 
+        const llmPlanningService = getLlmPlanningService();
         const result = await llmPlanningService.generateOptimizedPlan(request);
 
         return {
@@ -218,6 +219,7 @@ class LlmPlanningMCPServer {
 
     private async analyzeSystemLogs(args: any) {
         const timeRangeHours = args.time_range_hours || 24;
+        const llmPlanningService = getLlmPlanningService();
         const patterns = await llmPlanningService.analyzeSystemLogs(timeRangeHours);
 
         let recommendations = [];
@@ -242,6 +244,7 @@ class LlmPlanningMCPServer {
     }
 
     private async getOptimizationRecommendations(args: any) {
+        const llmPlanningService = getLlmPlanningService();
         const allRecommendations = await llmPlanningService.generateOptimizationRecommendations();
         
         // Filter recommendations based on criteria
@@ -284,6 +287,7 @@ class LlmPlanningMCPServer {
     }
 
     private async getPlanningMetrics(args: any) {
+        const llmPlanningService = getLlmPlanningService();
         const metrics = await llmPlanningService.getPlanningMetrics();
 
         return {
