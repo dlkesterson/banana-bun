@@ -1,10 +1,30 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
+
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+mock.module('../src/config', () => ({ config: standardMockConfig }));
+
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
+
+// 2. Import AFTER mocks are set up
 import { CronParser } from '../src/scheduler/cron-parser';
 import { TaskScheduler } from '../src/scheduler/task-scheduler';
 import { PeriodicTasksMigration } from '../src/migrations/003-add-periodic-tasks';
 
 describe('Periodic Tasks System', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     let db: Database;
     let scheduler: TaskScheduler;
     let migration: PeriodicTasksMigration;

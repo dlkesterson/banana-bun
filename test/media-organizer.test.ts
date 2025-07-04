@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { detectMediaType, extractTvSeriesInfo, extractMovieInfo } from '../src/utils/media_type_detector';
-import { normalizeFilename, sanitizeForFilesystem, formatTemplate } from '../src/utils/filename_normalizer';
-import { createOrganizationPlan, executeOrganizationPlan } from '../src/utils/media_organizer';
+import { standardMockConfig } from './utils/standard-mock-config';
 import type { MediaMetadata } from '../src/types/media';
 
-// Mock config
-const mockConfig = {
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+const mediaOrganizerConfig = {
+    ...standardMockConfig,
     media: {
+        ...standardMockConfig.media,
         collectionTv: '/test/Shows',
         collectionMovies: '/test/Movies',
         collectionYouTube: '/test/YouTube',
@@ -46,12 +47,10 @@ const mockConfig = {
     }
 };
 
-// Mock the config module
 mock.module('../src/config', () => ({
-    config: mockConfig
+    config: mediaOrganizerConfig
 }));
 
-// Mock logger
 mock.module('../src/utils/logger', () => ({
     logger: {
         info: mock(() => Promise.resolve()),
@@ -66,12 +65,20 @@ mock.module('../src/utils/hash', () => ({
     hashFile: mockHashFile
 }));
 
-beforeEach(() => {
-    mockHashFile.mockReset();
-    mockHashFile.mockResolvedValue('mock-hash-123');
-});
+// 2. Import AFTER mocks are set up
+import { detectMediaType, extractTvSeriesInfo, extractMovieInfo } from '../src/utils/media_type_detector';
+import { normalizeFilename, sanitizeForFilesystem, formatTemplate } from '../src/utils/filename_normalizer';
+import { createOrganizationPlan, executeOrganizationPlan } from '../src/utils/media_organizer';
 
 describe('Media Type Detector', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
+    beforeEach(() => {
+        mockHashFile.mockReset();
+        mockHashFile.mockResolvedValue('mock-hash-123');
+    });
     it('should detect TV shows from filename patterns', async () => {
         const result = await detectMediaType('The.Office.S01E01.Pilot.mkv');
         expect(result.type).toBe('tv');
