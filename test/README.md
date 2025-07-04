@@ -2,82 +2,138 @@
 
 This document outlines best practices for writing tests in this project to ensure proper isolation, consistency, and maintainability.
 
-## Critical Requirements for Test Isolation
+## Test Patterns Overview
 
-### 1. Always Include Proper Mock Cleanup
+We support **three standardized test patterns** depending on your needs:
 
-Every test file that uses `mock.module()` MUST include proper cleanup:
+1. **🏗️ Module Mocking Pattern** - For testing services with complex dependencies
+2. **🌍 Environment Variable Pattern** - For testing executors that need real config
+3. **🔧 Test Isolation Utility Pattern** - For comprehensive testing with database
+
+**⚠️ CRITICAL: Never mix patterns within the same test file!**
+
+## Pattern 1: Module Mocking Pattern
+
+**Best for:** Services, utilities, CLI tools that have many dependencies
 
 ```typescript
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 
-// ... your test setup ...
+// 1. Set up ALL mocks BEFORE any imports
+const mockConfig = {
+    paths: { outputs: '/tmp/test-outputs', database: ':memory:' },
+    ollama: { model: 'test-model', url: 'http://localhost:11434' }
+};
 
-afterAll(() => {
-    // Restore all mocks after all tests in this file complete
-    mock.restore();
+mock.module('../src/config', () => ({ config: mockConfig }));
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
+
+// 2. Import AFTER mocks are set up
+import { yourService } from '../src/your-service';
+
+describe('Your Service', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
+    it('should work', async () => {
+        // Your test logic
+    });
 });
 ```
 
-### 2. Complete Database Module Mocks
+## Pattern 2: Global Environment Pattern
 
-When mocking the `../src/db` module, ALWAYS provide ALL required exports:
+**Best for:** Executors, CLI tools that need real configuration and file system access
+
+**Key Principle:** Use consistent global environment, but handle module caching properly
 
 ```typescript
-// ❌ WRONG - Incomplete mock causes import/export errors
-mock.module('../src/db', () => ({
-    getDatabase: mockGetDatabase
-}));
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
-// ✅ CORRECT - Complete mock with all exports
-mock.module('../src/db', () => ({
-    getDatabase: mockGetDatabase,
-    initDatabase: mockInitDatabase,
-    getDependencyHelper: mockGetDependencyHelper
-}));
+// Create isolated test directory for this test file
+const TEST_BASE_DIR = join(tmpdir(), 'your-test-' + Date.now());
+const OUTPUT_DIR = join(TEST_BASE_DIR, 'outputs');
+
+let originalBasePath: string | undefined;
+
+describe('Your Executor', () => {
+    beforeEach(async () => {
+        // Store original and set test-specific BASE_PATH
+        originalBasePath = process.env.BASE_PATH;
+        process.env.BASE_PATH = TEST_BASE_DIR;
+
+        // Create test directories
+        await fs.mkdir(OUTPUT_DIR, { recursive: true });
+    });
+
+    afterEach(async () => {
+        // Clean up test directory
+        await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
+
+        // Restore original BASE_PATH
+        if (originalBasePath === undefined) {
+            delete process.env.BASE_PATH;
+        } else {
+            process.env.BASE_PATH = originalBasePath;
+        }
+    });
+
+    it('should execute task', async () => {
+        // Dynamic import with cache busting for fresh module state
+        const { executeYourTask } = await import('../src/executors/your-executor?t=' + Date.now());
+
+        const task = { id: 1, type: 'your_type', status: 'pending', result: null };
+        const result = await executeYourTask(task);
+
+        expect(result.success).toBe(true);
+        expect(result.outputPath).toBe(join(OUTPUT_DIR, 'expected-output.txt'));
+    });
+});
 ```
 
-### 3. Standard Mock Implementations
+**Why this works:**
+- Each test file gets its own isolated environment
+- Dynamic imports with cache busting ensure fresh config
+- Proper cleanup prevents test interference
+- Works both individually and in test suites
 
-Use consistent mock implementations across test files:
+## Pattern 3: Test Isolation Utility Pattern
 
-```typescript
-const mockGetDatabase = mock(() => db);
-const mockInitDatabase = mock(() => Promise.resolve());
-const mockGetDependencyHelper = mock(() => ({
-    addDependency: mock(() => {}),
-    removeDependency: mock(() => {}),
-    getDependencies: mock(() => []),
-    hasCyclicDependency: mock(() => false),
-    getExecutionOrder: mock(() => []),
-    markTaskCompleted: mock(() => {}),
-    getReadyTasks: mock(() => [])
-}));
-```
-
-## Using the Test Utilities (Recommended for New Tests)
-
-For new test files, use the provided test utilities for better consistency:
+**Best for:** Complex integration tests, database operations, service interactions
 
 ```typescript
-import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { createTestIsolation, type TestIsolationSetup } from './utils/test-isolation';
 
-describe('My New Feature', () => {
+describe('My Complex Feature', () => {
     let testSetup: TestIsolationSetup;
     let myService: any;
 
     beforeEach(async () => {
-        // Create isolated test setup with database and standard mocks
+        // 1. Create isolated test setup with database and standard mocks
         testSetup = createTestIsolation({
             // Add any additional mocks specific to your test
             '../src/my-service': () => ({ myService: mockMyService })
         });
 
-        // Access the database if needed
+        // 2. Access the database if needed
         const { db } = testSetup.dbSetup;
-        
-        // Import your module after mocks are set up
+
+        // 3. Set up test data
+        db.run("INSERT INTO tasks (id, type, status) VALUES (1, 'test', 'pending')");
+
+        // 4. Import your module after mocks are set up
         const mod = await import('../src/my-module');
         myService = mod.myService;
     });
@@ -99,77 +155,183 @@ describe('My New Feature', () => {
 });
 ```
 
-## Available Test Utilities
+## Pattern Selection Guide
 
-### Database Setup
-- `createTestDbSetup()` - Creates isolated in-memory database with standard tables
-- `createDbModuleMock(setup)` - Creates complete db module mock
+| Test Type | Pattern | When to Use |
+|-----------|---------|-------------|
+| **Services/Utils** | Module Mocking | Testing business logic, API calls, data processing |
+| **Executors** | Global Environment | Testing file operations, shell commands, real config |
+| **Integration** | Test Isolation | Testing database operations, complex workflows |
 
-### Common Mocks
-- `createLoggerMock()` - Standard logger mock
-- `createConfigMock(overrides)` - Standard config mock with customization
-- `createAnalyticsLoggerMock()` - Analytics logger mock
-- `createEmbeddingManagerMock()` - Embedding manager mock
-- `createFeedbackTrackerMock()` - Feedback tracker mock
+## Critical Rules for Test Isolation
 
-### Test Isolation
-- `createTestIsolation(additionalMocks)` - Complete test setup with cleanup
-
-## Common Patterns
-
-### Database Tests
+### ⚠️ Rule 1: Never Mix Patterns
 ```typescript
-beforeEach(async () => {
-    testSetup = createTestIsolation();
-    const { db } = testSetup.dbSetup;
-    
-    // Add test data
-    db.run("INSERT INTO tasks (id, type, status) VALUES (1, 'test', 'pending')");
+// ❌ WRONG - Mixing patterns and overriding global environment
+beforeEach(() => {
+    process.env.BASE_PATH = '/tmp/my-test';  // Overrides global setup
+    testSetup = createTestIsolation();       // Isolation pattern
+});
+
+// ✅ CORRECT - Use global environment consistently
+beforeEach(() => {
+    const outputDir = join(process.env.BASE_PATH!, 'outputs');
+    await fs.mkdir(outputDir, { recursive: true });
 });
 ```
 
-### Service Tests with External Dependencies
+### ⚠️ Rule 2: Import Order Matters
 ```typescript
-beforeEach(async () => {
-    testSetup = createTestIsolation({
-        '../src/external-service': () => ({ service: mockExternalService }),
-        '../src/another-dep': () => ({ dep: mockDependency })
+// ❌ WRONG - Import before mocks
+import { myService } from '../src/my-service';
+mock.module('../src/config', () => ({ config: mockConfig }));
+
+// ✅ CORRECT - Mocks before imports
+mock.module('../src/config', () => ({ config: mockConfig }));
+import { myService } from '../src/my-service';
+```
+
+### ⚠️ Rule 3: Always Clean Up
+```typescript
+// ❌ WRONG - No cleanup
+describe('My Test', () => {
+    mock.module('../src/config', () => ({ config: mockConfig }));
+    // ... tests
+});
+
+// ✅ CORRECT - Proper cleanup
+describe('My Test', () => {
+    mock.module('../src/config', () => ({ config: mockConfig }));
+
+    afterAll(() => {
+        mock.restore(); // REQUIRED
     });
 });
+```
+
+## Common Mock Implementations
+
+### Standard Config Mock
+```typescript
+const mockConfig = {
+    paths: {
+        database: ':memory:',
+        outputs: '/tmp/test-outputs',
+        logs: '/tmp/test-logs',
+        tasks: '/tmp/test-tasks',
+        incoming: '/tmp/test-incoming',
+        processing: '/tmp/test-processing',
+        archive: '/tmp/test-archive',
+        error: '/tmp/test-error',
+        dashboard: '/tmp/test-dashboard',
+        media: '/tmp/test-media',
+        chroma: { host: 'localhost', port: 8000, ssl: false }
+    },
+    ollama: { model: 'test-model', url: 'http://localhost:11434' },
+    meilisearch: { url: 'http://localhost:7700', masterKey: 'test-key' }
+};
+```
+
+### Complete Database Mock
+```typescript
+mock.module('../src/db', () => ({
+    getDatabase: mock(() => db),
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({
+        addDependency: mock(() => {}),
+        removeDependency: mock(() => {}),
+        getDependencies: mock(() => []),
+        hasCyclicDependency: mock(() => false),
+        getExecutionOrder: mock(() => []),
+        markTaskCompleted: mock(() => {}),
+        getReadyTasks: mock(() => [])
+    }))
+}));
 ```
 
 ## Troubleshooting
 
 ### "Export named 'X' not found" Errors
-This usually means a test file has an incomplete module mock. Check that:
-1. All required exports are provided in the mock
-2. The mock is set up before importing the module
-3. `afterAll(() => mock.restore())` is present
+**Cause:** Incomplete module mock
+**Fix:** Provide ALL exports in your mock:
+```typescript
+// ❌ Missing exports
+mock.module('../src/db', () => ({ getDatabase: mockDb }));
+
+// ✅ Complete exports
+mock.module('../src/db', () => ({
+    getDatabase: mockDb,
+    initDatabase: mockInit,
+    getDependencyHelper: mockHelper
+}));
+```
 
 ### Tests Pass Individually but Fail Together
-This indicates mock leakage between tests. Ensure:
-1. Each test file has `afterAll(() => mock.restore())`
-2. Database connections are properly closed in `afterEach`
-3. Module mocks are complete and consistent
+**Cause:** Mock leakage between test files
+**Fix:** Add proper cleanup:
+```typescript
+afterAll(() => {
+    mock.restore(); // REQUIRED in every test file using mocks
+});
+```
 
-### Database Connection Errors
-Make sure:
-1. Each test creates its own database instance
-2. Database is closed in `afterEach` or cleanup function
-3. Database tables are created before use
+### Configuration Undefined Errors
+**Cause:** Config imported before mocks set up
+**Fix:** Set up mocks before any imports:
+```typescript
+// ❌ Wrong order
+import { config } from '../src/config';
+mock.module('../src/config', () => ({ config: mockConfig }));
+
+// ✅ Correct order
+mock.module('../src/config', () => ({ config: mockConfig }));
+import { config } from '../src/config';
+```
 
 ## Migration Guide for Existing Tests
 
-If you need to update an existing test file:
+### Step 1: Identify Current Pattern
+- **Has `mock.module()`?** → Module Mocking Pattern
+- **Sets `process.env.BASE_PATH`?** → Environment Variable Pattern
+- **Uses `createTestIsolation()`?** → Test Isolation Pattern
 
-1. Add `afterAll` import: `import { ..., afterAll, ... } from 'bun:test'`
-2. Add cleanup: `afterAll(() => { mock.restore(); })`
-3. Ensure complete db mocks (if used)
-4. Consider using test utilities for consistency
+### Step 2: Standardize the Pattern
+```typescript
+// For Module Mocking Pattern:
+afterAll(() => { mock.restore(); });
 
-## Examples
+// For Environment Variable Pattern:
+beforeEach(() => { process.env.BASE_PATH = TEST_DIR; });
+afterEach(() => { /* restore env */ });
 
-See these files for good examples:
-- `test/analyze-cross-modal-cli.test.ts` - CLI testing with mocks
-- `test/database.test.ts` - Database testing with isolation
-- `test/additional-executors.test.ts` - Service testing with multiple mocks
+// For Test Isolation Pattern:
+beforeEach(() => { testSetup = createTestIsolation(); });
+afterEach(() => { testSetup.cleanup(); });
+```
+
+### Step 3: Fix Import Order
+Move all `mock.module()` calls before any imports from `../src/`
+
+## Examples by Pattern
+
+### Module Mocking Examples
+- `test/database.test.ts` - Database operations with mocks
+- `test/planner-service.test.ts` - Service testing with API mocks
+
+### Global Environment Examples
+- `test/shell-executor.test.ts` - Executor with file operations
+- `test/executors.test.ts` - Multiple executors with consistent environment
+
+### Test Isolation Examples
+- `test/additional-executors.test.ts` - Complex service interactions
+- `test/enhanced-task-processor.test.ts` - Integration testing
+
+## Quick Reference
+
+| Issue | Pattern | Solution |
+|-------|---------|----------|
+| Config undefined | Module Mocking | Mock config before imports |
+| File not found | Environment Variables | Set BASE_PATH + create dirs |
+| DB connection error | Test Isolation | Use createTestIsolation() |
+| Tests interfere | All | Add proper cleanup |
+| Import/export error | Module Mocking | Complete module mocks |

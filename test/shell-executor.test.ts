@@ -1,21 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { tmpdir } from 'os';
 import type { ShellTask } from '../src/types/task';
 
-const BASE_DIR = '/tmp/shell-executor-test';
-const OUTPUT_DIR = join(BASE_DIR, 'outputs');
+// Always create our own test directory to avoid conflicts between test files
+const TEST_BASE_DIR = join(tmpdir(), 'shell-executor-test-' + Date.now());
+const OUTPUT_DIR = join(TEST_BASE_DIR, 'outputs');
 
 let originalBasePath: string | undefined;
 
 beforeEach(async () => {
+  // Store original BASE_PATH and set our own
   originalBasePath = process.env.BASE_PATH;
-  process.env.BASE_PATH = BASE_DIR;
+  process.env.BASE_PATH = TEST_BASE_DIR;
+
+  // Create test directory and subdirectories
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
 });
 
 afterEach(async () => {
-  await fs.rm(BASE_DIR, { recursive: true, force: true });
+  // Always clean up our test directory
+  await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
+
+  // Restore original BASE_PATH
   if (originalBasePath === undefined) {
     delete process.env.BASE_PATH;
   } else {
