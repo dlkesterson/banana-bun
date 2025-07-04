@@ -1,20 +1,27 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
 
-const mockLogger = {
-    info: mock(() => Promise.resolve()),
-    error: mock(() => Promise.resolve()),
-    warn: mock(() => Promise.resolve()),
-    debug: mock(() => Promise.resolve())
-};
-
-const mockConfig = {
-    ollama: { url: 'http://localhost:11434', model: 'test' },
-    openai: { apiKey: '' }
-};
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+mock.module('../src/config', () => ({ config: standardMockConfig }));
 
 let db: Database = new Database(':memory:');
-const mockGetDatabase = mock(() => db);
+
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
+
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
 
 // Mock fetch to prevent real HTTP requests
 const mockFetch = mock(() => Promise.resolve({
@@ -29,19 +36,30 @@ const mockFetch = mock(() => Promise.resolve({
 }));
 global.fetch = mockFetch as any;
 
-mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
-mock.module('../src/config', () => ({ config: mockConfig }));
-mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
-mock.module('../db', () => ({ getDatabase: mockGetDatabase }));
-mock.module('../src/memory/embeddings', () => ({ embeddingManager: {} }));
+// Mock embeddings manager
+mock.module('../src/memory/embeddings', () => ({
+    embeddingManager: {
+        addTaskEmbedding: mock(() => Promise.resolve()),
+        findSimilarTasks: mock(() => Promise.resolve([]))
+    }
+}));
 
+// 2. Import AFTER mocks are set up
+import { LlmPlanningService } from '../src/services/llm-planning-service';
 import type { LlmPlanningRequest, GeneratedPlan, LogAnalysisPattern, PlanTemplate, SystemMetric } from '../src/types/llm-planning';
 
 describe('LlmPlanningService Core Functions', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     let service: LlmPlanningService;
 
     beforeEach(async () => {
-        db.close();
+        // Create a real in-memory database for testing
+        if (db && !db.closed) {
+            db.close();
+        }
         db = new Database(':memory:');
 
         // Create required tables for LlmPlanningService
@@ -127,9 +145,7 @@ describe('LlmPlanningService Core Functions', () => {
             )
         `);
 
-        const mod = await import('../src/services/llm-planning-service');
-        service = new mod.LlmPlanningService();
-        Object.values(mockLogger).forEach(fn => 'mockClear' in fn && fn.mockClear());
+        service = new LlmPlanningService();
     });
 
     afterEach(() => {

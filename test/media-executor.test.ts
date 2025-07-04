@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { standardMockConfig } from './utils/standard-mock-config';
 import type { MediaIngestTask } from '../src/types/task';
+
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+mock.module('../src/config', () => ({ config: standardMockConfig }));
 
 // Mock spawn function BEFORE importing the media executor
 const mockSpawn = mock((options: any) => {
@@ -44,7 +49,24 @@ mock.module('bun', () => ({
     spawn: mockSpawn
 }));
 
-// Now import the media executor after mocking
+let db: Database;
+
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
+
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
+
+// 2. Import AFTER mocks are set up
 import { executeMediaIngestTask } from '../src/executors/media';
 
 // Test configuration
@@ -120,7 +142,10 @@ mock.module('../src/utils/hash', () => ({
 }));
 
 describe('Media Executor', () => {
-    let db: Database;
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     let testTask: MediaIngestTask;
     let testFilePath: string;
 
