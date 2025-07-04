@@ -22,6 +22,10 @@ describe('Task Executors', () => {
         originalBasePath = process.env.BASE_PATH;
         process.env.BASE_PATH = TEST_BASE_DIR;
 
+        // Set up Ollama configuration for LLM tests
+        process.env.OLLAMA_MODEL = 'test-model';
+        process.env.OLLAMA_URL = 'http://localhost:11434';
+
         // Create test directory and subdirectories
         await fs.mkdir(OUTPUT_DIR, { recursive: true });
 
