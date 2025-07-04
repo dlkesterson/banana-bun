@@ -1,47 +1,57 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { standardMockConfig } from './utils/standard-mock-config';
 import type { ShellTask } from '../src/types/task';
 
 // Always create our own test directory to avoid conflicts between test files
 const TEST_BASE_DIR = join(tmpdir(), 'shell-executor-test-' + Date.now());
 const OUTPUT_DIR = join(TEST_BASE_DIR, 'outputs');
 
-let originalBasePath: string | undefined;
+// Create custom config for this test that uses our test directory
+const shellExecutorTestConfig = {
+    ...standardMockConfig,
+    paths: {
+        ...standardMockConfig.paths,
+        outputs: OUTPUT_DIR,
+        logs: join(TEST_BASE_DIR, 'logs'),
+        tasks: join(TEST_BASE_DIR, 'tasks')
+    }
+};
 
-beforeEach(async () => {
-  // Store original BASE_PATH and set our own
-  originalBasePath = process.env.BASE_PATH;
-  process.env.BASE_PATH = TEST_BASE_DIR;
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use custom config to prevent module interference
+mock.module('../src/config', () => ({ config: shellExecutorTestConfig }));
 
-  // Create test directory and subdirectories
-  await fs.mkdir(OUTPUT_DIR, { recursive: true });
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
 
-  // Clear any cached config modules to ensure fresh reactive config
-  // This is needed because other tests using module mocking can interfere
-  try {
-    delete require.cache[require.resolve('../src/config')];
-  } catch (e) {
-    // Ignore if require.cache doesn't work in Bun
-  }
-});
-
-afterEach(async () => {
-  // Always clean up our test directory
-  await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
-
-  // Restore original BASE_PATH
-  if (originalBasePath === undefined) {
-    delete process.env.BASE_PATH;
-  } else {
-    process.env.BASE_PATH = originalBasePath;
-  }
-});
+// 2. Import AFTER mocks are set up
+import { executeShellTask } from '../src/executors/shell';
 
 describe('executeShellTask', () => {
-  it('executes command successfully and writes output file', async () => {
-    const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
+    beforeEach(async () => {
+        // Create test directory and subdirectories
+        await fs.mkdir(OUTPUT_DIR, { recursive: true });
+    });
+
+    afterEach(async () => {
+        // Always clean up our test directory
+        await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
+    });
+
+    it('executes command successfully and writes output file', async () => {
 
     const task: ShellTask = {
       id: 1,
@@ -61,8 +71,7 @@ describe('executeShellTask', () => {
     expect(content).toContain('# Exit Code');
   });
 
-  it('returns failure when command exits non-zero', async () => {
-    const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
+    it('returns failure when command exits non-zero', async () => {
 
     const task: ShellTask = {
       id: 2,
@@ -79,8 +88,7 @@ describe('executeShellTask', () => {
     expect(result.error).toBeDefined();
   });
 
-  it('handles missing shell_command', async () => {
-    const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
+    it('handles missing shell_command', async () => {
 
     const task: ShellTask = {
       id: 3,

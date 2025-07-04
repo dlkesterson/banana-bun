@@ -1,14 +1,37 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { standardMockConfig } from './utils/standard-mock-config';
 import type { ShellTask, LlmTask, CodeTask, ToolTask, BaseTask } from '../src/types';
 
 // Always create our own test directory to avoid conflicts between test files
 const TEST_BASE_DIR = join(tmpdir(), 'executors-test-' + Date.now());
 const OUTPUT_DIR = join(TEST_BASE_DIR, 'outputs');
 
-let originalBasePath: string | undefined;
+// Create custom config for this test that uses our test directory
+const executorsTestConfig = {
+    ...standardMockConfig,
+    paths: {
+        ...standardMockConfig.paths,
+        outputs: OUTPUT_DIR,
+        logs: join(TEST_BASE_DIR, 'logs'),
+        tasks: join(TEST_BASE_DIR, 'tasks')
+    }
+};
+
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use custom config to prevent module interference
+mock.module('../src/config', () => ({ config: executorsTestConfig }));
+
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
 
 // Mock external dependencies for testing
 global.fetch = (() => Promise.resolve({
@@ -16,54 +39,32 @@ global.fetch = (() => Promise.resolve({
     json: () => Promise.resolve({ response: 'Mocked LLM response' })
 })) as any;
 
+// 2. Import AFTER mocks are set up
+import { executeShellTask } from '../src/executors/shell';
+import { executeLlmTask } from '../src/executors/llm';
+import { executeCodeTask } from '../src/executors/code';
+import { executeToolTask } from '../src/executors/tool';
+import { executeTask } from '../src/dispatcher';
+
 describe('Task Executors', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     beforeEach(async () => {
-        // Store original BASE_PATH and set our own
-        originalBasePath = process.env.BASE_PATH;
-        process.env.BASE_PATH = TEST_BASE_DIR;
-
-        // Set up Ollama configuration for LLM tests
-        process.env.OLLAMA_MODEL = 'test-model';
-        process.env.OLLAMA_URL = 'http://localhost:11434';
-
         // Create test directory and subdirectories
         await fs.mkdir(OUTPUT_DIR, { recursive: true });
-
-        // Clear any cached config modules to ensure fresh reactive config
-        // This is needed because other tests using module mocking can interfere
-        try {
-            delete require.cache[require.resolve('../src/config')];
-        } catch (e) {
-            // Ignore if require.cache doesn't work in Bun
-        }
     });
 
     afterEach(async () => {
         // Always clean up our test directory
         await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
-
-        // Restore original BASE_PATH
-        if (originalBasePath === undefined) {
-            delete process.env.BASE_PATH;
-        } else {
-            process.env.BASE_PATH = originalBasePath;
-        }
     });
 
 
 
     describe('Shell Executor', () => {
         it('should execute simple shell command successfully', async () => {
-            // Clear any cached modules to ensure fresh imports
-            try {
-                delete require.cache[require.resolve('../src/config')];
-                delete require.cache[require.resolve('../src/executors/shell')];
-                delete require.cache[require.resolve('../src/utils/cross-platform-paths')];
-            } catch (e) {
-                // Ignore if require.cache doesn't work in Bun
-            }
-
-            const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
 
             const task: ShellTask = {
                 id: 1,

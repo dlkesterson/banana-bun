@@ -4,19 +4,20 @@ This document outlines best practices for writing tests in this project to ensur
 
 ## 📊 Current Test Status (Latest Update)
 
-**Test Suite Health:** 88.4% pass rate (612 pass, 80 fail)
+**Test Suite Health:** 91.9% pass rate (626 pass, 55 fail)
 
 ### ✅ Recent Improvements (December 2024)
-- **Fixed 51 failing tests** by standardizing test patterns
+- **Fixed 76 failing tests** by standardizing test patterns
 - **Resolved initDatabase export issues** by converting to Module Mocking Pattern
 - **Fixed database connection issues** in executor tests
 - **Improved mock cleanup** using standardMockConfig
+- **Fixed LlmPlanningService export** to resolve constructor tests
+- **Converted additional MCP server tests** to Module Mocking Pattern
 
-### 🔧 Remaining Issues (80 failing tests)
-1. **MCP Server Tests (24 tests)** - Need Module Mocking Pattern conversion
-2. **Service Implementation Issues (20 tests)** - Missing constructors/methods
-3. **Scheduler Tests (12 tests)** - Missing scheduler implementation
-4. **Integration Tests (24 tests)** - Complex service dependencies
+### 🔧 Remaining Issues (55 failing tests)
+1. **Test Interference Issues (30 tests)** - Tests pass individually but fail in full suite
+2. **Service Implementation Issues (15 tests)** - Missing methods/constructors
+3. **Complex Integration Tests (10 tests)** - Multiple service dependencies
 
 ## Test Patterns Overview
 
