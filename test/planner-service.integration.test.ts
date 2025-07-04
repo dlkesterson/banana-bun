@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -343,4 +343,8 @@ describe('Planner Service', () => {
             expect(result.plan.goal).toBe('Test goal');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

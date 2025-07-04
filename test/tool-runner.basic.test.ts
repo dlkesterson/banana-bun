@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 
@@ -53,4 +53,8 @@ describe('ToolRunner Basic Tools', () => {
   it('throws for unknown tool', async () => {
     await expect(toolRunner.executeTool('unknown' as any, {})).rejects.toThrow('Unknown tool');
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });

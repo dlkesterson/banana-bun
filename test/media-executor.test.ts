@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 import { join } from 'path';
@@ -293,4 +293,8 @@ describe('Media Executor', () => {
             expect(taskWithOptionals.tool_preference).toBe('mediainfo');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

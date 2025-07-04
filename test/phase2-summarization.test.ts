@@ -298,3 +298,7 @@ describe('Phase 2 Summarization Feature', () => {
         });
     });
 });
+
+afterAll(() => {
+  mock.restore();
+});

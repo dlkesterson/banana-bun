@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 
 // Mock MCP client
 const mockMcpClient = {
@@ -458,4 +458,8 @@ describe('MCP Manager', () => {
             await mcpManager.shutdown();
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

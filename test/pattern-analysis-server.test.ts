@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock logger
@@ -496,4 +496,8 @@ describe('Pattern Analysis Server', () => {
             expect(limitedResults.length).toBeLessThanOrEqual(10);
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

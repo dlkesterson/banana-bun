@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 const mockLogger = {
@@ -91,4 +91,8 @@ describe('ReviewService Database Functions', () => {
     expect(reviewService.getScoreBadge(55)).toContain('Fair');
     expect(reviewService.getScoreBadge(30)).toContain('Poor');
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });

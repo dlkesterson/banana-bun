@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 import { join } from 'path';
@@ -148,4 +148,8 @@ it('handles whisper not being available', async () => {
     expect(result.error).toContain('Executable not found');
 });
 
+});
+
+afterAll(() => {
+  mock.restore();
 });

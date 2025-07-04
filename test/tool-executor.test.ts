@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import type { ToolTask } from '../src/types';
 
 // Create a unique mock for this test file to avoid conflicts
@@ -81,4 +81,8 @@ describe('executeToolTask', () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain('failure');
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });

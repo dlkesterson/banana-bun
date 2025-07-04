@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -187,5 +187,9 @@ describe('Helper functions', () => {
     expect(cli.formatDuration(3700)).toBe('1h 1m');
     expect(cli.formatDuration(300)).toBe('5m');
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import type { MediaTagTask } from '../src/types/task';
 import type { MediaMetadata } from '../src/types/media';
@@ -156,4 +156,8 @@ describe('executeMediaTagTask', () => {
         expect(result.success).toBe(true);
         expect(mockToolRunner.executeTool).not.toHaveBeenCalled();
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

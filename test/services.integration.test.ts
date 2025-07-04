@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -196,4 +196,8 @@ describe('Service Integration', () => {
         expect(result.success).toBe(false);
         expect(result.error).toContain('Database error');
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

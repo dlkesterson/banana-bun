@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { detectMediaType, extractTvSeriesInfo, extractMovieInfo } from '../src/utils/media_type_detector';
@@ -351,4 +351,8 @@ describe('Organization Plan Execution', () => {
         expect(existsNew).toBe(true);
         expect(existsSource).toBe(false);
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

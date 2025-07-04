@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import {
     TestDatabaseSetup,
@@ -564,4 +564,8 @@ describe('User Behavior Server', () => {
             expect(hourlyStats.length).toBeLessThanOrEqual(24);
         });
     });
+});
+
+afterAll(() => {
+    mock.restore();
 });

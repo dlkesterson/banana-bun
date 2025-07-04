@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock logger
@@ -378,4 +378,8 @@ describe('Metadata Optimization Server', () => {
             expect(batch.length).toBeLessThanOrEqual(batchSize);
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

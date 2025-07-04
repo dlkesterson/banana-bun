@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import {
     createProcessMock,
     CommonTestSetup,
@@ -334,4 +334,8 @@ describe('MCP Client', () => {
             mcpClient['sendRequest'] = originalSendRequest;
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

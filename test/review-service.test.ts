@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -351,4 +351,8 @@ echo "Backup completed successfully"
             expect(result.failed_criteria).toContain('Output file exists');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

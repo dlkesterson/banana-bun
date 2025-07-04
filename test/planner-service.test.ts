@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock config
@@ -274,4 +274,8 @@ describe('PlannerService', () => {
             expect(result.error).toContain('timeout');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

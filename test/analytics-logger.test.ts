@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 let db: Database;
@@ -171,4 +171,8 @@ describe('AnalyticsLogger edge cases', () => {
     const rec = res.find((r: any) => r.task_type === 'llm');
     expect(rec!.recommendation).toContain('High frequency');
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });

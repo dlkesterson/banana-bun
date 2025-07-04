@@ -142,3 +142,7 @@ describe('executeMediaSummarizeTask', () => {
     expect(mockMeiliService.indexDocument).toHaveBeenCalledWith('media_summaries', expect.any(Object));
   });
 });
+
+afterAll(() => {
+  mock.restore();
+});

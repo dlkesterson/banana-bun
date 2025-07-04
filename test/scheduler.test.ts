@@ -362,3 +362,7 @@ describe('Scheduler System', () => {
         });
     });
 });
+
+afterAll(() => {
+    mock.restore();
+});

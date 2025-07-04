@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock logger
@@ -490,4 +490,8 @@ describe('New MCP Servers Integration', () => {
             expect(systemMetrics.user_engagement.total_sessions.count).toBeGreaterThan(0);
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

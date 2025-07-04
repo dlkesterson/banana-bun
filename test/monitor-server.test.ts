@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock WebSocket server
@@ -535,4 +535,8 @@ describe('Monitor Server', () => {
             );
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

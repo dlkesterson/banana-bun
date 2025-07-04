@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 
 // Mock config
@@ -309,4 +309,8 @@ describe('ToolRunner', () => {
             );
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

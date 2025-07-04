@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -76,4 +76,8 @@ describe('PlannerService Database Functions', () => {
     expect(recent).toHaveLength(3);
     expect(recent[0].goal_description).toBe('goal4');
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });

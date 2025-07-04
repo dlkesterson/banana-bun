@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import type { RetryContext } from '../src/types/retry';
 
@@ -312,4 +312,8 @@ describe('Retry System', () => {
             expect(taskTypes).toContain('batch');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

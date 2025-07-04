@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock logger
@@ -559,4 +559,8 @@ describe('Resource Optimization Server', () => {
             expect(hourlyLoad.length).toBeLessThanOrEqual(24);
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

@@ -489,12 +489,12 @@ describe('Additional Executors', () => {
 
             const result = await executeYoutubeTask(youtubeTask);
 
-            // Note: This would typically use yt-dlp or similar tool
             // In test environment, yt-dlp is not available, so we expect failure
             // but we still check the result structure
             expect(result).toHaveProperty('success');
-            // The result should have either outputPath (success) or error (failure)
-            expect(result.success === true ? result.outputPath : result.error).toBeDefined();
+            expect(result.success).toBe(false);
+            expect(result.error).toBeDefined();
+            expect(result.error).toContain('Failed to fetch YouTube metadata');
         });
 
         it('should handle invalid YouTube URL', async () => {

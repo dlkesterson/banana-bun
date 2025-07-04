@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import type { MediaRecommendTask } from '../src/types/task';
 
@@ -112,4 +112,8 @@ describe('recommend executor', () => {
     await recordUserInteraction('userA', 5, 'play');
     expect(mockRecommenderService.recordUserInteraction).toHaveBeenCalledWith('userA', 5, 'play', undefined);
   });
+});
+
+afterAll(() => {
+  mock.restore();
 });

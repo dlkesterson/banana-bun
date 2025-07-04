@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { promises as fs } from 'fs';
 
 // Mock logger
@@ -375,4 +375,8 @@ describe('Search Logs', () => {
             expect(stats.average_response_time).toBeDefined();
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });
