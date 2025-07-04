@@ -3,17 +3,11 @@ import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 import { generateDashboard } from '../src/dashboard';
 import type { DatabaseTask } from '../src/types';
+import { standardMockConfig } from './utils/standard-mock-config';
 
-// Mock the config module
-const mockConfig = {
-    paths: {
-        dashboard: '/tmp/test-dashboard'
-    }
-};
-
-// Mock the config import
+// Mock the config import with standard complete config
 mock.module('../src/config', () => ({
-    config: mockConfig
+    config: standardMockConfig
 }));
 
 // Mock logger
@@ -223,14 +217,14 @@ describe('Dashboard Generation', () => {
 
             // Create a scenario where the dashboard directory doesn't exist and can't be created
             const invalidDashboardDir = '/invalid/nonexistent/path/that/cannot/be/created';
-            const originalDashboardPath = mockConfig.paths.dashboard;
-            mockConfig.paths.dashboard = invalidDashboardDir;
+            const originalDashboardPath = standardMockConfig.paths.dashboard;
+            standardMockConfig.paths.dashboard = invalidDashboardDir;
 
             try {
                 await expect(generateDashboard()).rejects.toThrow();
             } finally {
                 // Restore original dashboard path
-                mockConfig.paths.dashboard = originalDashboardPath;
+                standardMockConfig.paths.dashboard = originalDashboardPath;
             }
         });
     });

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
+import { standardMockConfig } from './utils/standard-mock-config';
 
 // Mock ChromaDB client
 const mockCollection = {
@@ -69,19 +70,9 @@ mock.module('../src/utils/logger', () => ({
     logger: mockLogger
 }));
 
-// Mock config
-const mockConfig = {
-    paths: {
-        chroma: {
-            host: 'localhost',
-            port: 8000,
-            ssl: false
-        }
-    }
-};
-
+// Mock config with standard complete config
 mock.module('../src/config', () => ({
-    config: mockConfig
+    config: standardMockConfig
 }));
 
 // Mock embedding manager

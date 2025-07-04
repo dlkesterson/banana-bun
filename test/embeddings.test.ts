@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import type { TaskEmbedding } from '../src/types';
+import { standardMockConfig } from './utils/standard-mock-config';
 
 describe('Embeddings Manager', () => {
     let embeddingManager: any;
@@ -42,15 +43,7 @@ describe('Embeddings Manager', () => {
             debug: mock(() => Promise.resolve())
         };
 
-        mockConfig = {
-            paths: {
-                chroma: {
-                    host: 'localhost',
-                    port: 8000,
-                    ssl: false
-                }
-            }
-        };
+        mockConfig = standardMockConfig;
 
         mockToolRunner = {
             executeTool: mock(() => Promise.resolve({

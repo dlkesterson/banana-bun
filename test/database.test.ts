@@ -1,18 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import type { DatabaseTask } from '../src/types';
+import { standardMockConfig } from './utils/standard-mock-config';
 
-// Mock config for testing
-const mockConfig = {
-    paths: {
-        database: ':memory:',
-        logs: '/tmp/test-logs'
-    }
-};
-
-// Mock the config module
+// Mock the config module with standard complete config
 mock.module('../src/config', () => ({
-    config: mockConfig
+    config: standardMockConfig
 }));
 
 // Mock the logger to avoid file system operations

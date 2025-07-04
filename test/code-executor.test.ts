@@ -1,53 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { promises as fs } from 'fs';
 import type { CodeTask } from '../src/types/task';
+import { standardMockConfig } from './utils/standard-mock-config';
 
-const mockConfig = {
-    paths: {
-        incoming: '/tmp/test-incoming',
-        processing: '/tmp/test-processing',
-        archive: '/tmp/test-archive',
-        error: '/tmp/test-error',
-        tasks: '/tmp/test-tasks',
-        outputs: '/tmp/code-executor-tests',
-        logs: '/tmp/test-logs',
-        dashboard: '/tmp/test-dashboard',
-        database: ':memory:',
-        media: '/tmp/test-media',
-        chroma: {
-            host: 'localhost',
-            port: 8000,
-            ssl: false
-        }
-    },
-    openai: {
-        apiKey: 'test-api-key',
-        model: 'gpt-4'
-    },
-    ollama: {
-        url: 'http://localhost:11434',
-        model: 'mock-model',
-        fastModel: 'mock-model'
-    }
-};
 const mockLogger = {
     info: mock(() => Promise.resolve()),
     error: mock(() => Promise.resolve())
 };
 
-mock.module('../src/config', () => ({ config: mockConfig }));
+mock.module('../src/config', () => ({ config: standardMockConfig }));
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 
 let executeCodeTask: typeof import('../src/executors/code').executeCodeTask;
 
 beforeEach(async () => {
-    await fs.mkdir(mockConfig.paths.outputs, { recursive: true });
+    await fs.mkdir(standardMockConfig.paths.outputs, { recursive: true });
     const mod = await import('../src/executors/code');
     executeCodeTask = mod.executeCodeTask;
 });
 
 afterEach(async () => {
-    await fs.rm(mockConfig.paths.outputs, { recursive: true, force: true });
+    await fs.rm(standardMockConfig.paths.outputs, { recursive: true, force: true });
     mockLogger.info.mockClear();
     mockLogger.error.mockClear();
     (global.fetch as any).mockReset?.();

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
 
 let db: Database;
 let originalGetDatabase: any;
@@ -11,46 +12,7 @@ mock.module('../src/db', () => ({
     getDependencyHelper: mock(() => ({}))
 }));
 mock.module('../src/config', () => ({
-    config: {
-        paths: {
-            incoming: '/tmp/test-incoming',
-            processing: '/tmp/test-processing',
-            archive: '/tmp/test-archive',
-            error: '/tmp/test-error',
-            tasks: '/tmp/test-tasks',
-            outputs: '/tmp/test-outputs',
-            logs: '/tmp/test-logs',
-            dashboard: '/tmp/test-dashboard',
-            database: ':memory:',
-            media: '/tmp/test-media',
-            chroma: {
-                host: 'localhost',
-                port: 8000,
-                ssl: false
-            }
-        },
-        openai: {
-            apiKey: 'test-api-key',
-            model: 'gpt-4'
-        },
-        ollama: {
-            url: 'http://localhost:11434',
-            model: 'qwen3:8b',
-            fastModel: 'qwen3:8b'
-        },
-        chromadb: {
-            url: 'http://localhost:8000',
-            tenant: 'default_tenant'
-        },
-        meilisearch: {
-            url: 'http://localhost:7700',
-            masterKey: 'test-master-key',
-            indexName: 'test-media-index'
-        },
-        services: {
-            chromadb: { url: 'http://localhost:1234' }
-        }
-    }
+    config: standardMockConfig
 }));
 
 import { CrossModalIntelligenceService } from '../src/services/cross-modal-intelligence-service';
@@ -121,7 +83,8 @@ describe('Cross-Modal Intelligence Service', () => {
             }
         }
 
-        // Note: Not calling mock.restore() to avoid interfering with other tests' mocks
+        // REQUIRED: Restore all mocks to prevent interference with other tests
+        mock.restore();
     });
 
     test('should analyze search-transcript-tag correlations', async () => {

@@ -24,6 +24,14 @@ describe('Task Executors', () => {
 
         // Create test directory and subdirectories
         await fs.mkdir(OUTPUT_DIR, { recursive: true });
+
+        // Clear any cached config modules to ensure fresh reactive config
+        // This is needed because other tests using module mocking can interfere
+        try {
+            delete require.cache[require.resolve('../src/config')];
+        } catch (e) {
+            // Ignore if require.cache doesn't work in Bun
+        }
     });
 
     afterEach(async () => {
@@ -42,6 +50,15 @@ describe('Task Executors', () => {
 
     describe('Shell Executor', () => {
         it('should execute simple shell command successfully', async () => {
+            // Clear any cached modules to ensure fresh imports
+            try {
+                delete require.cache[require.resolve('../src/config')];
+                delete require.cache[require.resolve('../src/executors/shell')];
+                delete require.cache[require.resolve('../src/utils/cross-platform-paths')];
+            } catch (e) {
+                // Ignore if require.cache doesn't work in Bun
+            }
+
             const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
 
             const task: ShellTask = {
@@ -59,8 +76,9 @@ describe('Task Executors', () => {
             expect(result.outputPath).toBeDefined();
             expect(result.error).toBeUndefined();
 
-            // Verify output file was created
+            // Verify output file was created in the correct test directory
             if (result.outputPath) {
+                expect(result.outputPath).toContain(TEST_BASE_DIR);
                 const content = await fs.readFile(result.outputPath, 'utf-8');
                 expect(content).toContain('Hello World');
                 expect(content).toContain('# Command');
@@ -107,6 +125,15 @@ describe('Task Executors', () => {
         });
 
         it('should handle complex shell commands', async () => {
+            // Clear any cached modules to ensure fresh imports
+            try {
+                delete require.cache[require.resolve('../src/config')];
+                delete require.cache[require.resolve('../src/executors/shell')];
+                delete require.cache[require.resolve('../src/utils/cross-platform-paths')];
+            } catch (e) {
+                // Ignore if require.cache doesn't work in Bun
+            }
+
             const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
 
             const task: ShellTask = {
@@ -124,6 +151,7 @@ describe('Task Executors', () => {
             expect(result.outputPath).toBeDefined();
 
             if (result.outputPath) {
+                expect(result.outputPath).toContain(TEST_BASE_DIR);
                 const content = await fs.readFile(result.outputPath, 'utf-8');
                 expect(content).toContain('Line 1');
                 expect(content).toContain('Line 2');
@@ -133,6 +161,15 @@ describe('Task Executors', () => {
 
     describe('LLM Executor', () => {
         it('should execute LLM task successfully', async () => {
+            // Clear any cached modules to ensure fresh imports
+            try {
+                delete require.cache[require.resolve('../src/config')];
+                delete require.cache[require.resolve('../src/executors/llm')];
+                delete require.cache[require.resolve('../src/utils/cross-platform-paths')];
+            } catch (e) {
+                // Ignore if require.cache doesn't work in Bun
+            }
+
             const { executeLlmTask } = await import('../src/executors/llm?t=' + Date.now());
 
             const task: LlmTask = {

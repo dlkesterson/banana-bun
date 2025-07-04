@@ -17,6 +17,14 @@ beforeEach(async () => {
 
   // Create test directory and subdirectories
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
+
+  // Clear any cached config modules to ensure fresh reactive config
+  // This is needed because other tests using module mocking can interfere
+  try {
+    delete require.cache[require.resolve('../src/config')];
+  } catch (e) {
+    // Ignore if require.cache doesn't work in Bun
+  }
 });
 
 afterEach(async () => {

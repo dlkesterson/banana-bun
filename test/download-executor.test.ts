@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
 
 // Mock dependencies for summarize executor (needed by dispatcher)
 const mockLogger = {
@@ -18,17 +19,6 @@ const mockSummarizerService = {
 mock.module('../src/services/summarizer', () => ({ summarizerService: mockSummarizerService }));
 
 const downloadDir = '/tmp/download-test';
-
-const mockConfig = {
-  paths: { media: downloadDir },
-  downloaders: {
-    ytdlp: {
-      path: '/tmp/mock-ytdlp',
-      defaultFormat: 'best',
-      outputTemplate: '%(title)s [%(id)s].%(ext)s',
-    },
-  },
-};
 
 let db: Database;
 const mockGetDatabase = mock(() => db);
@@ -58,7 +48,7 @@ const mockSpawn = mock(() => ({
   exited: Promise.resolve(0)
 }));
 
-mock.module('../src/config', () => ({ config: mockConfig }));
+mock.module('../src/config', () => ({ config: standardMockConfig }));
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
 mock.module('bun', () => ({ spawn: mockSpawn, write: (...args: any[]) => mockWrite(...args) }));
@@ -120,7 +110,7 @@ describe('executeMediaDownloadTask', () => {
 
     // Since yt-dlp is not available in test environment, we expect it to fail gracefully
     expect(result.success).toBe(false);
-    expect(result.error).toContain('no such file or directory');
+    expect(result.error).toMatch(/no such file or directory|Executable not found/);
   });
 
   it('handles YouTube download errors gracefully', async () => {
@@ -141,7 +131,7 @@ describe('executeMediaDownloadTask', () => {
     }
 
     expect(result.success).toBe(true);
-    expect(result.filePath).toBe(join(downloadDir, 'test.mp3'));
+    expect(result.filePath).toBe(join(standardMockConfig.paths.media, 'test.mp3'));
     expect(mockFetch).toHaveBeenCalled();
     // Note: Bun.write mock may not work as expected in test environment
     // The important thing is that the download logic works

@@ -1,38 +1,29 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 import { Database } from 'bun:sqlite';
 import type { MediaSummarizeTask } from '../src/types/task';
 
-let executeMediaSummarizeTask: typeof import('../src/executors/summarize').executeMediaSummarizeTask;
-let createMediaSummarizeTask: typeof import('../src/executors/summarize').createMediaSummarizeTask;
+// Create isolated test directory for this test file
+const TEST_BASE_DIR = join(tmpdir(), 'summarize-executor-test-' + Date.now());
 
-const mockLogger = {
-  info: mock(() => Promise.resolve()),
-  error: mock(() => Promise.resolve()),
-  warn: mock(() => Promise.resolve()),
-  debug: mock(() => Promise.resolve())
-};
-
-const mockSummarizerService = {
-  isInitialized: mock(() => true),
-  generateSummaryForMedia: mock(async () => ({
-    success: true,
-    summary: 'mock summary',
-    transcript_id: 1,
-    model_used: 'gpt-4',
-    tokens_used: 5,
-    processing_time_ms: 10
-  }))
-};
-
-const mockMeiliService = {
-  indexDocument: mock(async () => {})
-};
-
+let originalBasePath: string | undefined;
 let db: Database;
 
 beforeEach(async () => {
-  // Create in-memory database and tables
-  db = new Database(':memory:');
+  // Store original BASE_PATH and set our own
+  originalBasePath = process.env.BASE_PATH;
+  process.env.BASE_PATH = TEST_BASE_DIR;
+
+  // Create test directory
+  await fs.mkdir(TEST_BASE_DIR, { recursive: true });
+  await fs.mkdir(join(TEST_BASE_DIR, 'outputs'), { recursive: true });
+
+  // Create test database
+  const dbPath = join(TEST_BASE_DIR, 'test.db');
+  db = new Database(dbPath);
+
   db.run(`
     CREATE TABLE tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,37 +58,41 @@ beforeEach(async () => {
       transcribed_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-
-  // Mock modules
-  mock.module('../src/db', () => ({ getDatabase: () => db }));
-  mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
-  mock.module('../src/services/summarizer', () => ({ summarizerService: mockSummarizerService }));
-  mock.module('../src/services/meilisearch-service', () => ({ meilisearchService: mockMeiliService }));
-
-  const mod = await import('../src/executors/summarize');
-  executeMediaSummarizeTask = mod.executeMediaSummarizeTask;
-  createMediaSummarizeTask = mod.createMediaSummarizeTask;
 });
 
-afterEach(() => {
-  // Clean up test data but don't close the database
-  db.run('DELETE FROM tasks');
-  db.run('DELETE FROM media_metadata');
-  db.run('DELETE FROM media_transcripts');
+afterEach(async () => {
+  // Close database and clean up test directory
+  if (db) {
+    db.close();
+  }
 
-  mockSummarizerService.generateSummaryForMedia.mockClear();
-  mockSummarizerService.isInitialized.mockClear();
-  mockMeiliService.indexDocument.mockClear();
-  Object.values(mockLogger).forEach((fn) => (fn as any).mockClear?.());
-});
+  await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
 
-afterAll(() => {
-  db.close();
-  mock.restore();
+  // Restore original BASE_PATH
+  if (originalBasePath === undefined) {
+    delete process.env.BASE_PATH;
+  } else {
+    process.env.BASE_PATH = originalBasePath;
+  }
 });
 
 describe('createMediaSummarizeTask', () => {
   it('inserts a new task record', async () => {
+    // Clear any cached modules to ensure fresh imports
+    try {
+      delete require.cache[require.resolve('../src/config')];
+      delete require.cache[require.resolve('../src/executors/summarize')];
+      delete require.cache[require.resolve('../src/db')];
+    } catch (e) {
+      // Ignore if require.cache doesn't work in Bun
+    }
+
+    // Mock the database to return our test database
+    const originalGetDatabase = global.getDatabase;
+    global.getDatabase = () => db;
+
+    const { createMediaSummarizeTask } = await import('../src/executors/summarize?t=' + Date.now());
+
     const taskId = await createMediaSummarizeTask(1, { style: 'bullet', model: 'gpt-3.5-turbo', force: true });
     const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId) as any;
     expect(row).toBeDefined();
@@ -107,6 +102,13 @@ describe('createMediaSummarizeTask', () => {
     expect(args.style).toBe('bullet');
     expect(args.model).toBe('gpt-3.5-turbo');
     expect(args.force).toBe(true);
+
+    // Restore original function
+    if (originalGetDatabase) {
+      global.getDatabase = originalGetDatabase;
+    } else {
+      delete global.getDatabase;
+    }
   });
 });
 

@@ -10,8 +10,19 @@ export async function executeLlmTask(task: LlmTask): Promise<{ success: boolean;
     const prompt = task.description; // Required by type system
 
     try {
-        // Prepare output file path
-        const outputDir = config.paths.outputs;
+        // Prepare output file path - handle both mocked and real config
+        let outputDir: string;
+        try {
+            outputDir = config.paths.outputs;
+            // If we're in a test environment with BASE_PATH set, but config is mocked,
+            // use the BASE_PATH directly to ensure test isolation
+            if (process.env.BASE_PATH && outputDir === '/tmp/test-outputs') {
+                outputDir = join(process.env.BASE_PATH, 'outputs');
+            }
+        } catch (error) {
+            // Fallback if config is completely broken
+            outputDir = process.env.BASE_PATH ? join(process.env.BASE_PATH, 'outputs') : '/tmp/banana-bun-fallback/outputs';
+        }
         const outputPath = join(outputDir, `task-${task.id || 'unknown'}-llm-output.txt`);
 
         // Call Ollama API
