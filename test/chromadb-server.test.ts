@@ -75,6 +75,14 @@ mock.module('../src/config', () => ({
     config: standardMockConfig
 }));
 
+// Mock database
+let db: any;
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
+
 // Mock embedding manager
 const mockEmbeddingManager = {
     findSimilarTasks: mock(() => Promise.resolve([
