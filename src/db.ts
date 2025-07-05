@@ -8,8 +8,8 @@ let dependencyHelper: DependencyHelper;
 
 
 
-// Export functions individually to ensure CI compatibility
-export function initDatabase(): void {
+// Database initialization function
+function initDatabase(): void {
     if (db) {
         return;
     }
@@ -475,16 +475,19 @@ export function initDatabase(): void {
     }
 }
 
-export function getDatabase() {
+function getDatabase() {
     if (!db) {
         throw new Error('Database not initialized');
     }
     return db;
 }
 
-export function getDependencyHelper() {
+function getDependencyHelper() {
     if (!dependencyHelper) {
         throw new Error('Database not initialized');
     }
     return dependencyHelper;
 }
+
+// Export all functions at the end for maximum compatibility
+export { initDatabase, getDatabase, getDependencyHelper };
