@@ -491,3 +491,8 @@ function getDependencyHelper() {
 
 // Explicit exports for maximum CI compatibility
 export { initDatabase, getDatabase, getDependencyHelper };
+
+// CommonJS fallback for CI compatibility
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { initDatabase, getDatabase, getDependencyHelper };
+}
