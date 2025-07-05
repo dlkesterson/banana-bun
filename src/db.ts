@@ -469,19 +469,19 @@ function initDatabase(): void {
     }
 }
 
-export function getDatabase() {
+function getDatabase() {
     if (!db) {
         throw new Error('Database not initialized');
     }
     return db;
 }
 
-export function getDependencyHelper() {
+function getDependencyHelper() {
     if (!dependencyHelper) {
         throw new Error('Database not initialized');
     }
     return dependencyHelper;
 }
 
-// Export initDatabase using explicit export statement
-export { initDatabase };
+// Export all functions using explicit export statement for consistency
+export { initDatabase, getDatabase, getDependencyHelper };
