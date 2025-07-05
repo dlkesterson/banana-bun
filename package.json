@@ -30,7 +30,7 @@
     "test": "bun test --preload ./test-setup.ts",
     "test:watch": "bun test --watch --preload ./test-setup.ts",
     "test:report": "bun test --coverage --coverage-reporter=lcov --preload ./test-setup.ts | tee test-results.txt",
-    "test:coverage": "bun test --coverage --coverage-reporter=lcov --timeout 5000 --preload ./test-setup.ts",
+    "test:coverage": "bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage --timeout 30000 --preload ./test-setup.ts",
     "test:coverage:check": "bun run test:coverage && bun run scripts/cross-platform-runner.ts check-coverage",
     "type-check": "tsc --noEmit",
     "build": "bun build src/index.ts --outdir ./dist --target bun",

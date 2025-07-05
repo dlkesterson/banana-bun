@@ -10,6 +10,8 @@ timeout = 30000
 
 # Coverage settings
 coverage = true
+coverageReporter = ["lcov"]
+coverageDir = "coverage"
 
 # Exclude problematic test files temporarily
 # These will be gradually re-enabled as fixes are implemented

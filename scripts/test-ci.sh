@@ -73,9 +73,12 @@ echo "Starting test execution..."
 
 # Run tests with coverage
 echo "🧪 Running tests with coverage generation..."
-echo "Command: bun test --timeout 30000 --coverage --coverage-reporter=lcov --preload ./test-setup.ts [${#test_files[@]} files]"
+echo "Command: bun test --timeout 30000 --coverage --coverage-reporter=lcov --coverage-dir=coverage --preload ./test-setup.ts [${#test_files[@]} files]"
 
-if bun test --timeout 30000 --coverage --coverage-reporter=lcov --preload ./test-setup.ts "${test_files[@]}"; then
+# Ensure coverage directory exists
+mkdir -p coverage
+
+if bun test --timeout 30000 --coverage --coverage-reporter=lcov --coverage-dir=coverage --preload ./test-setup.ts "${test_files[@]}"; then
     echo ""
     echo "✅ CI tests passed with exclusions!"
 
