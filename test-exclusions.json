@@ -139,6 +139,8 @@
     "test/phase2-summarization.test.ts",
     "test/search-logs.test.ts",
     "test/review-service.integration.test.ts",
-    "test/transcribe-executor.test.ts"
+    "test/transcribe-executor.test.ts",
+    "test/debug-import.test.ts",
+    "test/banana-summarize-cli.test.ts"
   ]
 }
