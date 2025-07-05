@@ -49,6 +49,7 @@ passing_test_files=(
     "test/ab-testing-service.test.ts"
     "test/additional-executors.test.ts"
     "test/autolearn-agent.test.ts"
+    "test/banana-summarize-cli.test.ts"
     "test/chromadb-server.test.ts"
     "test/cli-tools.test.ts"
     "test/code-executor.test.ts"
