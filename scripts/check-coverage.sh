@@ -5,15 +5,38 @@
 
 set -e
 
-COVERAGE_FILE="coverage/lcov.info"
 MIN_COVERAGE=25
 
 echo "🔍 Checking test coverage..."
 
-# Check if coverage file exists
-if [ ! -f "$COVERAGE_FILE" ]; then
-    echo "❌ Coverage file not found: $COVERAGE_FILE"
-    echo "Make sure to run tests with coverage first: bun test --coverage"
+# Try multiple possible locations for coverage file
+COVERAGE_FILE=""
+if [ -f "coverage/lcov.info" ]; then
+    COVERAGE_FILE="coverage/lcov.info"
+    echo "📁 Found coverage file: coverage/lcov.info"
+elif [ -f "lcov.info" ]; then
+    COVERAGE_FILE="lcov.info"
+    echo "📁 Found coverage file: lcov.info (root directory)"
+elif [ -f "coverage.info" ]; then
+    COVERAGE_FILE="coverage.info"
+    echo "📁 Found coverage file: coverage.info"
+else
+    echo "❌ Coverage file not found in any expected location"
+    echo "🔍 Searched locations:"
+    echo "   - coverage/lcov.info"
+    echo "   - lcov.info"
+    echo "   - coverage.info"
+    echo ""
+    echo "📂 Current directory contents:"
+    ls -la
+    echo ""
+    echo "📂 Coverage directory contents (if exists):"
+    ls -la coverage/ 2>/dev/null || echo "   Coverage directory not found"
+    echo ""
+    echo "🔍 Looking for any .info files:"
+    find . -name "*.info" -type f 2>/dev/null || echo "   No .info files found"
+    echo ""
+    echo "💡 Make sure to run tests with coverage first: bun test --coverage"
     exit 1
 fi
 

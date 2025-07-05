@@ -72,10 +72,48 @@ echo ""
 echo "Starting test execution..."
 
 # Run tests with coverage
+echo "🧪 Running tests with coverage generation..."
+echo "Command: bun test --timeout 30000 --coverage --coverage-reporter=lcov --preload ./test-setup.ts [${#test_files[@]} files]"
+
 if bun test --timeout 30000 --coverage --coverage-reporter=lcov --preload ./test-setup.ts "${test_files[@]}"; then
     echo ""
-    echo "CI tests passed with exclusions!"
-    echo "Next steps:"
+    echo "✅ CI tests passed with exclusions!"
+
+    # Check and organize coverage files
+    echo "🔍 Checking coverage file generation..."
+    echo "📂 Current directory contents:"
+    ls -la
+    echo "📂 Coverage directory contents:"
+    ls -la coverage/ 2>/dev/null || echo "Coverage directory not found"
+
+    # Look for any coverage files
+    echo "🔍 Searching for coverage files..."
+    coverage_files=$(find . -name "*.info" -o -name "lcov*" 2>/dev/null || true)
+    if [ -n "$coverage_files" ]; then
+        echo "📄 Found coverage files:"
+        echo "$coverage_files"
+    else
+        echo "⚠️ No coverage files found"
+    fi
+
+    # Ensure coverage is in the expected location
+    if [ -f "coverage/lcov.info" ]; then
+        echo "✅ Coverage file found: coverage/lcov.info"
+    elif [ -f "lcov.info" ]; then
+        echo "📁 Coverage file found in root: lcov.info"
+        echo "📂 Moving to coverage directory for consistency..."
+        mkdir -p coverage
+        cp lcov.info coverage/
+        echo "✅ Coverage file moved to: coverage/lcov.info"
+    else
+        echo "⚠️ Coverage file not in expected locations"
+        echo "🔧 Attempting to generate coverage manually..."
+        # Try to run coverage generation separately if needed
+        echo "This may indicate an issue with bun coverage generation"
+    fi
+
+    echo ""
+    echo "📋 Next steps:"
     echo "   1. Fix high-priority cross-platform issues"
     echo "   2. Address database schema problems"
     echo "   3. Fix MCP server registration"
@@ -83,7 +121,7 @@ if bun test --timeout 30000 --coverage --coverage-reporter=lcov --preload ./test
     exit 0
 else
     echo ""
-    echo "Some tests still failing even with exclusions"
+    echo "❌ Some tests still failing even with exclusions"
     echo "Check the output above for remaining issues"
     exit 1
 fi
