@@ -9,7 +9,7 @@ let dependencyHelper: DependencyHelper;
 
 
 // Database initialization function
-export function initDatabase(): void {
+function initDatabase(): void {
     if (db) {
         return;
     }
@@ -475,16 +475,19 @@ export function initDatabase(): void {
     }
 }
 
-export function getDatabase() {
+function getDatabase() {
     if (!db) {
         throw new Error('Database not initialized');
     }
     return db;
 }
 
-export function getDependencyHelper() {
+function getDependencyHelper() {
     if (!dependencyHelper) {
         throw new Error('Database not initialized');
     }
     return dependencyHelper;
 }
+
+// Explicit exports for maximum CI compatibility
+export { initDatabase, getDatabase, getDependencyHelper };
