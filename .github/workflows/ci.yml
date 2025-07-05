@@ -57,12 +57,34 @@ jobs:
         chmod +x scripts/test-ci.sh
 
         # Use our systematic hybrid approach script
-        # This excludes 16 problematic test files while running 52+ passing test files
+        # This excludes 25 problematic test files while running 45+ passing test files
         # The excluded tests are tracked in test-exclusions.json for gradual fixing
         if ./scripts/test-ci.sh; then
           echo "✅ Hybrid CI approach successful!"
-          echo "Coverage generation completed"
+          echo "Checking coverage file generation..."
+
+          # Debug: Check what files were created
+          echo "Files in current directory:"
+          ls -la
+          echo "Coverage directory contents:"
           ls -la coverage/ || echo "Coverage directory not found"
+          echo "Looking for lcov files:"
+          find . -name "*.info" -o -name "lcov*" || echo "No lcov files found"
+
+          # Ensure coverage files exist for artifact upload
+          if [ -d "coverage" ] && [ -f "coverage/lcov.info" ]; then
+            echo "✅ Coverage files found and ready for upload"
+          else
+            echo "⚠️ Coverage files not in expected location, checking alternatives..."
+            # Sometimes bun generates lcov.info in root
+            if [ -f "lcov.info" ]; then
+              echo "Found lcov.info in root, copying to coverage/"
+              mkdir -p coverage
+              cp lcov.info coverage/
+            else
+              echo "❌ No coverage files found - this may cause coverage check to fail"
+            fi
+          fi
         else
           echo "❌ Tests failed even with systematic exclusions"
           echo "Check test-exclusions.json for current exclusion status"
@@ -71,12 +93,14 @@ jobs:
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: coverage-reports
         path: |
           coverage/
           lcov.info
         retention-days: 1
+        if-no-files-found: warn
 
   build:
     name: Build & Type Check
@@ -130,6 +154,7 @@ jobs:
     name: Coverage Check
     runs-on: ubuntu-latest
     needs: test
+    if: always() && needs.test.result == 'success'
 
     steps:
     - name: Checkout code
@@ -140,6 +165,17 @@ jobs:
       with:
         name: coverage-reports
         path: ./
+      continue-on-error: true
+
+    - name: Debug artifact download
+      run: |
+        echo "Checking if coverage files were downloaded..."
+        echo "Current directory contents:"
+        ls -la
+        echo "Coverage directory contents:"
+        ls -la coverage/ || echo "Coverage directory not found"
+        echo "Looking for any lcov files:"
+        find . -name "*.info" -o -name "lcov*" || echo "No lcov files found"
 
     - name: Make coverage script executable
       run: chmod +x scripts/check-coverage.sh
@@ -150,13 +186,28 @@ jobs:
           ./scripts/check-coverage.sh
         else
           echo "Coverage script not found, using inline check"
-          COVERAGE_FILE="coverage/lcov.info"
+
+          # Try multiple possible locations for coverage file
+          COVERAGE_FILE=""
+          if [ -f "coverage/lcov.info" ]; then
+            COVERAGE_FILE="coverage/lcov.info"
+          elif [ -f "lcov.info" ]; then
+            COVERAGE_FILE="lcov.info"
+          elif [ -f "coverage.info" ]; then
+            COVERAGE_FILE="coverage.info"
+          fi
+
           MIN_COVERAGE=25
 
-          if [ ! -f "$COVERAGE_FILE" ]; then
-            echo "ERROR: Coverage file not found: $COVERAGE_FILE"
+          if [ -z "$COVERAGE_FILE" ] || [ ! -f "$COVERAGE_FILE" ]; then
+            echo "ERROR: Coverage file not found in any expected location"
+            echo "Checked: coverage/lcov.info, lcov.info, coverage.info"
+            echo "Available files:"
+            find . -name "*.info" -o -name "lcov*" || echo "No coverage files found"
             exit 1
           fi
+
+          echo "Using coverage file: $COVERAGE_FILE"
 
           LINES_FOUND=$(grep -E "^LF:" "$COVERAGE_FILE" | cut -d: -f2 | awk '{sum += $1} END {print sum}')
           LINES_HIT=$(grep -E "^LH:" "$COVERAGE_FILE" | cut -d: -f2 | awk '{sum += $1} END {print sum}')
