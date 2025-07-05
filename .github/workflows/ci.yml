@@ -53,10 +53,10 @@ jobs:
         grep -n "export.*initDatabase\|export.*getDatabase" src/db.ts || echo "No exports found"
         echo "Starting systematic test execution..."
 
-        # Copy CI-specific bunfig to use proper coverage settings
-        echo "Setting up CI configuration..."
-        cp bunfig.ci.toml bunfig.toml
-        echo "✅ Using CI-specific bun configuration"
+        # Use default bunfig.toml for our curated test script
+        # The test-ci.sh script handles test exclusions properly
+        echo "Using default bun configuration with test-ci.sh exclusions..."
+        echo "✅ Using default bun configuration"
 
         # Show the configuration being used
         echo "📋 Current bun configuration:"
