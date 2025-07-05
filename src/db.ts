@@ -7,7 +7,7 @@ let db: Database;
 let dependencyHelper: DependencyHelper;
 
 export function initDatabase(): Promise<void> {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         try {
             db = new Database(config.paths.database);
 
