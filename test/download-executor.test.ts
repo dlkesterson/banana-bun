@@ -50,7 +50,11 @@ const mockSpawn = mock(() => ({
 
 mock.module('../src/config', () => ({ config: standardMockConfig }));
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
-mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
+mock.module('../src/db', () => ({
+    getDatabase: mockGetDatabase,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
 mock.module('bun', () => ({ spawn: mockSpawn, write: (...args: any[]) => mockWrite(...args) }));
 
 beforeEach(async () => {

@@ -65,39 +65,43 @@ mock.module('../src/utils/hash', () => ({
     hashFile: mockHashFile
 }));
 
-// 2. Import AFTER mocks are set up
-import { detectMediaType, extractTvSeriesInfo, extractMovieInfo } from '../src/utils/media_type_detector';
-import { normalizeFilename, sanitizeForFilesystem, formatTemplate } from '../src/utils/filename_normalizer';
-import { createOrganizationPlan, executeOrganizationPlan } from '../src/utils/media_organizer';
+// 2. Import AFTER mocks are set up - Use dynamic imports to avoid module interference
+// import { detectMediaType, extractTvSeriesInfo, extractMovieInfo } from '../src/utils/media_type_detector';
+// import { normalizeFilename, sanitizeForFilesystem, formatTemplate } from '../src/utils/filename_normalizer';
+// import { createOrganizationPlan, executeOrganizationPlan } from '../src/utils/media_organizer';
 
 describe('Media Type Detector', () => {
-    afterAll(() => {
-        mock.restore(); // REQUIRED for cleanup
-    });
-
     beforeEach(() => {
         mockHashFile.mockReset();
         mockHashFile.mockResolvedValue('mock-hash-123');
     });
+
+    afterEach(() => {
+        mock.restore();
+    });
     it('should detect TV shows from filename patterns', async () => {
+        const { detectMediaType } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const result = await detectMediaType('The.Office.S01E01.Pilot.mkv');
         expect(result.type).toBe('tv');
         expect(result.confidence).toBeGreaterThan(0.8);
     });
 
     it('should detect movies from year patterns', async () => {
+        const { detectMediaType } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const result = await detectMediaType('The Matrix (1999).mp4');
         expect(result.type).toBe('movies');
         expect(result.confidence).toBeGreaterThan(0.6);
     });
 
     it('should detect YouTube content', async () => {
+        const { detectMediaType } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const result = await detectMediaType('[Channel Name] Video Title.mp4');
         expect(result.type).toBe('youtube');
         expect(result.confidence).toBeGreaterThan(0.7);
     });
 
     it('should use metadata when available', async () => {
+        const { detectMediaType } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const metadata: Partial<MediaMetadata> = {
             guessed_type: 'movie'
         };
@@ -107,6 +111,7 @@ describe('Media Type Detector', () => {
     });
 
     it('should fallback to catch-all for unknown types', async () => {
+        const { detectMediaType } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const result = await detectMediaType('unknown_file.txt');
         expect(result.type).toBe('catchall');
         expect(result.confidence).toBeLessThan(0.5);
@@ -114,7 +119,8 @@ describe('Media Type Detector', () => {
 });
 
 describe('TV Series Info Extraction', () => {
-    it('should extract series info from S01E01 pattern', () => {
+    it('should extract series info from S01E01 pattern', async () => {
+        const { extractTvSeriesInfo } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const info = extractTvSeriesInfo('The.Office.S01E01 - Pilot.mkv');
         expect(info.series).toBe('The Office');
         expect(info.season).toBe(1);
@@ -122,14 +128,16 @@ describe('TV Series Info Extraction', () => {
         expect(info.title).toBe('Pilot');
     });
 
-    it('should extract series info from Season/Episode pattern', () => {
+    it('should extract series info from Season/Episode pattern', async () => {
+        const { extractTvSeriesInfo } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const info = extractTvSeriesInfo('Breaking Bad Season 1 Episode 1.mp4');
         expect(info.series).toBe('Breaking Bad');
         expect(info.season).toBe(1);
         expect(info.episode).toBe(1);
     });
 
-    it('should extract series info from 1x01 pattern', () => {
+    it('should extract series info from 1x01 pattern', async () => {
+        const { extractTvSeriesInfo } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const info = extractTvSeriesInfo('Friends 1x01 - The One Where Monica Gets a Roommate.avi');
         expect(info.series).toBe('Friends');
         expect(info.season).toBe(1);
@@ -139,19 +147,22 @@ describe('TV Series Info Extraction', () => {
 });
 
 describe('Movie Info Extraction', () => {
-    it('should extract movie title and year', () => {
+    it('should extract movie title and year', async () => {
+        const { extractMovieInfo } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const info = extractMovieInfo('The Matrix (1999).mkv');
         expect(info.title).toBe('The Matrix');
         expect(info.year).toBe(1999);
     });
 
-    it('should extract title from quality indicators', () => {
+    it('should extract title from quality indicators', async () => {
+        const { extractMovieInfo } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const info = extractMovieInfo('Inception.2010.1080p.BluRay.x264.mkv');
         expect(info.title).toBe('Inception');
         expect(info.year).toBe(2010);
     });
 
-    it('should handle titles without years', () => {
+    it('should handle titles without years', async () => {
+        const { extractMovieInfo } = await import('../src/utils/media_type_detector?t=' + Date.now());
         const info = extractMovieInfo('Some Movie Title.mp4');
         expect(info.title).toBe('Some Movie Title');
         expect(info.year).toBeUndefined();
@@ -159,31 +170,36 @@ describe('Movie Info Extraction', () => {
 });
 
 describe('Filename Normalizer', () => {
-    it('should sanitize illegal characters', () => {
+    it('should sanitize illegal characters', async () => {
+        const { sanitizeForFilesystem } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const result = sanitizeForFilesystem('File<>:"/\\|?*Name.txt');
         expect(result).toBe('FileName.txt');
     });
 
-    it('should normalize to title case', () => {
+    it('should normalize to title case', async () => {
+        const { normalizeFilename } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const result = normalizeFilename('the matrix reloaded.mkv', { case: 'title' });
         expect(result).toBe('The Matrix Reloaded.mkv');
     });
 
-    it('should truncate long filenames', () => {
+    it('should truncate long filenames', async () => {
+        const { normalizeFilename } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const longName = 'a'.repeat(200) + '.mkv';
         const result = normalizeFilename(longName, { maxLength: 50 });
         expect(result.length).toBeLessThanOrEqual(50);
         expect(result.endsWith('.mkv')).toBe(true);
     });
 
-    it('should replace spaces when requested', () => {
+    it('should replace spaces when requested', async () => {
+        const { normalizeFilename } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const result = normalizeFilename('File Name.txt', { replaceSpaces: true });
         expect(result).toBe('File.Name.txt');
     });
 });
 
 describe('Template Formatting', () => {
-    it('should format TV show template', () => {
+    it('should format TV show template', async () => {
+        const { formatTemplate } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const template = "{series}/Season {season:02d}/{series} - S{season:02d}E{episode:02d} - {title}";
         const variables = {
             series: 'The Office',
@@ -195,7 +211,8 @@ describe('Template Formatting', () => {
         expect(result).toBe('The Office/Season 01/The Office - S01E01 - Pilot');
     });
 
-    it('should format movie template', () => {
+    it('should format movie template', async () => {
+        const { formatTemplate } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const template = "{title} ({year})";
         const variables = {
             title: 'The Matrix',
@@ -205,7 +222,8 @@ describe('Template Formatting', () => {
         expect(result).toBe('The Matrix (1999)');
     });
 
-    it('should handle missing variables', () => {
+    it('should handle missing variables', async () => {
+        const { formatTemplate } = await import('../src/utils/filename_normalizer?t=' + Date.now());
         const template = "{title} ({year})";
         const variables = {
             title: 'Movie Title'
@@ -217,6 +235,7 @@ describe('Template Formatting', () => {
 
 describe('Organization Plan Creation', () => {
     it('should create plan for TV show', async () => {
+        const { createOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const plan = await createOrganizationPlan('/source/The.Office.S01E01 - Pilot.mkv');
         expect(plan.collectionType).toBe('tv');
         expect(plan.targetDirectory).toContain('Shows');
@@ -226,6 +245,7 @@ describe('Organization Plan Creation', () => {
     });
 
     it('should create plan for movie', async () => {
+        const { createOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const plan = await createOrganizationPlan('/source/The Matrix (1999).mkv');
         expect(plan.collectionType).toBe('movies');
         expect(plan.targetDirectory).toContain('Movies');
@@ -233,12 +253,14 @@ describe('Organization Plan Creation', () => {
     });
 
     it('should respect forced collection type', async () => {
+        const { createOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const plan = await createOrganizationPlan('/source/random.mkv', undefined, 'youtube');
         expect(plan.collectionType).toBe('youtube');
         expect(plan.targetDirectory).toContain('YouTube');
     });
 
     it('should default to catch-all when type is unknown', async () => {
+        const { createOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const plan = await createOrganizationPlan('/source/unknown_file.mp4');
         expect(plan.collectionType).toBe('catchall');
         expect(plan.targetDirectory).toContain('Downloads');
@@ -248,7 +270,7 @@ describe('Organization Plan Creation', () => {
 
 describe('Organization Plan Execution', () => {
     const tempDir = '/tmp/media-organizer-test';
-    
+
     beforeEach(async () => {
         // Create temp directory structure
         await fs.mkdir(tempDir, { recursive: true });
@@ -266,6 +288,7 @@ describe('Organization Plan Execution', () => {
     });
 
     it('should execute dry run without moving files', async () => {
+        const { executeOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const sourceFile = join(tempDir, 'source', 'test.mkv');
         await fs.writeFile(sourceFile, 'test content');
 
@@ -278,16 +301,17 @@ describe('Organization Plan Execution', () => {
         };
 
         const result = await executeOrganizationPlan(plan, { dryRun: true });
-        
+
         expect(result.success).toBe(true);
         expect(result.reason).toContain('Dry run');
-        
+
         // File should still exist in source
         const sourceExists = await fs.access(sourceFile).then(() => true).catch(() => false);
         expect(sourceExists).toBe(true);
     });
 
     it('should move file when run normally', async () => {
+        const { executeOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const sourceFile = join(tempDir, 'source', 'move.mkv');
         await fs.writeFile(sourceFile, 'abc');
 
@@ -311,6 +335,7 @@ describe('Organization Plan Execution', () => {
     });
 
     it('should skip move when identical file exists', async () => {
+        const { executeOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const sourceFile = join(tempDir, 'source', 'same.mkv');
         const targetFile = join(tempDir, 'target', 'same.mkv');
         await fs.writeFile(sourceFile, '123');
@@ -334,6 +359,7 @@ describe('Organization Plan Execution', () => {
     });
 
     it('should create safe filename when different file exists', async () => {
+        const { executeOrganizationPlan } = await import('../src/utils/media_organizer?t=' + Date.now());
         const sourceFile = join(tempDir, 'source', 'conflict.mkv');
         const targetFile = join(tempDir, 'target', 'conflict.mkv');
         await fs.writeFile(sourceFile, 'aaa');
@@ -358,8 +384,4 @@ describe('Organization Plan Execution', () => {
         expect(existsNew).toBe(true);
         expect(existsSource).toBe(false);
     });
-});
-
-afterAll(() => {
-  mock.restore();
 });

@@ -33,8 +33,8 @@ mock.module('../src/utils/logger', () => ({
     }
 }));
 
-// 2. Import AFTER mocks are set up
-import { executeShellTask } from '../src/executors/shell';
+// 2. Import AFTER mocks are set up - use dynamic import to avoid interference
+let executeShellTask: typeof import('../src/executors/shell').executeShellTask;
 
 describe('executeShellTask', () => {
     afterAll(() => {
@@ -42,6 +42,10 @@ describe('executeShellTask', () => {
     });
 
     beforeEach(async () => {
+        // Import with cache busting to avoid interference from other tests
+        const shellModule = await import('../src/executors/shell?t=' + Date.now());
+        executeShellTask = shellModule.executeShellTask;
+
         // Create test directory and subdirectories
         await fs.mkdir(OUTPUT_DIR, { recursive: true });
     });
@@ -53,54 +57,54 @@ describe('executeShellTask', () => {
 
     it('executes command successfully and writes output file', async () => {
 
-    const task: ShellTask = {
-      id: 1,
-      type: 'shell',
-      shell_command: 'echo "Hello"',
-      status: 'pending',
-      result: null,
-    } as ShellTask;
+        const task: ShellTask = {
+            id: 1,
+            type: 'shell',
+            shell_command: 'echo "Hello"',
+            status: 'pending',
+            result: null,
+        } as ShellTask;
 
-    const result = await executeShellTask(task);
+        const result = await executeShellTask(task);
 
-    expect(result.success).toBe(true);
-    const expectedPath = join(OUTPUT_DIR, 'task-1-shell-output.txt');
-    expect(result.outputPath).toBe(expectedPath);
-    const content = await fs.readFile(expectedPath, 'utf-8');
-    expect(content).toContain('Hello');
-    expect(content).toContain('# Exit Code');
-  });
+        expect(result.success).toBe(true);
+        const expectedPath = join(OUTPUT_DIR, 'task-1-shell-output.txt');
+        expect(result.outputPath).toBe(expectedPath);
+        const content = await fs.readFile(expectedPath, 'utf-8');
+        expect(content).toContain('Hello');
+        expect(content).toContain('# Exit Code');
+    });
 
     it('returns failure when command exits non-zero', async () => {
 
-    const task: ShellTask = {
-      id: 2,
-      type: 'shell',
-      shell_command: 'exit 1',
-      status: 'pending',
-      result: null,
-    } as ShellTask;
+        const task: ShellTask = {
+            id: 2,
+            type: 'shell',
+            shell_command: 'exit 1',
+            status: 'pending',
+            result: null,
+        } as ShellTask;
 
-    const result = await executeShellTask(task);
+        const result = await executeShellTask(task);
 
-    expect(result.success).toBe(false);
-    expect(result.outputPath).toBe(join(OUTPUT_DIR, 'task-2-shell-output.txt'));
-    expect(result.error).toBeDefined();
-  });
+        expect(result.success).toBe(false);
+        expect(result.outputPath).toBe(join(OUTPUT_DIR, 'task-2-shell-output.txt'));
+        expect(result.error).toBeDefined();
+    });
 
     it('handles missing shell_command', async () => {
 
-    const task: ShellTask = {
-      id: 3,
-      type: 'shell',
-      shell_command: '',
-      status: 'pending',
-      result: null,
-    } as ShellTask;
+        const task: ShellTask = {
+            id: 3,
+            type: 'shell',
+            shell_command: '',
+            status: 'pending',
+            result: null,
+        } as ShellTask;
 
-    const result = await executeShellTask(task);
+        const result = await executeShellTask(task);
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('No shell_command found');
-  });
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('No shell_command found');
+    });
 });

@@ -64,7 +64,11 @@ beforeEach(async () => {
     mock.module('../src/config', () => ({ config: mockConfig }));
     mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
     mock.module('../src/tools/tool_runner', () => ({ toolRunner: mockToolRunner }));
-    mock.module('../src/db', () => ({ getDatabase: () => db }));
+    mock.module('../src/db', () => ({
+        getDatabase: () => db,
+        initDatabase: mock(() => Promise.resolve()),
+        getDependencyHelper: mock(() => ({}))
+    }));
 
     const mod = await import('../src/executors/tag');
     executeMediaTagTask = mod.executeMediaTagTask;
@@ -159,5 +163,5 @@ describe('executeMediaTagTask', () => {
 });
 
 afterAll(() => {
-  mock.restore();
+    mock.restore();
 });

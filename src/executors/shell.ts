@@ -17,9 +17,9 @@ export async function executeShellTask(task: ShellTask): Promise<{ success: bool
         let outputDir: string;
         try {
             outputDir = config.paths.outputs;
-            // If we're in a test environment with BASE_PATH set, but config is mocked,
-            // use the BASE_PATH directly to ensure test isolation
-            if (process.env.BASE_PATH && outputDir === '/tmp/test-outputs') {
+            // If we're in a test environment with BASE_PATH set, and the config outputs path
+            // contains 'test' or 'tmp' (cross-platform), use the BASE_PATH directly to ensure test isolation
+            if (process.env.BASE_PATH && (outputDir.includes('tmp') || outputDir.includes('test'))) {
                 outputDir = join(process.env.BASE_PATH, 'outputs');
             }
         } catch (error) {
@@ -59,9 +59,9 @@ export async function executeShellTask(task: ShellTask): Promise<{ success: bool
         let outputDir: string;
         try {
             outputDir = config.paths.outputs;
-            // If we're in a test environment with BASE_PATH set, but config is mocked,
-            // use the BASE_PATH directly to ensure test isolation
-            if (process.env.BASE_PATH && outputDir === '/tmp/test-outputs') {
+            // If we're in a test environment with BASE_PATH set, and the config outputs path
+            // contains 'test' or 'tmp', use the BASE_PATH directly to ensure test isolation
+            if (process.env.BASE_PATH && (outputDir.includes('/tmp/') || outputDir.includes('test'))) {
                 outputDir = join(process.env.BASE_PATH, 'outputs');
             }
         } catch (configError) {

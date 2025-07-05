@@ -66,23 +66,14 @@ const mockEnhancedTaskProcessor = {
     }))
 };
 
-const mockTaskScheduler = {
-    start: mock(() => {}),
-    stop: mock(() => {}),
-    initialize: mock(() => Promise.resolve())
-};
-
-// Mock modules
+// Mock modules (excluding TaskScheduler which will be mocked per test)
 mock.module('../src/config', () => ({ config: mockConfig }));
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
-mock.module('../src/retry/retry-manager', () => ({ 
-    RetryManager: mock(() => mockRetryManager) 
+mock.module('../src/retry/retry-manager', () => ({
+    RetryManager: mock(() => mockRetryManager)
 }));
-mock.module('../src/mcp/enhanced-task-processor', () => ({ 
-    enhancedTaskProcessor: mockEnhancedTaskProcessor 
-}));
-mock.module('../src/scheduler/task-scheduler', () => ({ 
-    TaskScheduler: mock(() => mockTaskScheduler) 
+mock.module('../src/mcp/enhanced-task-processor', () => ({
+    enhancedTaskProcessor: mockEnhancedTaskProcessor
 }));
 
 // Mock database functions
@@ -123,9 +114,23 @@ const mockConvertDatabaseTasksToBaseTasks = mock(() => []);
 // NOTE: Removed global mocks for dispatcher and task_converter to prevent interference with other tests
 
 describe('Main Orchestrator (src/index.ts)', () => {
+    let mockTaskScheduler: any;
+
     beforeEach(async () => {
         // Create in-memory database for testing
         mockDb = new Database(':memory:');
+
+        // Create scoped TaskScheduler mock for this test suite
+        mockTaskScheduler = {
+            start: mock(() => { }),
+            stop: mock(() => { }),
+            initialize: mock(() => Promise.resolve())
+        };
+
+        // Mock TaskScheduler module with cache busting
+        mock.module('../src/scheduler/task-scheduler', () => ({
+            TaskScheduler: mock(() => mockTaskScheduler)
+        }));
 
         // Create basic tasks table
         mockDb.run(`
@@ -171,7 +176,16 @@ describe('Main Orchestrator (src/index.ts)', () => {
         // Cleanup test directories
         const testDirs = Object.values(mockConfig.paths).filter(p => typeof p === 'string' && p !== ':memory:');
         for (const dir of testDirs) {
-            await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+            await fs.rm(dir, { recursive: true, force: true }).catch(() => { });
+        }
+
+        // Clear TaskScheduler mock
+        if (mockTaskScheduler) {
+            Object.values(mockTaskScheduler).forEach((fn: any) => {
+                if (typeof fn?.mockClear === 'function') {
+                    fn.mockClear();
+                }
+            });
         }
     });
 

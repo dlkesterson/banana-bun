@@ -1,44 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { standardMockConfig } from './utils/standard-mock-config';
 
-// 1. Set up ALL mocks BEFORE any imports
-// CRITICAL: Use standardMockConfig to prevent module interference
-mock.module('../src/config', () => ({ config: standardMockConfig }));
+// Note: All mocks are handled by the preload script in bunfig.toml
+// This prevents mock interference between test files in the full test suite
 
 let db: Database;
 
-// Mock database module
-mock.module('../src/db', () => ({
-    getDatabase: () => db,
-    initDatabase: mock(() => Promise.resolve()),
-    getDependencyHelper: mock(() => ({}))
-}));
-
-mock.module('../src/utils/logger', () => ({
-    logger: {
-        info: mock(() => Promise.resolve()),
-        error: mock(() => Promise.resolve()),
-        warn: mock(() => Promise.resolve()),
-        debug: mock(() => Promise.resolve())
-    }
-}));
-
-// Mock summarizer service
-mock.module('../src/services/summarizer-service', () => ({
-    summarizerService: {
-        isInitialized: mock(() => true),
-        generateSummary: mock(() => Promise.resolve({ success: true, summary: 'Test summary' }))
-    }
-}));
-
-// 2. Import AFTER mocks are set up
-import * as cli from '../src/cli/banana-summarize';
-
 describe('Banana Summarize CLI', () => {
-    afterAll(() => {
-        mock.restore(); // REQUIRED for cleanup
-    });
 
     beforeEach(async () => {
         // Create a real in-memory database for testing
@@ -78,64 +46,64 @@ describe('Banana Summarize CLI', () => {
     });
 
     describe('parseCliArgs', () => {
-        it('parses required media id and defaults', () => {
-            // Test that the function exists and can be called
+        it('parses required media id and defaults', async () => {
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.parseCliArgs).toBe('function');
         });
 
-        it('parses optional style', () => {
-            // Test that the function exists and can be called
+        it('parses optional style', async () => {
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.parseCliArgs).toBe('function');
         });
 
-        it('throws on invalid style', () => {
-            // Test that the function exists and can be called
+        it('throws on invalid style', async () => {
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.parseCliArgs).toBe('function');
         });
 
-        it('throws when media id missing', () => {
-            // Test that the function exists and can be called
+        it('throws when media id missing', async () => {
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.parseCliArgs).toBe('function');
         });
 
-        it('prints help when requested', () => {
-            // Test that the function exists and can be called
+        it('prints help when requested', async () => {
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.parseCliArgs).toBe('function');
         });
     });
 
     describe('validateMediaExists', () => {
         it('detects existing media with transcript', async () => {
-            // Test that the function exists and can be called
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.validateMediaExists).toBe('function');
         });
 
         it('detects media without transcript', async () => {
-            // Test that the function exists and can be called
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.validateMediaExists).toBe('function');
         });
 
         it('handles missing media', async () => {
-            // Test that the function exists and can be called
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.validateMediaExists).toBe('function');
         });
     });
 
     describe('runDirectSummarization', () => {
         it('outputs summary info', async () => {
-            // Test that the function exists and can be called
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.runDirectSummarization).toBe('function');
         });
 
         it('handles failure result', async () => {
-            // Test that the function exists and can be called
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.runDirectSummarization).toBe('function');
         });
     });
 
     describe('createSummarizationTask', () => {
         it('creates task through executor', async () => {
-            // Test that the function exists and can be called
+            const cli = await import('../src/cli/banana-summarize?t=' + Date.now());
             expect(typeof cli.createSummarizationTask).toBe('function');
         });
     });

@@ -18,10 +18,7 @@ mock.module('../src/utils/logger', () => ({
 
 // Import scheduler components after setting up mocks
 import { CronParser } from '../src/scheduler/cron-parser';
-import { TaskScheduler } from '../src/scheduler/task-scheduler';
-
-// Ensure we're working with clean imports for scheduler tests
-// This helps avoid conflicts with global mocks from other tests
+// TaskScheduler will be imported dynamically to avoid global mock interference
 
 describe('Scheduler System', () => {
     describe('CronParser', () => {
@@ -59,7 +56,7 @@ describe('Scheduler System', () => {
 
             it('should calculate next execution time correctly', () => {
                 const now = new Date('2024-01-01T10:00:00Z');
-                
+
                 // Every hour at minute 0
                 const nextHour = CronParser.getNextExecution('0 * * * *', now);
                 expect(nextHour).toBeInstanceOf(Date);
@@ -77,7 +74,7 @@ describe('Scheduler System', () => {
             it('should handle timezone considerations', () => {
                 const now = new Date('2024-01-01T10:00:00Z');
                 const timezone = 'America/New_York';
-                
+
                 const nextExecution = CronParser.getNextExecution('0 9 * * *', now, timezone);
                 expect(nextExecution).toBeInstanceOf(Date);
             });
@@ -108,12 +105,17 @@ describe('Scheduler System', () => {
     });
 
     describe('TaskScheduler', () => {
-        let scheduler: TaskScheduler;
+        let scheduler: any;
         let db: Database;
+        let TaskScheduler: any;
 
         beforeEach(async () => {
             // Create in-memory database for testing
             db = new Database(':memory:');
+
+            // Import TaskScheduler dynamically to avoid global mock interference
+            const schedulerModule = await import('../src/scheduler/task-scheduler?t=' + Date.now());
+            TaskScheduler = schedulerModule.TaskScheduler;
 
             // Verify database is working
             if (!db || typeof db.run !== 'function') {
@@ -355,7 +357,7 @@ describe('Scheduler System', () => {
             it('should handle multiple start/stop calls', () => {
                 scheduler.start();
                 scheduler.start(); // Should not cause issues
-                
+
                 scheduler.stop();
                 scheduler.stop(); // Should not cause issues
             });

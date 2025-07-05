@@ -10,6 +10,9 @@ testNamePattern = ".*\\.(test|spec)\\.(js|jsx|ts|tsx)$"
 # Test timeout (30 seconds for integration tests)
 timeout = 30000
 
+# Preload mocks to ensure consistent module mocking across all tests
+preload = ["./test/preload-mocks.ts"]
+
 [install]
 # Package manager configuration
 auto = true

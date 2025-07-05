@@ -38,7 +38,11 @@ const mockSpawn = mock(() => ({
 // Set up module mocks before importing executor
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 mock.module('../src/config', () => ({ config: mockConfig }));
-mock.module('../src/db', () => ({ getDatabase: () => db }));
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
 
 // Mock Bun.write to avoid file system issues
 mock.module('bun', () => ({
@@ -48,9 +52,9 @@ mock.module('bun', () => ({
 
 describe('executeMediaTranscribeTask', () => {
 
-beforeEach(async () => {
-    db = new Database(':memory:');
-    db.run(`
+    beforeEach(async () => {
+        db = new Database(':memory:');
+        db.run(`
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             filename TEXT,
@@ -72,7 +76,7 @@ beforeEach(async () => {
             finished_at DATETIME
         )
     `);
-    db.run(`
+        db.run(`
         CREATE TABLE IF NOT EXISTS media_metadata (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             task_id INTEGER NOT NULL,
@@ -83,7 +87,7 @@ beforeEach(async () => {
             tool_used TEXT NOT NULL
         )
     `);
-    db.run(`
+        db.run(`
         CREATE TABLE IF NOT EXISTS media_transcripts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             media_id INTEGER NOT NULL,
@@ -96,60 +100,60 @@ beforeEach(async () => {
         )
     `);
 
-    await fs.mkdir(testDir, { recursive: true });
+        await fs.mkdir(testDir, { recursive: true });
 
-    ({ executeMediaTranscribeTask } = await import('../src/executors/transcribe?t=' + Date.now()));
-});
+        ({ executeMediaTranscribeTask } = await import('../src/executors/transcribe?t=' + Date.now()));
+    });
 
-afterEach(async () => {
-    db.close();
-    await fs.rm(testDir, { recursive: true, force: true });
-});
+    afterEach(async () => {
+        db.close();
+        await fs.rm(testDir, { recursive: true, force: true });
+    });
 
-function createTask(filePath: string) {
-    db.run(`INSERT INTO tasks (id, type, description, status) VALUES (1, 'media_transcribe', 'test', 'pending')`);
-    return { id: 1, type: 'media_transcribe', description: 'test', file_path: filePath, status: 'pending', result: null };
-}
+    function createTask(filePath: string) {
+        db.run(`INSERT INTO tasks (id, type, description, status) VALUES (1, 'media_transcribe', 'test', 'pending')`);
+        return { id: 1, type: 'media_transcribe', description: 'test', file_path: filePath, status: 'pending', result: null };
+    }
 
-it('returns error when media metadata missing', async () => {
-    const filePath = join(testDir, 'audio.mp3');
-    await fs.writeFile(filePath, 'data');
-    const task = createTask(filePath);
+    it('returns error when media metadata missing', async () => {
+        const filePath = join(testDir, 'audio.mp3');
+        await fs.writeFile(filePath, 'data');
+        const task = createTask(filePath);
 
-    const result = await executeMediaTranscribeTask(task);
+        const result = await executeMediaTranscribeTask(task);
 
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('Media metadata not found');
-});
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Media metadata not found');
+    });
 
-it('skips when already transcribed', async () => {
-    const filePath = join(testDir, 'skip.mp3');
-    await fs.writeFile(filePath, 'data');
-    const task = createTask(filePath);
+    it('skips when already transcribed', async () => {
+        const filePath = join(testDir, 'skip.mp3');
+        await fs.writeFile(filePath, 'data');
+        const task = createTask(filePath);
 
-    db.run(`INSERT INTO media_metadata (id, task_id, file_path, file_hash, metadata_json, tool_used) VALUES (1, 1, ?, 'hash', '{}', 'ffprobe')`, [filePath]);
-    db.run(`INSERT INTO media_transcripts (media_id, task_id, transcript_text, language, chunks_json, whisper_model) VALUES (1, 1, 'Existing', 'en', '[]', 'test-model')`);
+        db.run(`INSERT INTO media_metadata (id, task_id, file_path, file_hash, metadata_json, tool_used) VALUES (1, 1, ?, 'hash', '{}', 'ffprobe')`, [filePath]);
+        db.run(`INSERT INTO media_transcripts (media_id, task_id, transcript_text, language, chunks_json, whisper_model) VALUES (1, 1, 'Existing', 'en', '[]', 'test-model')`);
 
-    const result = await executeMediaTranscribeTask(task);
-    expect(result.success).toBe(true);
-});
+        const result = await executeMediaTranscribeTask(task);
+        expect(result.success).toBe(true);
+    });
 
-it('handles whisper not being available', async () => {
-    const filePath = join(testDir, 'file.mp3');
-    await fs.writeFile(filePath, 'data');
-    const task = createTask(filePath);
+    it('handles whisper not being available', async () => {
+        const filePath = join(testDir, 'file.mp3');
+        await fs.writeFile(filePath, 'data');
+        const task = createTask(filePath);
 
-    db.run(`INSERT INTO media_metadata (id, task_id, file_path, file_hash, metadata_json, tool_used) VALUES (1, 1, ?, 'hash', '{"meta":true}', 'ffprobe')`, [filePath]);
+        db.run(`INSERT INTO media_metadata (id, task_id, file_path, file_hash, metadata_json, tool_used) VALUES (1, 1, ?, 'hash', '{"meta":true}', 'ffprobe')`, [filePath]);
 
-    const result = await executeMediaTranscribeTask(task);
+        const result = await executeMediaTranscribeTask(task);
 
-    // Since Whisper is not available in the test environment, we expect it to fail gracefully
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('Executable not found');
-});
+        // Since Whisper is not available in the test environment, we expect it to fail gracefully
+        expect(result.success).toBe(false);
+        expect(result.error).toContain('Executable not found');
+    });
 
 });
 
 afterAll(() => {
-  mock.restore();
+    mock.restore();
 });

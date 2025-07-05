@@ -68,7 +68,11 @@ describe('FeedbackTracker', () => {
 
         // Clear module cache and re-mock
         delete require.cache[require.resolve('../src/feedback-tracker')];
-        mock.module('../src/db', () => ({ getDatabase: () => db }));
+        mock.module('../src/db', () => ({
+            getDatabase: () => db,
+            initDatabase: mock(() => Promise.resolve()),
+            getDependencyHelper: mock(() => ({}))
+        }));
 
         const mod = await import('../src/feedback-tracker?t=' + Date.now());
         FeedbackTrackerClass = mod.FeedbackTracker;
@@ -219,7 +223,11 @@ describe('FeedbackTracker', () => {
     it('logs error when recordFeedback fails', async () => {
         mock.restore();
         const failingDb = { run: () => { throw new Error('fail'); } } as any;
-        mock.module('../src/db', () => ({ getDatabase: () => failingDb }));
+        mock.module('../src/db', () => ({
+            getDatabase: () => failingDb,
+            initDatabase: mock(() => Promise.resolve()),
+            getDependencyHelper: mock(() => ({}))
+        }));
         delete require.cache[require.resolve('../src/feedback-tracker')];
         const mod = await import('../src/feedback-tracker?t=' + Date.now());
         const FT = mod.FeedbackTracker;

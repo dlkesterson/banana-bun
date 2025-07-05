@@ -1,92 +1,108 @@
-import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 
 // Mock all dependencies that the summarize module needs
 const mockLogger = {
-  info: mock(() => Promise.resolve()),
-  error: mock(() => Promise.resolve()),
-  warn: mock(() => Promise.resolve()),
-  debug: mock(() => Promise.resolve())
+    info: mock(() => Promise.resolve()),
+    error: mock(() => Promise.resolve()),
+    warn: mock(() => Promise.resolve()),
+    debug: mock(() => Promise.resolve())
 };
 mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
 
 const mockSummarizerService = {
-  isInitialized: mock(() => true),
-  generateSummaryForMedia: mock(() => Promise.resolve({ success: true, summary: 'test summary' }))
+    isInitialized: mock(() => true),
+    generateSummaryForMedia: mock(() => Promise.resolve({ success: true, summary: 'test summary' }))
 };
 mock.module('../src/services/summarizer', () => ({ summarizerService: mockSummarizerService }));
 
 const mockGetDatabase = mock(() => ({
-  prepare: mock(() => ({
-    get: mock(() => undefined),
-    run: mock(() => ({ lastInsertRowid: 1 }))
-  }))
+    prepare: mock(() => ({
+        get: mock(() => undefined),
+        run: mock(() => ({ lastInsertRowid: 1 }))
+    }))
 }));
-mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
+mock.module('../src/db', () => ({
+    getDatabase: mockGetDatabase,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
 
 // Mock analytics logger so we can verify calls
 const mockAnalyticsLogger = {
-  logTaskStart: mock(() => Promise.resolve()),
-  logTaskComplete: mock(() => Promise.resolve()),
-  logTaskError: mock(() => Promise.resolve())
+    logTaskStart: mock(() => Promise.resolve()),
+    logTaskComplete: mock(() => Promise.resolve()),
+    logTaskError: mock(() => Promise.resolve())
 };
 mock.module('../src/analytics/logger', () => ({ analyticsLogger: mockAnalyticsLogger }));
 
-// Mock shell executor used by dispatcher
-const mockExecuteShellTask = mock(async () => ({ success: true, outputPath: '/tmp/out.txt' }));
-mock.module('../src/executors/shell', () => ({ executeShellTask: mockExecuteShellTask }));
+// Mock shell executor used by dispatcher - use a more realistic path
+const mockExecuteShellTask = mock(async (task: any) => ({
+    success: true,
+    outputPath: `/tmp/test-outputs/task-${task.id || 'unknown'}-shell-output.txt`
+}));
 
-import { executeTask } from '../src/executors/dispatcher';
+// Use a scoped mock that only affects this test file
+let executeTask: typeof import('../src/executors/dispatcher').executeTask;
 
 describe('executeTask dispatcher', () => {
-  beforeEach(() => {
-    mockExecuteShellTask.mockClear();
-    Object.values(mockAnalyticsLogger).forEach(fn => {
-      if (typeof fn === 'function' && 'mockClear' in fn) {
-        (fn as any).mockClear();
-      }
+    beforeEach(async () => {
+        // Set up scoped mock for this test suite only
+        mock.module('../src/executors/shell', () => ({ executeShellTask: mockExecuteShellTask }));
+
+        // Import the module after setting up the mock
+        const dispatcherModule = await import('../src/executors/dispatcher?t=' + Date.now());
+        executeTask = dispatcherModule.executeTask;
+
+        mockExecuteShellTask.mockClear();
+        Object.values(mockAnalyticsLogger).forEach(fn => {
+            if (typeof fn === 'function' && 'mockClear' in fn) {
+                (fn as any).mockClear();
+            }
+        });
     });
-  });
 
-  it('dispatches shell task and logs completion', async () => {
-    const task = { id: 1, type: 'shell', shell_command: 'echo hi', status: 'pending', result: null } as const;
-    const result = await executeTask(task);
+    afterEach(() => {
+        // Clean up the mock after each test
+        mock.restore();
+    });
 
-    expect(mockExecuteShellTask).toHaveBeenCalledWith(task);
-    expect(mockAnalyticsLogger.logTaskStart).toHaveBeenCalledWith(task);
-    expect(mockAnalyticsLogger.logTaskComplete).toHaveBeenCalledWith(task, expect.any(Number));
-    expect(mockAnalyticsLogger.logTaskError).not.toHaveBeenCalled();
-    expect(result.success).toBe(true);
-    expect(result.outputPath).toBe('/tmp/out.txt');
-  });
+    it('dispatches shell task and logs completion', async () => {
+        const task = { id: 1, type: 'shell', shell_command: 'echo hi', status: 'pending', result: null } as const;
+        const result = await executeTask(task);
 
-  it('logs error when executor fails', async () => {
-    mockExecuteShellTask.mockResolvedValueOnce({ success: false, error: 'boom' });
+        expect(mockExecuteShellTask).toHaveBeenCalledWith(task);
+        expect(mockAnalyticsLogger.logTaskStart).toHaveBeenCalledWith(task);
+        expect(mockAnalyticsLogger.logTaskComplete).toHaveBeenCalledWith(task, expect.any(Number));
+        expect(mockAnalyticsLogger.logTaskError).not.toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        expect(result.outputPath).toBe('/tmp/test-outputs/task-1-shell-output.txt');
+    });
 
-    const task = { id: 2, type: 'shell', shell_command: 'exit 1', status: 'pending', result: null } as const;
-    const result = await executeTask(task);
+    it('logs error when executor fails', async () => {
+        mockExecuteShellTask.mockResolvedValueOnce({ success: false, error: 'boom' });
 
-    expect(mockAnalyticsLogger.logTaskStart).toHaveBeenCalledWith(task);
-    expect(mockAnalyticsLogger.logTaskError).toHaveBeenCalledWith(task, 'boom', expect.any(Number));
-    expect(mockAnalyticsLogger.logTaskComplete).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('boom');
-  });
+        const task = { id: 2, type: 'shell', shell_command: 'exit 1', status: 'pending', result: null } as const;
+        const result = await executeTask(task);
 
-  it('handles executor exceptions and logs error', async () => {
-    mockExecuteShellTask.mockRejectedValueOnce(new Error('fail'));
+        expect(mockAnalyticsLogger.logTaskStart).toHaveBeenCalledWith(task);
+        expect(mockAnalyticsLogger.logTaskError).toHaveBeenCalledWith(task, 'boom', expect.any(Number));
+        expect(mockAnalyticsLogger.logTaskComplete).not.toHaveBeenCalled();
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('boom');
+    });
 
-    const task = { id: 3, type: 'shell', shell_command: 'bad', status: 'pending', result: null } as const;
-    const result = await executeTask(task);
+    it('handles executor exceptions and logs error', async () => {
+        mockExecuteShellTask.mockRejectedValueOnce(new Error('fail'));
 
-    expect(mockAnalyticsLogger.logTaskStart).toHaveBeenCalledWith(task);
-    expect(mockAnalyticsLogger.logTaskError).toHaveBeenCalledWith(task, 'fail', expect.any(Number));
-    expect(mockAnalyticsLogger.logTaskComplete).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('fail');
-  });
+        const task = { id: 3, type: 'shell', shell_command: 'bad', status: 'pending', result: null } as const;
+        const result = await executeTask(task);
+
+        expect(mockAnalyticsLogger.logTaskStart).toHaveBeenCalledWith(task);
+        expect(mockAnalyticsLogger.logTaskError).toHaveBeenCalledWith(task, 'fail', expect.any(Number));
+        expect(mockAnalyticsLogger.logTaskComplete).not.toHaveBeenCalled();
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('fail');
+    });
 });
 
-afterAll(() => {
-  // Restore all mocks after all tests in this file complete
-  mock.restore();
-});
+
