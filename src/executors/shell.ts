@@ -28,9 +28,12 @@ export async function executeShellTask(task: ShellTask): Promise<{ success: bool
         }
         const outputPath = join(outputDir, `task-${task.id || 'unknown'}-shell-output.txt`);
 
-        // Run the shell command
+        // Run the shell command - use appropriate shell for platform
+        const isWindows = process.platform === 'win32';
         const proc = spawn({
-            cmd: ["bash", "-c", task.shell_command],
+            cmd: isWindows
+                ? ["powershell", "-Command", task.shell_command]
+                : ["bash", "-c", task.shell_command],
             stdout: "pipe",
             stderr: "pipe"
         });

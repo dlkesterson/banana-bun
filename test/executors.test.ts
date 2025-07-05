@@ -145,10 +145,16 @@ describe('Task Executors', () => {
 
             const { executeShellTask } = await import('../src/executors/shell?t=' + Date.now());
 
+            // Use cross-platform commands
+            const isWindows = process.platform === 'win32';
+            const complexCommand = isWindows
+                ? 'echo "Line 1"; echo "Line 2"; dir $env:TEMP'
+                : 'echo "Line 1" && echo "Line 2" && ls /tmp';
+
             const task: ShellTask = {
                 id: 4,
                 type: 'shell',
-                shell_command: 'echo "Line 1" && echo "Line 2" && ls /tmp',
+                shell_command: complexCommand,
                 status: 'pending',
                 result: null,
                 description: 'Test complex command'
