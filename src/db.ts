@@ -6,13 +6,12 @@ import { DependencyHelper } from './migrations/001-normalize-dependencies';
 let db: Database;
 let dependencyHelper: DependencyHelper;
 
-export function initDatabase(): Promise<void> {
-    return new Promise((resolve, reject) => {
-        try {
-            db = new Database(config.paths.database);
+export function initDatabase(): void {
+    try {
+        db = new Database(config.paths.database);
 
-            // Create tasks table
-            db.run(`
+        // Create tasks table
+        db.run(`
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT,
@@ -31,8 +30,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create media table
-            db.run(`
+        // Create media table
+        db.run(`
             CREATE TABLE IF NOT EXISTS media (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 video_id TEXT UNIQUE,
@@ -43,8 +42,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create review_results table for Phase 3 enhancements
-            db.run(`
+        // Create review_results table for Phase 3 enhancements
+        db.run(`
             CREATE TABLE IF NOT EXISTS review_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
@@ -66,8 +65,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create planner_results table for storing GPT-generated plans
-            db.run(`
+        // Create planner_results table for storing GPT-generated plans
+        db.run(`
             CREATE TABLE IF NOT EXISTS planner_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 plan_id TEXT,
@@ -88,8 +87,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create media_metadata table for Phase 4 media ingestion
-            db.run(`
+        // Create media_metadata table for Phase 4 media ingestion
+        db.run(`
             CREATE TABLE IF NOT EXISTS media_metadata (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
@@ -102,8 +101,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create media_transcripts table for Whisper transcription results
-            db.run(`
+        // Create media_transcripts table for Whisper transcription results
+        db.run(`
             CREATE TABLE IF NOT EXISTS media_transcripts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -118,8 +117,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create media_tags table for AI-generated tags
-            db.run(`
+        // Create media_tags table for AI-generated tags
+        db.run(`
             CREATE TABLE IF NOT EXISTS media_tags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -134,8 +133,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create media_index_status table for tracking indexing status
-            db.run(`
+        // Create media_index_status table for tracking indexing status
+        db.run(`
             CREATE TABLE IF NOT EXISTS media_index_status (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -151,8 +150,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create task_logs table for autonomous learning metrics
-            db.run(`
+        // Create task_logs table for autonomous learning metrics
+        db.run(`
             CREATE TABLE IF NOT EXISTS task_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
@@ -166,8 +165,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create user_feedback table for tracking corrections
-            db.run(`
+        // Create user_feedback table for tracking corrections
+        db.run(`
             CREATE TABLE IF NOT EXISTS user_feedback (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -181,8 +180,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create search_behavior table for cross-modal intelligence
-            db.run(`
+        // Create search_behavior table for cross-modal intelligence
+        db.run(`
             CREATE TABLE IF NOT EXISTS search_behavior (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -196,8 +195,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create view_sessions table for content engagement
-            db.run(`
+        // Create view_sessions table for content engagement
+        db.run(`
             CREATE TABLE IF NOT EXISTS view_sessions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -213,8 +212,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create engagement_analytics table
-            db.run(`
+        // Create engagement_analytics table
+        db.run(`
             CREATE TABLE IF NOT EXISTS engagement_analytics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -233,8 +232,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create content_engagement table
-            db.run(`
+        // Create content_engagement table
+        db.run(`
             CREATE TABLE IF NOT EXISTS content_engagement (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -249,8 +248,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create content_trends table
-            db.run(`
+        // Create content_trends table
+        db.run(`
             CREATE TABLE IF NOT EXISTS content_trends (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 media_id INTEGER NOT NULL,
@@ -264,58 +263,58 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Add missing columns if they don't exist (for backward compatibility)
-            try {
-                db.run('ALTER TABLE tasks ADD COLUMN filename TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        // Add missing columns if they don't exist (for backward compatibility)
+        try {
+            db.run('ALTER TABLE tasks ADD COLUMN filename TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE tasks ADD COLUMN file_hash TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE tasks ADD COLUMN file_hash TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE tasks ADD COLUMN args TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE tasks ADD COLUMN args TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            // Add summary columns to media_transcripts table
-            try {
-                db.run('ALTER TABLE media_transcripts ADD COLUMN summary TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        // Add summary columns to media_transcripts table
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE media_transcripts ADD COLUMN summary_style TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_style TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE media_transcripts ADD COLUMN summary_model TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_model TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE media_transcripts ADD COLUMN summary_tokens_used INTEGER');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_tokens_used INTEGER');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE media_transcripts ADD COLUMN summary_processing_time_ms INTEGER');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE media_transcripts ADD COLUMN summary_processing_time_ms INTEGER');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            // Create task_schedules table for scheduler
-            db.run(`
+        // Create task_schedules table for scheduler
+        db.run(`
             CREATE TABLE IF NOT EXISTS task_schedules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 template_task_id INTEGER,
@@ -333,8 +332,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create task_instances table for scheduler
-            db.run(`
+        // Create task_instances table for scheduler
+        db.run(`
             CREATE TABLE IF NOT EXISTS task_instances (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 schedule_id INTEGER,
@@ -350,8 +349,8 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create learning_rules table for enhanced learning service
-            db.run(`
+        // Create learning_rules table for enhanced learning service
+        db.run(`
             CREATE TABLE IF NOT EXISTS learning_rules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 pattern_type TEXT NOT NULL,
@@ -378,41 +377,41 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create indexes for performance
-            try {
-                db.run('CREATE INDEX IF NOT EXISTS idx_search_behavior_session ON search_behavior(session_id)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_search_behavior_timestamp ON search_behavior(timestamp)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_media ON view_sessions(media_id)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_start_time ON view_sessions(start_time)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_engagement_analytics_media_date ON engagement_analytics(media_id, date)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_content_engagement_media ON content_engagement(media_id)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_content_trends_media ON content_trends(media_id)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_task_schedules_next_run ON task_schedules(next_run_at)');
-                db.run('CREATE INDEX IF NOT EXISTS idx_task_instances_schedule ON task_instances(schedule_id)');
-            } catch (error) {
-                // Indexes might already exist, ignore
-            }
+        // Create indexes for performance
+        try {
+            db.run('CREATE INDEX IF NOT EXISTS idx_search_behavior_session ON search_behavior(session_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_search_behavior_timestamp ON search_behavior(timestamp)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_media ON view_sessions(media_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_view_sessions_start_time ON view_sessions(start_time)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_engagement_analytics_media_date ON engagement_analytics(media_id, date)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_content_engagement_media ON content_engagement(media_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_content_trends_media ON content_trends(media_id)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_task_schedules_next_run ON task_schedules(next_run_at)');
+            db.run('CREATE INDEX IF NOT EXISTS idx_task_instances_schedule ON task_instances(schedule_id)');
+        } catch (error) {
+            // Indexes might already exist, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE tasks ADD COLUMN generator TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE tasks ADD COLUMN generator TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE tasks ADD COLUMN tool TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE tasks ADD COLUMN tool TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            try {
-                db.run('ALTER TABLE tasks ADD COLUMN validation_errors TEXT');
-            } catch (error) {
-                // Column already exists, ignore
-            }
+        try {
+            db.run('ALTER TABLE tasks ADD COLUMN validation_errors TEXT');
+        } catch (error) {
+            // Column already exists, ignore
+        }
 
-            // Create task_dependencies table for normalized dependencies
-            db.run(`
+        // Create task_dependencies table for normalized dependencies
+        db.run(`
             CREATE TABLE IF NOT EXISTS task_dependencies (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
@@ -423,53 +422,51 @@ export function initDatabase(): Promise<void> {
             )
         `);
 
-            // Create indexes
-            db.run('CREATE INDEX IF NOT EXISTS idx_status ON tasks(status)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_parent ON tasks(parent_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(task_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends_on ON task_dependencies(depends_on_id)');
-            try {
-                db.run('CREATE INDEX IF NOT EXISTS idx_file_hash ON tasks(file_hash)');
-            } catch (error) {
-                // Index creation failed, ignore
-            }
-
-            // Create indexes for Phase 3 tables
-            db.run('CREATE INDEX IF NOT EXISTS idx_review_results_task_id ON review_results(task_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_review_results_score ON review_results(score)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_review_results_passed ON review_results(passed)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_planner_results_task_id ON planner_results(task_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_planner_results_model ON planner_results(model_used)');
-
-            // Create indexes for Phase 4 media_metadata table
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_task_id ON media_metadata(task_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_file_hash ON media_metadata(file_hash)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_file_path ON media_metadata(file_path)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_extracted_at ON media_metadata(extracted_at)');
-
-            // Create indexes for new media intelligence tables
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_transcripts_media_id ON media_transcripts(media_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_transcripts_task_id ON media_transcripts(task_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_transcripts_language ON media_transcripts(language)');
-
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_tags_media_id ON media_tags(media_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_tags_task_id ON media_tags(task_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_tags_confidence ON media_tags(confidence_score)');
-
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_index_status_media_id ON media_index_status(media_id)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_index_status_meili ON media_index_status(meili_indexed)');
-            db.run('CREATE INDEX IF NOT EXISTS idx_media_index_status_chroma ON media_index_status(chroma_indexed)');
-
-            // Initialize dependency helper
-            dependencyHelper = new DependencyHelper(db);
-
-            logger.info('Database initialized successfully');
-            resolve();
+        // Create indexes
+        db.run('CREATE INDEX IF NOT EXISTS idx_status ON tasks(status)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_parent ON tasks(parent_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id ON task_dependencies(task_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends_on ON task_dependencies(depends_on_id)');
+        try {
+            db.run('CREATE INDEX IF NOT EXISTS idx_file_hash ON tasks(file_hash)');
         } catch (error) {
-            logger.error('Failed to initialize database', { error });
-            reject(error);
+            // Index creation failed, ignore
         }
-    });
+
+        // Create indexes for Phase 3 tables
+        db.run('CREATE INDEX IF NOT EXISTS idx_review_results_task_id ON review_results(task_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_review_results_score ON review_results(score)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_review_results_passed ON review_results(passed)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_planner_results_task_id ON planner_results(task_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_planner_results_model ON planner_results(model_used)');
+
+        // Create indexes for Phase 4 media_metadata table
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_task_id ON media_metadata(task_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_file_hash ON media_metadata(file_hash)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_file_path ON media_metadata(file_path)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_metadata_extracted_at ON media_metadata(extracted_at)');
+
+        // Create indexes for new media intelligence tables
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_transcripts_media_id ON media_transcripts(media_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_transcripts_task_id ON media_transcripts(task_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_transcripts_language ON media_transcripts(language)');
+
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_tags_media_id ON media_tags(media_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_tags_task_id ON media_tags(task_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_tags_confidence ON media_tags(confidence_score)');
+
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_index_status_media_id ON media_index_status(media_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_index_status_meili ON media_index_status(meili_indexed)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_media_index_status_chroma ON media_index_status(chroma_indexed)');
+
+        // Initialize dependency helper
+        dependencyHelper = new DependencyHelper(db);
+
+        logger.info('Database initialized successfully');
+    } catch (error) {
+        logger.error('Failed to initialize database', { error });
+        throw error;
+    }
 }
 
 export function getDatabase() {

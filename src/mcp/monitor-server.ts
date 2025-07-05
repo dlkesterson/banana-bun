@@ -92,7 +92,7 @@ class MonitorMCPServer {
         try {
             // Try to initialize database, but don't fail if it's already mocked
             try {
-                await initDatabase();
+                initDatabase();
             } catch (error) {
                 // In test environment, database might be mocked
                 console.log('Database initialization skipped (likely mocked)');

@@ -24,10 +24,10 @@ import {
 import { initDatabase } from '../db';
 import { logger } from '../utils/logger';
 import { getLlmPlanningService } from '../services/llm-planning-service';
-import type { 
-    LlmPlanningRequest, 
+import type {
+    LlmPlanningRequest,
     LogAnalysisRequest,
-    MetadataQualityAnalysis 
+    MetadataQualityAnalysis
 } from '../types/llm-planning';
 
 class LlmPlanningMCPServer {
@@ -51,7 +51,7 @@ class LlmPlanningMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('LLM Planning MCP server database initialized');
             this.setupToolHandlers();
         } catch (error) {
@@ -246,22 +246,22 @@ class LlmPlanningMCPServer {
     private async getOptimizationRecommendations(args: any) {
         const llmPlanningService = getLlmPlanningService();
         const allRecommendations = await llmPlanningService.generateOptimizationRecommendations();
-        
+
         // Filter recommendations based on criteria
         let filteredRecommendations = allRecommendations;
-        
+
         if (args.category && args.category !== 'all') {
             filteredRecommendations = filteredRecommendations.filter(r => r.recommendation_type === args.category);
         }
-        
+
         if (args.min_impact_score) {
             filteredRecommendations = filteredRecommendations.filter(r => r.impact_score >= args.min_impact_score);
         }
-        
+
         if (args.implementation_difficulty && args.implementation_difficulty !== 'all') {
             filteredRecommendations = filteredRecommendations.filter(r => r.implementation_difficulty === args.implementation_difficulty);
         }
-        
+
         // Sort by impact score and limit results
         filteredRecommendations = filteredRecommendations
             .sort((a, b) => b.impact_score - a.impact_score)

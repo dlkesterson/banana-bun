@@ -795,7 +795,7 @@ async function main() {
         await ensureFoldersExist();
         console.log("✅ Folders ensured");
         // Initialize database
-        await initDatabase();
+        initDatabase();
         console.log("✅ Database initialized");
 
         // Run all database migrations

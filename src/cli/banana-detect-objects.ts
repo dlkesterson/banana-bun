@@ -181,7 +181,7 @@ async function runDirectObjectDetection(sceneIds: number[], options: CliOptions)
     }
 
     console.log('\n🔍 Object Detection Results:');
-    console.log('=' .repeat(60));
+    console.log('='.repeat(60));
 
     let totalObjects = 0;
     const objectCounts = new Map<string, number>();
@@ -189,13 +189,13 @@ async function runDirectObjectDetection(sceneIds: number[], options: CliOptions)
     for (const { sceneId, result } of results) {
         if (result.success && result.objects) {
             console.log(`\nScene ${sceneId}:`);
-            
+
             if (result.objects.length === 0) {
                 console.log('  No objects detected');
             } else {
                 result.objects.forEach((obj: any, index: number) => {
                     console.log(`  ${index + 1}. ${obj.label} (${Math.round(obj.confidence * 100)}%)`);
-                    
+
                     // Count objects across all scenes
                     const current = objectCounts.get(obj.label) || 0;
                     objectCounts.set(obj.label, current + 1);
@@ -205,7 +205,7 @@ async function runDirectObjectDetection(sceneIds: number[], options: CliOptions)
         }
     }
 
-    console.log('\n' + '=' .repeat(60));
+    console.log('\n' + '='.repeat(60));
     console.log(`📊 Summary:`);
     console.log(`   Total objects detected: ${totalObjects}`);
     console.log(`   Scenes processed: ${results.length}`);
@@ -216,7 +216,7 @@ async function runDirectObjectDetection(sceneIds: number[], options: CliOptions)
         const sortedObjects = Array.from(objectCounts.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, 10);
-        
+
         sortedObjects.forEach(([label, count], index) => {
             console.log(`   ${index + 1}. ${label}: ${count} occurrences`);
         });
@@ -231,7 +231,7 @@ async function createObjectDetectionTasks(sceneIds: number[], options: CliOption
 
     for (const sceneId of sceneIds) {
         const description = `Detect objects in scene ${sceneId}`;
-        
+
         const result = db.run(
             `INSERT INTO tasks (type, description, status, args)
              VALUES (?, ?, ?, ?)`,
@@ -263,7 +263,7 @@ async function showModelInfo(): Promise<void> {
     console.log(`   Type: ${modelInfo.type}`);
     console.log(`   Labels: ${modelInfo.labels}`);
     console.log(`   Initialized: ${modelInfo.initialized ? 'Yes' : 'No'}`);
-    
+
     if (modelInfo.initialized) {
         const availableLabels = objectRecognizerService.getAvailableLabels();
         console.log(`\n🏷️  Available object labels (first 20):`);
@@ -289,7 +289,7 @@ async function main() {
         console.log('==============================\n');
 
         // Initialize database
-        await initDatabase();
+        initDatabase();
         console.log('✅ Database initialized');
 
         // Show model info

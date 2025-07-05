@@ -149,7 +149,7 @@ class MediaIntelligenceMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('Media Intelligence MCP server database initialized');
             this.setupToolHandlers();
         } catch (error) {

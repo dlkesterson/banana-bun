@@ -143,7 +143,7 @@ async function main() {
         }
 
         // Initialize database
-        await initDatabase();
+        initDatabase();
         console.log('🚀 Initializing MCP services...\n');
 
         if (options.recommend) {

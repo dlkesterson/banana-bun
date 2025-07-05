@@ -93,18 +93,18 @@ function displayPatterns(patterns: FeedbackPattern[]): void {
         console.log(`${index + 1}. ${pattern.pattern_type.toUpperCase()}: ${pattern.pattern_description}`);
         console.log(`   📊 Frequency: ${pattern.frequency} occurrences`);
         console.log(`   🎯 Confidence: ${(pattern.confidence * 100).toFixed(1)}%`);
-        
+
         if (pattern.examples.length > 0) {
             console.log(`   📝 Examples:`);
             pattern.examples.slice(0, 2).forEach(example => {
                 console.log(`      "${example.original}" → "${example.corrected}" (Media ${example.media_id})`);
             });
         }
-        
+
         if (pattern.suggested_rule) {
             console.log(`   💡 Suggested Rule: ${pattern.suggested_rule}`);
         }
-        
+
         console.log();
     });
 }
@@ -129,30 +129,30 @@ function displayRules(rules: LearningRule[]): void {
 
 async function analyzePatterns(minFrequency: number): Promise<FeedbackPattern[]> {
     console.log(`🔍 Analyzing feedback patterns (min frequency: ${minFrequency})...`);
-    
+
     const patterns = await feedbackTracker.analyzeFeedbackPatterns(minFrequency);
-    
+
     console.log(`✅ Analysis complete. Found ${patterns.length} patterns.\n`);
-    
+
     displayPatterns(patterns);
-    
+
     return patterns;
 }
 
 async function generateRules(patterns: FeedbackPattern[], dryRun: boolean): Promise<LearningRule[]> {
     console.log('🧠 Generating learning rules from patterns...');
-    
+
     const rules = await feedbackTracker.generateLearningRules(patterns);
-    
+
     console.log(`✅ Generated ${rules.length} learning rules.\n`);
-    
+
     displayRules(rules);
-    
+
     if (!dryRun && rules.length > 0) {
         console.log('💾 Saving learning rules to database...');
-        
+
         const db = getDatabase();
-        
+
         // Create learning_rules table if it doesn't exist
         db.run(`
             CREATE TABLE IF NOT EXISTS learning_rules (
@@ -168,7 +168,7 @@ async function generateRules(patterns: FeedbackPattern[], dryRun: boolean): Prom
                 last_used_at DATETIME
             )
         `);
-        
+
         let savedCount = 0;
         for (const rule of rules) {
             try {
@@ -191,34 +191,34 @@ async function generateRules(patterns: FeedbackPattern[], dryRun: boolean): Prom
                 console.warn(`⚠️  Failed to save rule: ${error}`);
             }
         }
-        
+
         console.log(`✅ Saved ${savedCount}/${rules.length} learning rules to database.`);
     } else if (dryRun) {
         console.log('🔍 Dry run: Rules would be saved to database.');
     }
-    
+
     return rules;
 }
 
 async function applyExistingRules(dryRun: boolean): Promise<void> {
     console.log('⚡ Applying existing learning rules...');
-    
+
     const db = getDatabase();
-    
+
     // Get existing rules
     const rules = db.prepare(`
         SELECT * FROM learning_rules 
         WHERE confidence >= 0.7
         ORDER BY confidence DESC, usage_count ASC
     `).all() as any[];
-    
+
     if (rules.length === 0) {
         console.log('No learning rules found to apply.');
         return;
     }
-    
+
     console.log(`Found ${rules.length} rules to apply.`);
-    
+
     // Get media that might benefit from rules
     const mediaItems = db.prepare(`
         SELECT DISTINCT mm.id 
@@ -231,11 +231,11 @@ async function applyExistingRules(dryRun: boolean): Promise<void> {
         )
         LIMIT 100
     `).all() as { id: number }[];
-    
+
     console.log(`Checking ${mediaItems.length} media items...`);
-    
+
     let applicationsCount = 0;
-    
+
     for (const media of mediaItems) {
         for (const rule of rules) {
             const learningRule: LearningRule = {
@@ -248,7 +248,7 @@ async function applyExistingRules(dryRun: boolean): Promise<void> {
                 usage_count: rule.usage_count,
                 success_rate: rule.success_rate
             };
-            
+
             if (!dryRun) {
                 const applied = await feedbackTracker.applyLearningRule(learningRule, media.id);
                 if (applied) {
@@ -261,7 +261,7 @@ async function applyExistingRules(dryRun: boolean): Promise<void> {
             }
         }
     }
-    
+
     if (dryRun) {
         console.log(`🔍 Dry run: Would apply rules ${applicationsCount} times.`);
     } else {
@@ -271,19 +271,19 @@ async function applyExistingRules(dryRun: boolean): Promise<void> {
 
 async function showFeedbackSummary(): Promise<void> {
     console.log('\n📊 Feedback Summary:');
-    console.log('=' .repeat(50));
-    
+    console.log('='.repeat(50));
+
     const stats = await feedbackTracker.getFeedbackStats(30);
-    
+
     console.log(`Total feedback (30 days): ${stats.total_feedback}`);
-    
+
     if (stats.feedback_by_type.length > 0) {
         console.log('\nFeedback by type:');
         stats.feedback_by_type.forEach(type => {
             console.log(`  ${type.type}: ${type.count}`);
         });
     }
-    
+
     const topCorrections = await feedbackTracker.getTopCorrections(5);
     if (topCorrections.length > 0) {
         console.log('\nTop corrections:');
@@ -306,7 +306,7 @@ async function main() {
         console.log('====================================\n');
 
         // Initialize database
-        await initDatabase();
+        initDatabase();
         console.log('✅ Database initialized');
 
         if (options.dryRun) {
@@ -319,19 +319,19 @@ async function main() {
         if (options.applyRules) {
             // Apply existing rules
             console.log('\n⚡ Applying Existing Rules:');
-            console.log('=' .repeat(50));
+            console.log('='.repeat(50));
             await applyExistingRules(options.dryRun || false);
         } else {
             // Analyze patterns and generate rules
             console.log('\n🔍 Pattern Analysis:');
-            console.log('=' .repeat(50));
-            
+            console.log('='.repeat(50));
+
             const patterns = await analyzePatterns(options.minFrequency || 3);
-            
+
             if (!options.analyzeOnly && patterns.length > 0) {
                 console.log('\n🧠 Rule Generation:');
-                console.log('=' .repeat(50));
-                
+                console.log('='.repeat(50));
+
                 await generateRules(patterns, options.dryRun || false);
             }
         }
