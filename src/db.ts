@@ -6,7 +6,13 @@ import { DependencyHelper } from './migrations/001-normalize-dependencies';
 let db: Database;
 let dependencyHelper: DependencyHelper;
 
-function initDatabase(): void {
+
+
+// Export functions individually to ensure CI compatibility
+export function initDatabase(): void {
+    if (db) {
+        return;
+    }
     try {
         db = new Database(config.paths.database);
 
@@ -469,19 +475,16 @@ function initDatabase(): void {
     }
 }
 
-function getDatabase() {
+export function getDatabase() {
     if (!db) {
         throw new Error('Database not initialized');
     }
     return db;
 }
 
-function getDependencyHelper() {
+export function getDependencyHelper() {
     if (!dependencyHelper) {
         throw new Error('Database not initialized');
     }
     return dependencyHelper;
 }
-
-// Export all functions using explicit export statement for consistency
-export { initDatabase, getDatabase, getDependencyHelper };
