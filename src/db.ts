@@ -6,7 +6,7 @@ import { DependencyHelper } from './migrations/001-normalize-dependencies';
 let db: Database;
 let dependencyHelper: DependencyHelper;
 
-export function initDatabase(): void {
+function initDatabase(): void {
     try {
         db = new Database(config.paths.database);
 
@@ -482,3 +482,6 @@ export function getDependencyHelper() {
     }
     return dependencyHelper;
 }
+
+// Export initDatabase using explicit export statement
+export { initDatabase };
