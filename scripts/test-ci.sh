@@ -45,6 +45,7 @@ done
 # This ensures consistent coverage above 25% threshold (verified at 27.19%)
 # These tests have been verified to run successfully and provide stable coverage
 passing_test_files=(
+    "test/debug-import.test.ts"
     "test/analytics-logger.test.ts"
     "test/ab-testing-service.test.ts"
     "test/additional-executors.test.ts"
