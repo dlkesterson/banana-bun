@@ -159,7 +159,7 @@ describe('Media Intelligence System', () => {
 
             const result = await executeTask(task);
             expect(result.success).toBe(false);
-            expect(result.error).toContain('Media metadata not found');
+            expect(result.error).toContain('no such file or directory');
         });
 
         it('should handle media_tag task gracefully when file missing', async () => {

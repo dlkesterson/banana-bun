@@ -15,6 +15,7 @@ import { initDatabase, getDatabase } from '../db';
 import { meilisearchService } from '../services/meilisearch-service';
 import { embeddingManager } from '../memory/embeddings';
 import { logger } from '../utils/logger';
+import { safeParseInt, validateNonEmptyArray, safeJsonParse, isValidString } from '../utils/safe-access';
 import type { MediaMetadata } from '../types/media';
 
 interface CliOptions {
@@ -79,7 +80,7 @@ async function main() {
             filter: values.filter,
             semantic: values.semantic,
             similar: values.similar,
-            limit: values.limit ? parseInt(values.limit) : 10,
+            limit: values.limit ? (safeParseInt(values.limit) ?? 10) : 10,
             help: values.help
         };
 
@@ -103,11 +104,15 @@ async function main() {
         console.log('🔍 Searching media content...\n');
 
         if (options.similar) {
-            await searchSimilar(options.similar, options.limit!);
+            await searchSimilar(options.similar, options.limit ?? 10);
         } else if (options.semantic) {
-            await searchSemantic(options.query!, options.limit!);
+            if (!options.query) {
+                console.error('Error: Query is required for semantic search');
+                process.exit(1);
+            }
+            await searchSemantic(options.query, options.limit ?? 10);
         } else {
-            await searchKeyword(options.query, options.filter, options.limit!);
+            await searchKeyword(options.query, options.filter, options.limit ?? 10);
         }
 
     } catch (error) {
@@ -134,18 +139,20 @@ async function searchKeyword(query?: string, filter?: string, limit: number = 10
 
         for (let i = 0; i < results.hits.length; i++) {
             const hit = results.hits[i];
-            console.log(`${i + 1}. ${hit.title || hit.filename}`);
-            console.log(`   📁 ${hit.file_path}`);
-            console.log(`   ⏱️  ${formatDuration(hit.duration)} | 📦 ${hit.format} | 🎭 ${hit.guessed_type || 'unknown'}`);
-            
-            if (hit.tags && hit.tags.length > 0) {
+            if (!hit) continue;
+
+            console.log(`${i + 1}. ${hit.title || hit.filename || 'Unknown'}`);
+            console.log(`   📁 ${hit.file_path || 'Unknown path'}`);
+            console.log(`   ⏱️  ${formatDuration(hit.duration)} | 📦 ${hit.format || 'unknown'} | 🎭 ${hit.guessed_type || 'unknown'}`);
+
+            if (hit.tags && Array.isArray(hit.tags) && hit.tags.length > 0) {
                 console.log(`   🏷️  ${hit.tags.slice(0, 5).join(', ')}${hit.tags.length > 5 ? '...' : ''}`);
             }
-            
+
             if (hit.transcript_snippet) {
                 console.log(`   💬 ${hit.transcript_snippet}`);
             }
-            
+
             console.log('');
         }
 
@@ -218,17 +225,23 @@ async function searchSimilar(filePath: string, limit: number = 10): Promise<void
             return;
         }
 
-        const metadata: MediaMetadata = JSON.parse(mediaRow.metadata_json);
-        
-        // Build search query from metadata
-        const searchParts = [];
-        if (metadata.title) searchParts.push(metadata.title);
-        if (metadata.description) searchParts.push(metadata.description);
-        if (mediaRow.tags_json) {
-            const tags = JSON.parse(mediaRow.tags_json);
-            searchParts.push(tags.join(' '));
+        const metadata = safeJsonParse<MediaMetadata>(mediaRow.metadata_json);
+        if (!metadata) {
+            console.error('Invalid metadata JSON for this file');
+            return;
         }
-        if (mediaRow.transcript_text) {
+
+        // Build search query from metadata
+        const searchParts: string[] = [];
+        if (isValidString(metadata.title)) searchParts.push(metadata.title);
+        if (isValidString(metadata.description)) searchParts.push(metadata.description);
+        if (mediaRow.tags_json) {
+            const tags = safeJsonParse<string[]>(mediaRow.tags_json);
+            if (tags && Array.isArray(tags)) {
+                searchParts.push(tags.join(' '));
+            }
+        }
+        if (isValidString(mediaRow.transcript_text)) {
             // Use first 200 characters of transcript
             searchParts.push(mediaRow.transcript_text.substring(0, 200));
         }

@@ -23,11 +23,11 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { initDatabase } from '../db';
 import { logger } from '../utils/logger';
-import { llmPlanningService } from '../services/llm-planning-service';
-import type { 
-    LlmPlanningRequest, 
+import { getLlmPlanningService } from '../services/llm-planning-service';
+import type {
+    LlmPlanningRequest,
     LogAnalysisRequest,
-    MetadataQualityAnalysis 
+    MetadataQualityAnalysis
 } from '../types/llm-planning';
 
 class LlmPlanningMCPServer {
@@ -51,7 +51,7 @@ class LlmPlanningMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('LLM Planning MCP server database initialized');
             this.setupToolHandlers();
         } catch (error) {
@@ -196,6 +196,7 @@ class LlmPlanningMCPServer {
             include_similar_tasks: true
         };
 
+        const llmPlanningService = getLlmPlanningService();
         const result = await llmPlanningService.generateOptimizedPlan(request);
 
         return {
@@ -218,6 +219,7 @@ class LlmPlanningMCPServer {
 
     private async analyzeSystemLogs(args: any) {
         const timeRangeHours = args.time_range_hours || 24;
+        const llmPlanningService = getLlmPlanningService();
         const patterns = await llmPlanningService.analyzeSystemLogs(timeRangeHours);
 
         let recommendations = [];
@@ -242,23 +244,24 @@ class LlmPlanningMCPServer {
     }
 
     private async getOptimizationRecommendations(args: any) {
+        const llmPlanningService = getLlmPlanningService();
         const allRecommendations = await llmPlanningService.generateOptimizationRecommendations();
-        
+
         // Filter recommendations based on criteria
         let filteredRecommendations = allRecommendations;
-        
+
         if (args.category && args.category !== 'all') {
             filteredRecommendations = filteredRecommendations.filter(r => r.recommendation_type === args.category);
         }
-        
+
         if (args.min_impact_score) {
             filteredRecommendations = filteredRecommendations.filter(r => r.impact_score >= args.min_impact_score);
         }
-        
+
         if (args.implementation_difficulty && args.implementation_difficulty !== 'all') {
             filteredRecommendations = filteredRecommendations.filter(r => r.implementation_difficulty === args.implementation_difficulty);
         }
-        
+
         // Sort by impact score and limit results
         filteredRecommendations = filteredRecommendations
             .sort((a, b) => b.impact_score - a.impact_score)
@@ -284,6 +287,7 @@ class LlmPlanningMCPServer {
     }
 
     private async getPlanningMetrics(args: any) {
+        const llmPlanningService = getLlmPlanningService();
         const metrics = await llmPlanningService.getPlanningMetrics();
 
         return {

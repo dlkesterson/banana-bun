@@ -392,5 +392,19 @@ export class SceneDetectorService {
     }
 }
 
-// Export singleton instance
-export const sceneDetectorService = new SceneDetectorService();
+// Export lazy singleton instance
+let _sceneDetectorService: SceneDetectorService | null = null;
+
+export function getSceneDetectorService(): SceneDetectorService {
+    if (!_sceneDetectorService) {
+        _sceneDetectorService = new SceneDetectorService();
+    }
+    return _sceneDetectorService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const sceneDetectorService = new Proxy({} as SceneDetectorService, {
+    get(target, prop) {
+        return getSceneDetectorService()[prop as keyof SceneDetectorService];
+    }
+});

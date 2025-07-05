@@ -15,7 +15,40 @@ export async function migration008(db: Database): Promise<void> {
     await logger.info('Running migration 008: Add Phase 2 Advanced AI Features');
 
     try {
-      // 1. Add summary column to media_transcripts table
+      // 1. Create required tables if they don't exist, then add summary columns
+      // First, ensure the media_metadata table exists (required for foreign key)
+      db.run(`
+        CREATE TABLE IF NOT EXISTS media_metadata (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          task_id INTEGER NOT NULL,
+          file_path TEXT NOT NULL,
+          file_hash TEXT NOT NULL UNIQUE,
+          metadata_json TEXT NOT NULL,
+          extracted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          tool_used TEXT NOT NULL,
+          FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+        )
+      `);
+      await logger.info("Ensured media_metadata table exists");
+
+      // Then, ensure the media_transcripts table exists
+      db.run(`
+        CREATE TABLE IF NOT EXISTS media_transcripts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          media_id INTEGER NOT NULL,
+          task_id INTEGER NOT NULL,
+          transcript_text TEXT NOT NULL,
+          language TEXT,
+          chunks_json TEXT,
+          whisper_model TEXT NOT NULL,
+          transcribed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (media_id) REFERENCES media_metadata (id) ON DELETE CASCADE,
+          FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+        )
+      `);
+      await logger.info("Ensured media_transcripts table exists");
+
+      // Now add summary columns to media_transcripts table
       try {
         db.run(`ALTER TABLE media_transcripts ADD COLUMN summary TEXT`);
         db.run(`ALTER TABLE media_transcripts ADD COLUMN summary_style TEXT`);

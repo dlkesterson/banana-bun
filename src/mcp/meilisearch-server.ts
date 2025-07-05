@@ -90,7 +90,7 @@ class MeiliSearchMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('MeiliSearch MCP server database initialized');
             this.setupToolHandlers();
         } catch (error) {

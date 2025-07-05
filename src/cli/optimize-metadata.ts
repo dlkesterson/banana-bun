@@ -13,7 +13,7 @@
 
 import { parseArgs } from 'util';
 import { logger } from '../utils/logger';
-import { llmPlanningService } from '../services/llm-planning-service';
+import { getLlmPlanningService } from '../services/llm-planning-service';
 import { initDatabase, getDatabase } from '../db';
 import type { MetadataQualityAnalysis } from '../types/llm-planning';
 

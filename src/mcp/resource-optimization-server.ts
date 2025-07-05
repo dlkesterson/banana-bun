@@ -7,8 +7,8 @@ import {
     ListToolsRequestSchema,
     type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { getDatabase, initDatabase } from '../db.js';
-import { logger } from '../utils/logger.js';
+import { getDatabase, initDatabase } from '../db';
+import { logger } from '../utils/logger';
 
 interface ResourceMetrics {
     cpu_usage: number;

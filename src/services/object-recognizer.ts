@@ -413,5 +413,19 @@ export class ObjectRecognizerService {
     }
 }
 
-// Export singleton instance
-export const objectRecognizerService = new ObjectRecognizerService();
+// Export lazy singleton instance
+let _objectRecognizerService: ObjectRecognizerService | null = null;
+
+export function getObjectRecognizerService(): ObjectRecognizerService {
+    if (!_objectRecognizerService) {
+        _objectRecognizerService = new ObjectRecognizerService();
+    }
+    return _objectRecognizerService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const objectRecognizerService = new Proxy({} as ObjectRecognizerService, {
+    get(target, prop) {
+        return getObjectRecognizerService()[prop as keyof ObjectRecognizerService];
+    }
+});

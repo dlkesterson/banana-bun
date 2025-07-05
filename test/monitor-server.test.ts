@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock WebSocket server
@@ -72,6 +72,34 @@ describe('Monitor Server', () => {
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (task_id) REFERENCES tasks(id)
             )
+        `);
+
+        mockDb.run(`
+            CREATE TABLE monitoring_thresholds (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                threshold_name TEXT UNIQUE NOT NULL,
+                threshold_value REAL NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        mockDb.run(`
+            CREATE TABLE system_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                metric_type TEXT NOT NULL,
+                metric_data TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Insert default thresholds
+        mockDb.run(`
+            INSERT INTO monitoring_thresholds (threshold_name, threshold_value)
+            VALUES
+                ('max_execution_time', 3600),
+                ('max_queue_depth', 100),
+                ('min_success_rate', 0.95),
+                ('max_memory_usage', 0.8)
         `);
 
         // Reset mocks
@@ -213,6 +241,9 @@ describe('Monitor Server', () => {
                 });
 
                 await messageHandler(request);
+
+                // Wait a bit for async operations to complete
+                await new Promise(resolve => setTimeout(resolve, 10));
 
                 expect(mockWebSocket.send).toHaveBeenCalledWith(
                     expect.stringContaining('test-request')
@@ -369,11 +400,13 @@ describe('Monitor Server', () => {
         it('should generate performance reports', async () => {
             mockDb.run(`
                 INSERT INTO tasks (type, description, status, created_at, finished_at)
-                VALUES 
+                VALUES
                     ('shell', 'Report task 1', 'completed', datetime('now', '-1 day'), datetime('now', '-1 day', '+2 minutes')),
                     ('shell', 'Report task 2', 'completed', datetime('now', '-1 day'), datetime('now', '-1 day', '+3 minutes')),
                     ('llm', 'Report task 3', 'failed', datetime('now', '-1 day'), datetime('now', '-1 day', '+1 minute'))
             `);
+
+
 
             const report = await monitorServer.generatePerformanceReport(1); // Last 1 day
 
@@ -502,4 +535,8 @@ describe('Monitor Server', () => {
             );
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

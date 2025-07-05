@@ -1,9 +1,36 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
+
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+mock.module('../src/config', () => ({ config: standardMockConfig }));
+
+let db: Database;
+
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
+
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
+
+// 2. Import AFTER mocks are set up
 import { MigrationRunner, runAllMigrations, verifyAllMigrations } from '../src/migrations/migrate-all';
 
 describe('Migration Runner', () => {
-    let db: Database;
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     let runner: MigrationRunner;
 
     beforeEach(() => {

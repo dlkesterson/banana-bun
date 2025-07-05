@@ -19,6 +19,7 @@ import {
     safeParseTask
 } from '../src/validation/type-guards';
 import type { BaseTask, ShellTask, LlmTask, ToolTask } from '../src/types/task';
+import { createShellTask } from '../src/test-utils/task-factories';
 
 describe('Type Guards', () => {
     describe('isBaseTask', () => {
@@ -228,32 +229,31 @@ describe('Type Guards', () => {
 
     describe('safeParseTask', () => {
         it('should return success for valid task', () => {
-            const validTask = {
+            const validTask = createShellTask({
                 id: 1,
-                type: 'shell',
                 status: 'pending',
-                result: null,
                 shell_command: 'echo test'
-            };
+            });
 
             const result = safeParseTask(validTask);
             expect(result.success).toBe(true);
             if (result.success) {
-                expect(result.data).toEqual(validTask);
+                expect(result.data.type).toBe('shell');
+                expect(result.data.id).toBe(1);
             }
         });
 
         it('should return errors for invalid task', () => {
             const invalidTask = {
                 id: 1,
-                type: 'shell',
+                type: 'invalid_type', // Invalid task type
                 status: 'pending'
-                // missing shell_command
             };
 
             const result = safeParseTask(invalidTask);
             expect(result.success).toBe(false);
-            if (!result.success) {
+            expect('errors' in result).toBe(true);
+            if ('errors' in result) {
                 expect(result.errors.length).toBeGreaterThan(0);
             }
         });

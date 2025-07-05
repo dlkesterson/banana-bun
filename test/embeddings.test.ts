@@ -1,109 +1,112 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { embeddingManager } from '../src/memory/embeddings';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import type { TaskEmbedding } from '../src/types';
-
-// Mock ChromaDB client
-const mockChromaClient = {
-    createCollection: mock(() => Promise.resolve({ name: 'test_collection' })),
-    getCollection: mock(() => Promise.resolve({
-        add: mock(() => Promise.resolve()),
-        query: mock(() => Promise.resolve({
-            ids: [['1', '2']],
-            distances: [[0.1, 0.3]],
-            metadatas: [[
-                { task_id: 1, task_type: 'shell', success: true },
-                { task_id: 2, task_type: 'llm', success: false }
-            ]],
-            documents: [['Test task 1', 'Test task 2']]
-        })),
-        delete: mock(() => Promise.resolve()),
-        count: mock(() => Promise.resolve(5))
-    })),
-    deleteCollection: mock(() => Promise.resolve()),
-    listCollections: mock(() => Promise.resolve([{ name: 'test_collection' }]))
-};
-
-// Mock the ChromaDB import
-mock.module('chromadb', () => ({
-    ChromaApi: mock(() => mockChromaClient),
-    OpenAIEmbeddingFunction: mock(() => ({}))
-}));
-
-// Mock logger
-const mockLogger = {
-    info: mock(() => Promise.resolve()),
-    error: mock(() => Promise.resolve()),
-    warn: mock(() => Promise.resolve()),
-    debug: mock(() => Promise.resolve())
-};
-
-mock.module('../src/utils/logger', () => ({
-    logger: mockLogger
-}));
-
-// Mock config
-const mockConfig = {
-    paths: {
-        chroma: {
-            host: 'localhost',
-            port: 8000,
-            ssl: false
-        }
-    }
-};
-
-mock.module('../src/config', () => ({
-    config: mockConfig
-}));
+import { standardMockConfig } from './utils/standard-mock-config';
 
 describe('Embeddings Manager', () => {
+    let embeddingManager: any;
+    let mockCollection: any;
+    let mockChromaClient: any;
+    let mockLogger: any;
+    let mockConfig: any;
+    let mockToolRunner: any;
+
     beforeEach(async () => {
-        // Reset all mocks
-        Object.values(mockChromaClient).forEach(mockFn => {
-            if (typeof mockFn === 'function' && 'mockClear' in mockFn) {
-                mockFn.mockClear();
-            }
-        });
-        
-        Object.values(mockLogger).forEach(mockFn => {
-            if (typeof mockFn === 'function' && 'mockClear' in mockFn) {
-                mockFn.mockClear();
-            }
-        });
+        // Create fresh mocks for each test
+        mockCollection = {
+            add: mock(() => Promise.resolve()),
+            query: mock(() => Promise.resolve({
+                ids: [['1', '2']],
+                distances: [[0.1, 0.3]],
+                metadatas: [[
+                    { task_id: 1, task_type: 'shell', success: true, description: 'Test task 1' },
+                    { task_id: 2, task_type: 'llm', success: false, description: 'Test task 2' }
+                ]],
+                documents: [['Test task 1', 'Test task 2']]
+            })),
+            delete: mock(() => Promise.resolve()),
+            count: mock(() => Promise.resolve(5)),
+            update: mock(() => Promise.resolve())
+        };
+
+        mockChromaClient = {
+            createCollection: mock(() => Promise.resolve(mockCollection)),
+            getCollection: mock(() => Promise.resolve(mockCollection)),
+            getOrCreateCollection: mock(() => Promise.resolve(mockCollection)),
+            deleteCollection: mock(() => Promise.resolve()),
+            listCollections: mock(() => Promise.resolve([{ name: 'test_collection' }]))
+        };
+
+        mockLogger = {
+            info: mock(() => Promise.resolve()),
+            error: mock(() => Promise.resolve()),
+            warn: mock(() => Promise.resolve()),
+            debug: mock(() => Promise.resolve())
+        };
+
+        mockConfig = standardMockConfig;
+
+        mockToolRunner = {
+            executeTool: mock(() => Promise.resolve({
+                response: JSON.stringify([0.1, 0.2, 0.3, 0.4, 0.5]) // Mock embedding vector
+            }))
+        };
+
+        // Apply mocks before importing
+        mock.module('chromadb', () => ({
+            ChromaClient: mock(() => mockChromaClient)
+        }));
+
+        mock.module('@chroma-core/default-embed', () => ({
+            DefaultEmbeddingFunction: mock(() => ({}))
+        }));
+
+        mock.module('../src/utils/logger', () => ({
+            logger: mockLogger
+        }));
+
+        mock.module('../src/config', () => ({
+            config: mockConfig
+        }));
+
+        mock.module('../src/tools/tool_runner', () => ({
+            toolRunner: mockToolRunner
+        }));
+
+        // Import with cache busting to avoid conflicts
+        const embeddingModule = await import('../src/memory/embeddings?t=' + Date.now());
+        embeddingManager = embeddingModule.embeddingManager;
     });
 
     afterEach(async () => {
-        await embeddingManager.shutdown();
+        try {
+            if (embeddingManager && typeof embeddingManager.shutdown === 'function') {
+                await embeddingManager.shutdown();
+            }
+        } catch (error) {
+            // Ignore cleanup errors
+        }
     });
 
     describe('Initialization', () => {
         it('should initialize successfully', async () => {
             await embeddingManager.initialize();
-            
-            expect(mockChromaClient.getCollection).toHaveBeenCalledWith({
-                name: 'task_embeddings'
+
+            expect(mockChromaClient.getOrCreateCollection).toHaveBeenCalledWith({
+                name: 'task_embeddings',
+                metadata: {
+                    description: 'Task embeddings for similarity search'
+                },
+                embeddingFunction: expect.any(Object)
             });
             expect(mockLogger.info).toHaveBeenCalledWith(
                 expect.stringContaining('Embedding manager initialized')
             );
         });
 
-        it('should create collection if it does not exist', async () => {
-            mockChromaClient.getCollection.mockRejectedValueOnce(new Error('Collection not found'));
-            
-            await embeddingManager.initialize();
-            
-            expect(mockChromaClient.createCollection).toHaveBeenCalledWith({
-                name: 'task_embeddings',
-                embeddingFunction: expect.any(Object)
-            });
-        });
-
         it('should handle initialization errors', async () => {
-            mockChromaClient.getCollection.mockRejectedValueOnce(new Error('Connection failed'));
-            mockChromaClient.createCollection.mockRejectedValueOnce(new Error('Creation failed'));
-            
-            await expect(embeddingManager.initialize()).rejects.toThrow();
+            mockChromaClient.getOrCreateCollection.mockRejectedValueOnce(new Error('Connection failed'));
+
+            await expect(embeddingManager.initialize()).rejects.toThrow('Connection failed');
         });
     });
 
@@ -123,10 +126,9 @@ describe('Embeddings Manager', () => {
 
             await embeddingManager.addTaskEmbedding(taskId, description, metadata);
 
-            const collection = await mockChromaClient.getCollection();
-            expect(collection.add).toHaveBeenCalledWith({
+            expect(mockCollection.add).toHaveBeenCalledWith({
                 ids: [`task_${taskId}`],
-                documents: [description],
+                embeddings: [expect.any(Array)],
                 metadatas: [expect.objectContaining({
                     task_id: taskId,
                     task_type: 'shell',
@@ -148,10 +150,9 @@ describe('Embeddings Manager', () => {
 
             await embeddingManager.addTaskEmbedding(taskId, description, metadata);
 
-            const collection = await mockChromaClient.getCollection();
-            expect(collection.add).toHaveBeenCalledWith({
+            expect(mockCollection.add).toHaveBeenCalledWith({
                 ids: [`task_${taskId}`],
-                documents: [description],
+                embeddings: [expect.any(Array)],
                 metadatas: [expect.objectContaining({
                     task_id: taskId,
                     task_type: 'code',
@@ -161,11 +162,10 @@ describe('Embeddings Manager', () => {
         });
 
         it('should handle embedding errors gracefully', async () => {
-            const collection = await mockChromaClient.getCollection();
-            collection.add.mockRejectedValueOnce(new Error('Embedding failed'));
+            mockCollection.add.mockRejectedValueOnce(new Error('Embedding failed'));
 
             await expect(embeddingManager.addTaskEmbedding(1, 'test', {})).rejects.toThrow();
-            
+
             expect(mockLogger.error).toHaveBeenCalledWith(
                 expect.stringContaining('Failed to add task embedding'),
                 expect.any(Object)
@@ -186,7 +186,7 @@ describe('Embeddings Manager', () => {
 
             expect(results).toBeArray();
             expect(results.length).toBe(2);
-            
+
             expect(results[0]).toMatchObject({
                 id: '1',
                 task_id: 1,
@@ -194,16 +194,14 @@ describe('Embeddings Manager', () => {
                 similarity: expect.any(Number)
             });
 
-            const collection = await mockChromaClient.getCollection();
-            expect(collection.query).toHaveBeenCalledWith({
-                queryTexts: [query],
+            expect(mockCollection.query).toHaveBeenCalledWith({
+                queryEmbeddings: [expect.any(Array)],
                 nResults: limit
             });
         });
 
         it('should handle empty results', async () => {
-            const collection = await mockChromaClient.getCollection();
-            collection.query.mockResolvedValueOnce({
+            mockCollection.query.mockResolvedValueOnce({
                 ids: [[]],
                 distances: [[]],
                 metadatas: [[]],
@@ -223,9 +221,8 @@ describe('Embeddings Manager', () => {
 
             await embeddingManager.findSimilarTasks(query, limit, taskType);
 
-            const collection = await mockChromaClient.getCollection();
-            expect(collection.query).toHaveBeenCalledWith({
-                queryTexts: [query],
+            expect(mockCollection.query).toHaveBeenCalledWith({
+                queryEmbeddings: [expect.any(Array)],
                 nResults: limit,
                 where: { task_type: taskType }
             });
@@ -242,8 +239,7 @@ describe('Embeddings Manager', () => {
         });
 
         it('should handle query errors', async () => {
-            const collection = await mockChromaClient.getCollection();
-            collection.query.mockRejectedValueOnce(new Error('Query failed'));
+            mockCollection.query.mockRejectedValueOnce(new Error('Query failed'));
 
             await expect(embeddingManager.findSimilarTasks('test', 5)).rejects.toThrow();
         });
@@ -259,8 +255,7 @@ describe('Embeddings Manager', () => {
 
             await embeddingManager.deleteTaskEmbedding(taskId);
 
-            const collection = await mockChromaClient.getCollection();
-            expect(collection.delete).toHaveBeenCalledWith({
+            expect(mockCollection.delete).toHaveBeenCalledWith({
                 ids: [`task_${taskId}`]
             });
         });
@@ -273,8 +268,7 @@ describe('Embeddings Manager', () => {
                 collection_name: 'task_embeddings'
             });
 
-            const collection = await mockChromaClient.getCollection();
-            expect(collection.count).toHaveBeenCalled();
+            expect(mockCollection.count).toHaveBeenCalled();
         });
 
         it('should clear all embeddings', async () => {
@@ -306,18 +300,65 @@ describe('Embeddings Manager', () => {
         });
     });
 
+    describe('Embedding Generation', () => {
+        beforeEach(async () => {
+            await embeddingManager.initialize();
+        });
+
+        it('should generate embeddings successfully', async () => {
+            const text = 'Test embedding text';
+            const embedding = await embeddingManager.generateEmbedding(text);
+
+            expect(embedding).toBeArray();
+            expect(embedding.length).toBeGreaterThan(0);
+            expect(embedding.every(n => typeof n === 'number')).toBe(true);
+            expect(mockToolRunner.executeTool).toHaveBeenCalledWith('ollama_chat', {
+                model: 'qwen3:8b',
+                prompt: text,
+                system: 'You are an embedding model. Convert the input text into a vector representation.'
+            });
+        });
+
+        it('should handle embedding generation errors', async () => {
+            mockToolRunner.executeTool.mockRejectedValueOnce(new Error('Model unavailable'));
+
+            await expect(embeddingManager.generateEmbedding('test')).rejects.toThrow('Model unavailable');
+        });
+
+        it('should handle invalid embedding responses', async () => {
+            mockToolRunner.executeTool.mockResolvedValueOnce({
+                response: 'invalid json'
+            });
+
+            await expect(embeddingManager.generateEmbedding('test')).rejects.toThrow('Failed to parse embedding');
+        });
+
+        it('should handle non-array embedding responses', async () => {
+            mockToolRunner.executeTool.mockResolvedValueOnce({
+                response: JSON.stringify({ not: 'an array' })
+            });
+
+            await expect(embeddingManager.generateEmbedding('test')).rejects.toThrow('Invalid embedding format');
+        });
+    });
+
     describe('Error Handling', () => {
         it('should handle network connectivity issues', async () => {
-            mockChromaClient.getCollection.mockRejectedValue(new Error('Network error'));
+            // Reset the mock to allow initialization
+            mockChromaClient.getOrCreateCollection.mockResolvedValueOnce(mockCollection);
+            await embeddingManager.initialize();
 
-            await expect(embeddingManager.initialize()).rejects.toThrow('Network error');
+            mockCollection.query.mockRejectedValueOnce(new Error('Network error'));
+
+            await expect(embeddingManager.findSimilarTasks('test', 5)).rejects.toThrow('Network error');
         });
 
         it('should handle malformed responses', async () => {
+            // Reset the mock to allow initialization
+            mockChromaClient.getOrCreateCollection.mockResolvedValueOnce(mockCollection);
             await embeddingManager.initialize();
-            
-            const collection = await mockChromaClient.getCollection();
-            collection.query.mockResolvedValueOnce({
+
+            mockCollection.query.mockResolvedValueOnce({
                 // Malformed response missing required fields
                 ids: [['1']],
                 distances: [[]], // Missing distance
@@ -330,4 +371,9 @@ describe('Embeddings Manager', () => {
             expect(results.length).toBe(0);
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

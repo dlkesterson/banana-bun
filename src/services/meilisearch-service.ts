@@ -2,6 +2,7 @@ import { MeiliSearch } from 'meilisearch';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 import type { MediaMetadata } from '../types/media';
+import type { IMeilisearchService, SearchOptions, SearchResult } from '../types/service-interfaces';
 
 export interface MeiliMediaDocument {
     id: string;
@@ -25,7 +26,7 @@ export interface MeiliMediaDocument {
     created_at: number; // timestamp
 }
 
-export class MeilisearchService {
+export class MeilisearchService implements IMeilisearchService {
     private client: MeiliSearch;
     private indexName: string;
 
@@ -153,36 +154,26 @@ export class MeilisearchService {
         }
     }
 
-    async search(query: string, options: {
-        filter?: string;
-        limit?: number;
-        offset?: number;
-        sort?: string[];
-    } = {}): Promise<{
-        hits: MeiliMediaDocument[];
-        totalHits: number;
-        processingTimeMs: number;
-        query: string;
-    }> {
+    async search(index: string, query: string, options?: SearchOptions): Promise<SearchResult> {
         try {
-            const index = this.client.index(this.indexName);
+            const meiliIndex = this.client.index(index);
             const searchOptions: any = {
-                limit: options.limit || 20,
-                offset: options.offset || 0,
+                limit: options?.limit || 20,
+                offset: options?.offset || 0,
             };
 
-            if (options.filter) {
+            if (options?.filter) {
                 searchOptions.filter = options.filter;
             }
 
-            if (options.sort) {
+            if (options?.sort) {
                 searchOptions.sort = options.sort;
             }
 
-            const result = await index.search(query, searchOptions);
-            
+            const result = await meiliIndex.search(query, searchOptions);
+
             return {
-                hits: result.hits as MeiliMediaDocument[],
+                hits: result.hits,
                 totalHits: result.estimatedTotalHits || result.hits.length,
                 processingTimeMs: result.processingTimeMs,
                 query: result.query
@@ -238,7 +229,90 @@ export class MeilisearchService {
             created_at: Date.now()
         };
     }
+
+    /**
+     * Index a single document in the specified index
+     */
+    async indexDocument(index: string, document: any): Promise<void> {
+        try {
+            const meiliIndex = this.client.index(index);
+            const task = await meiliIndex.addDocuments([document]);
+
+            await logger.info('Document indexed in Meilisearch', {
+                index,
+                documentId: document.id,
+                taskUid: task.taskUid
+            });
+        } catch (error) {
+            await logger.error('Failed to index document in Meilisearch', {
+                index,
+                documentId: document.id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Index multiple documents in the specified index
+     */
+    async indexDocuments(index: string, documents: any[]): Promise<void> {
+        try {
+            const meiliIndex = this.client.index(index);
+            const task = await meiliIndex.addDocuments(documents);
+
+            await logger.info('Documents indexed in Meilisearch', {
+                index,
+                documentsCount: documents.length,
+                taskUid: task.taskUid
+            });
+        } catch (error) {
+            await logger.error('Failed to index documents in Meilisearch', {
+                index,
+                documentsCount: documents.length,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Delete a document from the specified index
+     */
+    async deleteDocument(index: string, id: string): Promise<void> {
+        try {
+            const meiliIndex = this.client.index(index);
+            const task = await meiliIndex.deleteDocument(id);
+
+            await logger.info('Document deleted from Meilisearch', {
+                index,
+                documentId: id,
+                taskUid: task.taskUid
+            });
+        } catch (error) {
+            await logger.error('Failed to delete document from Meilisearch', {
+                index,
+                documentId: id,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
+    }
 }
 
-// Export singleton instance
-export const meilisearchService = new MeilisearchService();
+// Export lazy singleton instance
+let _meilisearchService: MeilisearchService | null = null;
+
+export function getMeilisearchService(): MeilisearchService {
+    if (!_meilisearchService) {
+        _meilisearchService = new MeilisearchService();
+    }
+    return _meilisearchService;
+}
+
+// For backward compatibility - use a getter to make it lazy
+export const meilisearchService = new Proxy({} as MeilisearchService, {
+    get(target, prop) {
+        return getMeilisearchService()[prop as keyof MeilisearchService];
+    }
+});

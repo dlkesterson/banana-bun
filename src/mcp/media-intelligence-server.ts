@@ -149,7 +149,7 @@ class MediaIntelligenceMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('Media Intelligence MCP server database initialized');
             this.setupToolHandlers();
         } catch (error) {
@@ -671,7 +671,7 @@ class MediaIntelligenceMCPServer {
                 WHERE media_id = ?
                 ORDER BY last_updated DESC
                 LIMIT 1
-            `).get(mediaId);
+            `).get(mediaId) as any;
 
             if (!row) return null;
 
@@ -874,7 +874,460 @@ class MediaIntelligenceMCPServer {
             }
         });
 
-        return [...new Set(suggestions)]; // Remove duplicates
+        return Array.from(new Set(suggestions)); // Remove duplicates
+    }
+
+    /**
+     * Optimize content tagging based on search effectiveness and AI analysis
+     */
+    async optimizeContentTagging(args: any) {
+        const { media_id, strategy = 'hybrid', include_ai_suggestions = true } = args;
+
+        try {
+            // Get current tags and search performance
+            const db = getDatabase();
+            const media = db.query('SELECT * FROM media WHERE id = ?').get(media_id) as any;
+
+            if (!media) {
+                return {
+                    content: [{
+                        type: 'text',
+                        text: JSON.stringify({
+                            error: 'Media not found',
+                            media_id
+                        }, null, 2)
+                    }]
+                };
+            }
+
+            const currentTags = JSON.parse(media.metadata_json || '{}').tags || [];
+
+            // Analyze search effectiveness of current tags
+            const searchAnalysis = await this.analyzeTagSearchEffectiveness(media_id, currentTags);
+
+            // Generate AI-powered tag suggestions if enabled
+            let aiSuggestions = [];
+            if (include_ai_suggestions) {
+                aiSuggestions = await this.generateAITagSuggestions(media);
+            }
+
+            // Apply optimization strategy
+            let optimizedTags = [];
+            switch (strategy) {
+                case 'search_driven':
+                    optimizedTags = this.optimizeTagsForSearch(currentTags, searchAnalysis);
+                    break;
+                case 'ai_driven':
+                    optimizedTags = aiSuggestions;
+                    break;
+                case 'hybrid':
+                default:
+                    optimizedTags = this.combineTagOptimizations(currentTags, searchAnalysis, aiSuggestions);
+                    break;
+            }
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        success: true,
+                        media_id,
+                        strategy,
+                        current_tags: currentTags,
+                        optimized_tags: optimizedTags,
+                        search_analysis: searchAnalysis,
+                        ai_suggestions: aiSuggestions,
+                        optimization_score: this.calculateOptimizationScore(currentTags, optimizedTags)
+                    }, null, 2)
+                }]
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        error: 'Failed to optimize content tagging',
+                        details: error instanceof Error ? error.message : String(error)
+                    }, null, 2)
+                }]
+            };
+        }
+    }
+
+    /**
+     * Generate content recommendations based on cross-modal intelligence
+     */
+    async generateContentRecommendations(args: any) {
+        const { user_id, media_id, recommendation_type = 'hybrid', limit = 10 } = args;
+
+        try {
+            const db = getDatabase();
+
+            // Get user behavior patterns
+            const userPatterns = await this.getUserBehaviorPatterns(user_id);
+
+            // Get content correlations
+            const contentCorrelations = media_id
+                ? await this.getContentCorrelations(media_id)
+                : await this.getGlobalContentCorrelations();
+
+            // Generate recommendations based on type
+            let recommendations = [];
+            switch (recommendation_type) {
+                case 'similar_content':
+                    recommendations = await this.generateSimilarContentRecommendations(media_id, limit);
+                    break;
+                case 'user_behavior':
+                    recommendations = await this.generateUserBehaviorRecommendations(user_id, limit);
+                    break;
+                case 'cross_modal':
+                    recommendations = await this.generateCrossModalRecommendations(user_id, media_id, limit);
+                    break;
+                case 'hybrid':
+                default:
+                    recommendations = await this.generateHybridRecommendations(user_id, media_id, limit);
+                    break;
+            }
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        success: true,
+                        user_id,
+                        media_id,
+                        recommendation_type,
+                        recommendations,
+                        user_patterns: userPatterns,
+                        content_correlations: contentCorrelations,
+                        generated_at: new Date().toISOString()
+                    }, null, 2)
+                }]
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        error: 'Failed to generate content recommendations',
+                        details: error instanceof Error ? error.message : String(error)
+                    }, null, 2)
+                }]
+            };
+        }
+    }
+
+    /**
+     * Enhance semantic search using cross-modal intelligence
+     */
+    async enhanceSemanticSearch(args: any) {
+        const { query, include_transcripts = true, include_tags = true, semantic_boost = 0.3 } = args;
+
+        try {
+            // Analyze query semantics
+            const queryAnalysis = await this.analyzeQuerySemantics(query);
+
+            // Enhance query with cross-modal context
+            const enhancedQuery = await this.enhanceQueryWithContext(query, queryAnalysis, {
+                include_transcripts,
+                include_tags,
+                semantic_boost
+            });
+
+            // Get semantic embeddings for enhanced search
+            const semanticResults = await this.performSemanticSearch(enhancedQuery);
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        success: true,
+                        original_query: query,
+                        enhanced_query: enhancedQuery,
+                        query_analysis: queryAnalysis,
+                        semantic_results: semanticResults,
+                        enhancement_score: this.calculateEnhancementScore(query, enhancedQuery)
+                    }, null, 2)
+                }]
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        error: 'Failed to enhance semantic search',
+                        details: error instanceof Error ? error.message : String(error)
+                    }, null, 2)
+                }]
+            };
+        }
+    }
+
+    /**
+     * Track user behavior for intelligence learning
+     */
+    async trackUserBehavior(args: any) {
+        const { user_id, action_type, content_id, metadata = {} } = args;
+
+        try {
+            const db = getDatabase();
+
+            // Store user behavior event
+            db.run(`
+                INSERT INTO user_behavior_events (
+                    user_id, action_type, content_id, metadata_json, timestamp
+                ) VALUES (?, ?, ?, ?, ?)
+            `, [user_id, action_type, content_id, JSON.stringify(metadata), new Date().toISOString()]);
+
+            // Update user behavior patterns
+            await this.updateUserBehaviorPatterns(user_id, action_type, content_id, metadata);
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        success: true,
+                        user_id,
+                        action_type,
+                        content_id,
+                        tracked_at: new Date().toISOString()
+                    }, null, 2)
+                }]
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        error: 'Failed to track user behavior',
+                        details: error instanceof Error ? error.message : String(error)
+                    }, null, 2)
+                }]
+            };
+        }
+    }
+
+    /**
+     * Get intelligence dashboard data
+     */
+    async getIntelligenceDashboard(args: any) {
+        const { time_range_hours = 24, include_predictions = true } = args;
+
+        try {
+            const db = getDatabase();
+            const cutoffTime = new Date(Date.now() - time_range_hours * 60 * 60 * 1000).toISOString();
+
+            // Get dashboard metrics
+            const metrics = {
+                content_discovery: await this.getContentDiscoveryMetrics(cutoffTime),
+                cross_modal_insights: await this.getCrossModalInsightsMetrics(cutoffTime),
+                user_behavior: await this.getUserBehaviorMetrics(cutoffTime),
+                search_optimization: await this.getSearchOptimizationMetrics(cutoffTime),
+                system_health: await this.getSystemHealthMetrics()
+            };
+
+            // Get predictions if requested
+            let predictions = {};
+            if (include_predictions) {
+                predictions = await this.generateIntelligencePredictions(metrics);
+            }
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        success: true,
+                        time_range_hours,
+                        metrics,
+                        predictions,
+                        generated_at: new Date().toISOString()
+                    }, null, 2)
+                }]
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        error: 'Failed to get intelligence dashboard',
+                        details: error instanceof Error ? error.message : String(error)
+                    }, null, 2)
+                }]
+            };
+        }
+    }
+
+    /**
+     * Correlate search patterns with transcription quality
+     */
+    async correlateSearchTranscription(args: any) {
+        const { search_query, transcription_id, media_id, update_correlations = true, generate_insights = true } = args;
+
+        try {
+            const db = getDatabase();
+
+            // Get transcription data
+            const transcription = transcription_id
+                ? db.query('SELECT * FROM transcriptions WHERE id = ?').get(transcription_id) as any
+                : db.query('SELECT * FROM transcriptions WHERE media_id = ?').get(media_id) as any;
+
+            if (!transcription) {
+                return {
+                    content: [{
+                        type: 'text',
+                        text: JSON.stringify({
+                            error: 'Transcription not found',
+                            transcription_id,
+                            media_id
+                        }, null, 2)
+                    }]
+                };
+            }
+
+            // Analyze correlation between search query and transcription
+            const correlation = await this.analyzeSearchTranscriptionCorrelation(search_query, transcription);
+
+            // Update correlation database if requested
+            if (update_correlations) {
+                await this.updateSearchTranscriptionCorrelations(search_query, transcription, correlation);
+            }
+
+            // Generate insights if requested
+            let insights = {};
+            if (generate_insights) {
+                insights = await this.generateSearchTranscriptionInsights(correlation);
+            }
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        success: true,
+                        search_query,
+                        transcription_id: transcription.id,
+                        media_id: transcription.media_id,
+                        correlation,
+                        insights,
+                        analyzed_at: new Date().toISOString()
+                    }, null, 2)
+                }]
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: JSON.stringify({
+                        error: 'Failed to correlate search and transcription',
+                        details: error instanceof Error ? error.message : String(error)
+                    }, null, 2)
+                }]
+            };
+        }
+    }
+
+    // Helper methods (stub implementations for now)
+    private async analyzeTagSearchEffectiveness(mediaId: number, tags: string[]) {
+        return { effectiveness_score: 0.7, top_performing_tags: tags.slice(0, 3) };
+    }
+
+    private async generateAITagSuggestions(media: any) {
+        return ['ai-suggested-tag-1', 'ai-suggested-tag-2'];
+    }
+
+    private optimizeTagsForSearch(currentTags: string[], searchAnalysis: any) {
+        return currentTags.concat(['optimized-tag']);
+    }
+
+    private combineTagOptimizations(currentTags: string[], searchAnalysis: any, aiSuggestions: string[]) {
+        return Array.from(new Set([...currentTags, ...aiSuggestions]));
+    }
+
+    private calculateOptimizationScore(currentTags: string[], optimizedTags: string[]) {
+        return 0.85;
+    }
+
+    private async getUserBehaviorPatterns(userId: string) {
+        return { preferred_content_types: ['video', 'audio'], engagement_score: 0.8 };
+    }
+
+    private async getContentCorrelations(mediaId: number) {
+        return { similar_content: [], correlation_strength: 0.6 };
+    }
+
+    private async getGlobalContentCorrelations() {
+        return { trending_topics: [], correlation_patterns: [] };
+    }
+
+    private async generateSimilarContentRecommendations(mediaId: number, limit: number) {
+        return [];
+    }
+
+    private async generateUserBehaviorRecommendations(userId: string, limit: number) {
+        return [];
+    }
+
+    private async generateCrossModalRecommendations(userId: string, mediaId: number, limit: number) {
+        return [];
+    }
+
+    private async generateHybridRecommendations(userId: string, mediaId: number, limit: number) {
+        return [];
+    }
+
+    private async analyzeQuerySemantics(query: string) {
+        return { intent: 'search', entities: [], sentiment: 'neutral' };
+    }
+
+    private async enhanceQueryWithContext(query: string, analysis: any, options: any) {
+        return query + ' enhanced';
+    }
+
+    private async performSemanticSearch(enhancedQuery: string) {
+        return [];
+    }
+
+    private calculateEnhancementScore(originalQuery: string, enhancedQuery: string) {
+        return 0.75;
+    }
+
+    private async updateUserBehaviorPatterns(userId: string, actionType: string, contentId: string, metadata: any) {
+        // Stub implementation
+    }
+
+    private async getContentDiscoveryMetrics(cutoffTime: string) {
+        return { total_discoveries: 0, success_rate: 0.8 };
+    }
+
+    private async getCrossModalInsightsMetrics(cutoffTime: string) {
+        return { insights_generated: 0, accuracy_score: 0.85 };
+    }
+
+    private async getUserBehaviorMetrics(cutoffTime: string) {
+        return { active_users: 0, engagement_rate: 0.7 };
+    }
+
+    private async getSearchOptimizationMetrics(cutoffTime: string) {
+        return { optimizations_applied: 0, improvement_score: 0.9 };
+    }
+
+    private async getSystemHealthMetrics() {
+        return { status: 'healthy', performance_score: 0.95 };
+    }
+
+    private async generateIntelligencePredictions(metrics: any) {
+        return { predicted_trends: [], confidence_score: 0.8 };
+    }
+
+    private async analyzeSearchTranscriptionCorrelation(searchQuery: string, transcription: any) {
+        return { correlation_score: 0.7, matching_keywords: [] };
+    }
+
+    private async updateSearchTranscriptionCorrelations(searchQuery: string, transcription: any, correlation: any) {
+        // Stub implementation
+    }
+
+    private async generateSearchTranscriptionInsights(correlation: any) {
+        return { insights: [], recommendations: [] };
     }
 
     async run() {

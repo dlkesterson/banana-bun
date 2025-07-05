@@ -13,6 +13,7 @@ import { Database } from 'bun:sqlite';
 import { parseArgs } from 'util';
 import { logger } from '../utils/logger';
 import { getDatabase } from '../db';
+import { safeObjectEntries } from '../utils/safe-access';
 import type { ActivityPattern } from '../types/rule-scheduler';
 
 interface ViewOptions {
@@ -323,8 +324,10 @@ function displaySummaryStats(patterns: ActivityPattern[]) {
     console.log(`   Total frequency: ${totalFrequency}`);
 
     console.log('\n📊 BY PATTERN TYPE:');
-    Object.entries(typeCount)
-        .sort(([,a], [,b]) => b - a)
+    const typeEntries = safeObjectEntries(typeCount);
+    typeEntries
+        .filter(([, count]) => typeof count === 'number')
+        .sort(([,a], [,b]) => (b as number) - (a as number))
         .forEach(([type, count]) => {
             console.log(`   ${type}: ${count}`);
         });

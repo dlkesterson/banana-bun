@@ -1,30 +1,47 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { RetryManager } from '../src/retry/retry-manager';
-import { RetrySystemMigration } from '../src/migrations/002-add-retry-system';
 import type { RetryContext } from '../src/types/retry';
+
+// Mock logger to reduce noise during tests
+const mockLogger = {
+    info: mock(() => Promise.resolve()),
+    error: mock(() => Promise.resolve()),
+    warn: mock(() => Promise.resolve()),
+    debug: mock(() => Promise.resolve()),
+    trace: mock(() => Promise.resolve())
+};
 
 describe('Retry System', () => {
     let db: Database;
-    let retryManager: RetryManager;
-    let migration: RetrySystemMigration;
+    let retryManager: any;
+    let migration: any;
+    let RetryManager: any;
+    let RetrySystemMigration: any;
 
     beforeEach(async () => {
-        // Create in-memory database for testing
+        // Apply logger mock before importing modules
+        mock.module('../src/utils/logger', () => ({
+            logger: mockLogger
+        }));
+
+        // Import modules with cache busting to avoid conflicts
+        const retryManagerModule = await import('../src/retry/retry-manager?t=' + Date.now());
+        const migrationModule = await import('../src/migrations/002-add-retry-system?t=' + Date.now());
+
+        RetryManager = retryManagerModule.RetryManager;
+        RetrySystemMigration = migrationModule.RetrySystemMigration;
+
+        // Create isolated in-memory database for testing
         db = new Database(':memory:');
-        
-        // Create basic tasks table
+
+        // Create basic tasks table WITHOUT retry columns
+        // The migration will add them
         db.run(`
             CREATE TABLE tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT,
                 status TEXT,
                 description TEXT,
-                retry_count INTEGER DEFAULT 0,
-                max_retries INTEGER DEFAULT 3,
-                next_retry_at DATETIME,
-                retry_policy_id INTEGER,
-                last_retry_error TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -39,7 +56,17 @@ describe('Retry System', () => {
     });
 
     afterEach(() => {
-        db.close();
+        // Close the isolated database
+        if (db && !db.closed) {
+            db.close();
+        }
+
+        // Clear mock calls
+        mockLogger.info.mockClear();
+        mockLogger.error.mockClear();
+        mockLogger.warn.mockClear();
+        mockLogger.debug.mockClear();
+        mockLogger.trace?.mockClear();
     });
 
     describe('RetryManager', () => {
@@ -285,4 +312,8 @@ describe('Retry System', () => {
             expect(taskTypes).toContain('batch');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

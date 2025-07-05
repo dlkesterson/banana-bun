@@ -7,8 +7,8 @@ import {
     ListToolsRequestSchema,
     type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { getDatabase, initDatabase } from '../db.js';
-import { logger } from '../utils/logger.js';
+import { getDatabase, initDatabase } from '../db';
+import { logger } from '../utils/logger';
 
 interface ContentQualityMetrics {
     resolution: {
@@ -64,7 +64,7 @@ class ContentQualityMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('Content Quality server database initialized');
             this.setupToolHandlers();
         } catch (error) {
@@ -245,7 +245,7 @@ class ContentQualityMCPServer {
 
         // Get media item
         const mediaItem = db.query('SELECT * FROM media_metadata WHERE id = ?').get(media_id) as any;
-        
+
         if (!mediaItem) {
             return {
                 content: [
@@ -261,7 +261,7 @@ class ContentQualityMCPServer {
         // Analyze quality metrics
         const qualityMetrics = await this.assessQualityMetrics(mediaItem, quality_aspects);
         const qualityIssues = await this.identifyQualityIssues(qualityMetrics);
-        const enhancementRecommendations = include_recommendations ? 
+        const enhancementRecommendations = include_recommendations ?
             await this.generateEnhancementRecommendations(qualityMetrics, qualityIssues) : [];
 
         const result: QualityAnalysisResult = {
@@ -315,7 +315,7 @@ class ContentQualityMCPServer {
 
     private calculateResolutionScore(width: number, height: number): number {
         const totalPixels = width * height;
-        
+
         if (totalPixels >= 3840 * 2160) return 1.0; // 4K
         if (totalPixels >= 1920 * 1080) return 0.9; // 1080p
         if (totalPixels >= 1280 * 720) return 0.7;  // 720p
@@ -333,10 +333,10 @@ class ContentQualityMCPServer {
 
     private calculateMetadataCompleteness(mediaItem: any): number {
         const requiredFields = ['title', 'tags', 'summary', 'genre', 'duration'];
-        const presentFields = requiredFields.filter(field => 
+        const presentFields = requiredFields.filter(field =>
             mediaItem[field] && mediaItem[field] !== ''
         );
-        
+
         return presentFields.length / requiredFields.length;
     }
 
@@ -397,7 +397,7 @@ class ContentQualityMCPServer {
         const maxPossibleScore = 1.0;
         const currentScore = metrics.overall_quality_score;
         const improvementPotential = ((maxPossibleScore - currentScore) / maxPossibleScore) * 100;
-        
+
         return Math.max(0, Math.min(100, improvementPotential));
     }
 
@@ -756,7 +756,7 @@ class ContentQualityMCPServer {
                 metadata_stats: this.calculateMetadataStats(sampleItems)
             } : undefined,
             common_issues: Object.entries(commonIssues)
-                .sort(([,a], [,b]) => b - a)
+                .sort(([, a], [, b]) => b - a)
                 .slice(0, 5)
                 .map(([issue, count]) => ({ issue, frequency: count })),
             recommendations: include_recommendations ? this.generateLibraryRecommendations(qualityDistribution, commonIssues) : undefined
@@ -810,7 +810,7 @@ class ContentQualityMCPServer {
             recommendations.push('Focus on improving low-quality content - consider batch enhancement tools');
         }
 
-        const topIssue = Object.entries(issues).sort(([,a], [,b]) => b - a)[0];
+        const topIssue = Object.entries(issues).sort(([, a], [, b]) => b - a)[0];
         if (topIssue) {
             recommendations.push(`Address most common issue: ${topIssue[0]} (affects ${topIssue[1]} items)`);
         }

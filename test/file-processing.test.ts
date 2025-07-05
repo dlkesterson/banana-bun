@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { parseTaskFile } from '../src/utils/parser';
@@ -541,4 +541,9 @@ This task tests the complete file processing workflow.`;
             expect(baseTasks[0].type).toBe('shell');
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

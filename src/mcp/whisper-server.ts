@@ -109,7 +109,7 @@ class WhisperMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('Whisper MCP server database initialized');
             this.setupToolHandlers();
         } catch (error) {

@@ -1,10 +1,30 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
+
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+mock.module('../src/config', () => ({ config: standardMockConfig }));
+
+mock.module('../src/utils/logger', () => ({
+    logger: {
+        info: mock(() => Promise.resolve()),
+        error: mock(() => Promise.resolve()),
+        warn: mock(() => Promise.resolve()),
+        debug: mock(() => Promise.resolve())
+    }
+}));
+
+// 2. Import AFTER mocks are set up
 import { CronParser } from '../src/scheduler/cron-parser';
 import { TaskScheduler } from '../src/scheduler/task-scheduler';
 import { PeriodicTasksMigration } from '../src/migrations/003-add-periodic-tasks';
 
 describe('Periodic Tasks System', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     let db: Database;
     let scheduler: TaskScheduler;
     let migration: PeriodicTasksMigration;
@@ -159,13 +179,13 @@ describe('Periodic Tasks System', () => {
             expect(schedule).toBeDefined();
             expect(schedule.template_task_id).toBe(1);
             expect(schedule.cron_expression).toBe('0 * * * *');
-            expect(schedule.enabled).toBe(true);
+            expect(schedule.enabled).toBe(1); // SQLite returns 1 for true
 
             // Verify task was marked as template
             const updatedTask = db.query('SELECT * FROM tasks WHERE id = 1').get() as any;
-            expect(updatedTask.is_template).toBe(true);
+            expect(updatedTask.is_template).toBe(1); // SQLite returns 1 for true
             expect(updatedTask.cron_expression).toBe('0 * * * *');
-            expect(updatedTask.schedule_enabled).toBe(true);
+            expect(updatedTask.schedule_enabled).toBe(1); // SQLite returns 1 for true
         });
 
         it('should reject invalid cron expressions', async () => {
@@ -194,13 +214,13 @@ describe('Periodic Tasks System', () => {
             await scheduler.toggleSchedule(scheduleId, false);
 
             const schedule = db.query('SELECT * FROM task_schedules WHERE id = ?').get(scheduleId) as any;
-            expect(schedule.enabled).toBe(false);
+            expect(schedule.enabled).toBe(0); // SQLite returns 0 for false
 
             // Enable it again
             await scheduler.toggleSchedule(scheduleId, true);
 
             const enabledSchedule = db.query('SELECT * FROM task_schedules WHERE id = ?').get(scheduleId) as any;
-            expect(enabledSchedule.enabled).toBe(true);
+            expect(enabledSchedule.enabled).toBe(1); // SQLite returns 1 for true
         });
 
         it('should delete a schedule', async () => {
@@ -222,8 +242,8 @@ describe('Periodic Tasks System', () => {
 
             // Verify task is no longer marked as template
             const updatedTask = db.query('SELECT * FROM tasks WHERE id = 1').get() as any;
-            expect(updatedTask.is_template).toBe(false);
-            expect(updatedTask.schedule_enabled).toBe(false);
+            expect(updatedTask.is_template).toBe(0); // SQLite returns 0 for false
+            expect(updatedTask.schedule_enabled).toBe(0); // SQLite returns 0 for false
         });
 
         it('should get scheduler metrics', async () => {

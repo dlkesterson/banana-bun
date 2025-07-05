@@ -14,7 +14,7 @@
 import { parseArgs } from 'util';
 import { logger } from '../utils/logger';
 import { initDatabase, getDatabase } from '../db';
-import { llmPlanningService } from '../services/llm-planning-service';
+import { getLlmPlanningService } from '../services/llm-planning-service';
 import type { LlmPlanningRequest } from '../types/llm-planning';
 
 interface CliArgs {
@@ -187,18 +187,20 @@ async function testDatabaseSchema() {
 
 async function testServiceInitialization() {
     // Test that the service can be imported and basic methods exist
+    const llmPlanningService = getLlmPlanningService();
+
     if (typeof llmPlanningService.generateOptimizedPlan !== 'function') {
         throw new Error('generateOptimizedPlan method not found');
     }
-    
+
     if (typeof llmPlanningService.analyzeSystemLogs !== 'function') {
         throw new Error('analyzeSystemLogs method not found');
     }
-    
+
     if (typeof llmPlanningService.generateOptimizationRecommendations !== 'function') {
         throw new Error('generateOptimizationRecommendations method not found');
     }
-    
+
     if (typeof llmPlanningService.getPlanningMetrics !== 'function') {
         throw new Error('getPlanningMetrics method not found');
     }
@@ -206,6 +208,7 @@ async function testServiceInitialization() {
 
 async function testLogAnalysis() {
     // Test log analysis with a short time window
+    const llmPlanningService = getLlmPlanningService();
     const patterns = await llmPlanningService.analyzeSystemLogs(1); // 1 hour
     
     // Should return an array (even if empty)
@@ -233,6 +236,7 @@ async function testPlanGeneration() {
 
     // Note: This might fail if no LLM is available, which is expected in test environments
     try {
+        const llmPlanningService = getLlmPlanningService();
         const result = await llmPlanningService.generateOptimizedPlan(request);
         
         // Check result structure
@@ -266,6 +270,7 @@ async function testPlanGeneration() {
 
 async function testMetricsCollection() {
     // Test metrics collection
+    const llmPlanningService = getLlmPlanningService();
     const metrics = await llmPlanningService.getPlanningMetrics();
     
     // Check metrics structure
@@ -292,6 +297,7 @@ async function testMetricsCollection() {
 
 async function testRecommendationGeneration() {
     // Test recommendation generation
+    const llmPlanningService = getLlmPlanningService();
     const recommendations = await llmPlanningService.generateOptimizationRecommendations();
     
     // Should return an array

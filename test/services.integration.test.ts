@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -91,6 +91,51 @@ beforeEach(async () => {
         )
     `);
 
+    // Create planner_results table
+    mockDb.run(`
+        CREATE TABLE planner_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id TEXT,
+            goal TEXT NOT NULL,
+            context TEXT,
+            tasks_json TEXT NOT NULL,
+            model_used TEXT NOT NULL,
+            estimated_duration INTEGER DEFAULT 0,
+            task_id INTEGER,
+            goal_description TEXT,
+            generated_plan TEXT,
+            similar_tasks_used TEXT,
+            context_embeddings TEXT,
+            subtask_count INTEGER DEFAULT 0,
+            plan_version INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+        )
+    `);
+
+    // Create review_results table
+    mockDb.run(`
+        CREATE TABLE review_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER NOT NULL,
+            reviewer_type TEXT DEFAULT 'automated',
+            model_used TEXT,
+            passed BOOLEAN NOT NULL,
+            score INTEGER,
+            feedback TEXT,
+            suggestions TEXT,
+            review_criteria TEXT,
+            reviewed_output TEXT,
+            criteria_json TEXT,
+            passed_criteria_json TEXT,
+            failed_criteria_json TEXT,
+            recommendations_json TEXT,
+            quality_metrics_json TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+        )
+    `);
+
     // Setup test directories
     await fs.mkdir(mockConfig.paths.outputs, { recursive: true });
     await fs.mkdir(mockConfig.paths.tasks, { recursive: true });
@@ -151,4 +196,8 @@ describe('Service Integration', () => {
         expect(result.success).toBe(false);
         expect(result.error).toContain('Database error');
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

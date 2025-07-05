@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -7,6 +7,7 @@ const mockFetch = mock(() => Promise.resolve({
     ok: true,
     json: () => Promise.resolve({
         response: JSON.stringify({
+            success: true,
             tasks: [
                 {
                     type: 'shell',
@@ -19,7 +20,9 @@ const mockFetch = mock(() => Promise.resolve({
                     language: 'python',
                     requirements: ['Create main.py with basic structure']
                 }
-            ]
+            ],
+            plan_id: 'integration_test_plan',
+            estimated_duration: 1800
         })
     })
 }));
@@ -91,6 +94,28 @@ beforeEach(async () => {
         )
     `);
 
+    // Create planner_results table
+    mockDb.run(`
+        CREATE TABLE planner_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            plan_id TEXT,
+            goal TEXT NOT NULL,
+            context TEXT,
+            tasks_json TEXT NOT NULL,
+            model_used TEXT NOT NULL,
+            estimated_duration INTEGER DEFAULT 0,
+            task_id INTEGER,
+            goal_description TEXT,
+            generated_plan TEXT,
+            similar_tasks_used TEXT,
+            context_embeddings TEXT,
+            subtask_count INTEGER DEFAULT 0,
+            plan_version INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
+        )
+    `);
+
     // Setup test directories
     await fs.mkdir(mockConfig.paths.outputs, { recursive: true });
     await fs.mkdir(mockConfig.paths.tasks, { recursive: true });
@@ -149,6 +174,7 @@ describe('Planner Service', () => {
                 ok: true,
                 json: () => Promise.resolve({
                     response: JSON.stringify({
+                        success: true,
                         tasks: [
                             {
                                 type: 'shell',
@@ -159,7 +185,9 @@ describe('Planner Service', () => {
                                 type: 'invalid_type',
                                 description: 'Invalid task'
                             }
-                        ]
+                        ],
+                        plan_id: 'validation_test_plan',
+                        estimated_duration: 1200
                     })
                 })
             });
@@ -315,4 +343,8 @@ describe('Planner Service', () => {
             expect(result.plan.goal).toBe('Test goal');
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

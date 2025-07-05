@@ -14,6 +14,7 @@ import { initDatabase, getDatabase } from '../db';
 import { logger } from '../utils/logger';
 import { createAudioAnalyzeTask, getAudioAnalysis, searchByAudioFeatures, getAudioFeatureStats } from '../executors/audio-analyze';
 import { audioAnalyzerService } from '../services/audio-analyzer';
+import { safeParseInt, safeParseFloat, safeObjectEntries, isObject, safeJsonParse, isValidString } from '../utils/safe-access';
 
 interface CliOptions {
     mediaId?: number;
@@ -143,32 +144,32 @@ function parseCliArgs(): CliOptions {
     if (values.language) options.language = values.language;
 
     if (values['min-bpm']) {
-        const minBpm = parseInt(values['min-bpm'], 10);
-        if (isNaN(minBpm) || minBpm < 0) {
+        const minBpm = safeParseInt(values['min-bpm']);
+        if (minBpm === undefined || minBpm < 0) {
             throw new Error(`Invalid min-bpm: ${values['min-bpm']}`);
         }
         options.minBpm = minBpm;
     }
 
     if (values['max-bpm']) {
-        const maxBpm = parseInt(values['max-bpm'], 10);
-        if (isNaN(maxBpm) || maxBpm < 0) {
+        const maxBpm = safeParseInt(values['max-bpm']);
+        if (maxBpm === undefined || maxBpm < 0) {
             throw new Error(`Invalid max-bpm: ${values['max-bpm']}`);
         }
         options.maxBpm = maxBpm;
     }
 
     if (values['min-energy']) {
-        const minEnergy = parseFloat(values['min-energy']);
-        if (isNaN(minEnergy) || minEnergy < 0 || minEnergy > 1) {
+        const minEnergy = safeParseFloat(values['min-energy']);
+        if (minEnergy === undefined || minEnergy < 0 || minEnergy > 1) {
             throw new Error(`Invalid min-energy: ${values['min-energy']}. Must be between 0.0 and 1.0`);
         }
         options.minEnergy = minEnergy;
     }
 
     if (values['max-energy']) {
-        const maxEnergy = parseFloat(values['max-energy']);
-        if (isNaN(maxEnergy) || maxEnergy < 0 || maxEnergy > 1) {
+        const maxEnergy = safeParseFloat(values['max-energy']);
+        if (maxEnergy === undefined || maxEnergy < 0 || maxEnergy > 1) {
             throw new Error(`Invalid max-energy: ${values['max-energy']}. Must be between 0.0 and 1.0`);
         }
         options.maxEnergy = maxEnergy;
@@ -185,8 +186,8 @@ function parseCliArgs(): CliOptions {
     }
 
     if (values.limit) {
-        const limit = parseInt(values.limit, 10);
-        if (isNaN(limit) || limit < 1 || limit > 100) {
+        const limit = safeParseInt(values.limit);
+        if (limit === undefined || limit < 1 || limit > 100) {
             throw new Error(`Invalid limit: ${values.limit}. Must be between 1 and 100`);
         }
         options.limit = limit;
@@ -299,15 +300,19 @@ async function searchAudioFeatures(options: CliOptions): Promise<void> {
         console.log('No media found matching the specified criteria.');
     } else {
         results.forEach((result, index) => {
-            const metadata = JSON.parse(result.metadata_json);
-            console.log(`${index + 1}. ${metadata.filename || 'Unknown'}`);
+            const metadata = safeJsonParse(result.metadata_json);
+            const filename = metadata && isObject(metadata) ?
+                (metadata.filename as string) || 'Unknown' : 'Unknown';
+            console.log(`${index + 1}. ${filename}`);
             console.log(`   Type: ${result.is_music ? 'Music' : 'Speech/Audio'}`);
             if (result.genre) console.log(`   Genre: ${result.genre}`);
             if (result.bpm) console.log(`   BPM: ${result.bpm}`);
             if (result.mood) console.log(`   Mood: ${result.mood}`);
-            if (result.energy_level !== null) console.log(`   Energy: ${Math.round(result.energy_level * 100)}%`);
+            if (result.energy_level !== null && result.energy_level !== undefined) {
+                console.log(`   Energy: ${Math.round(result.energy_level * 100)}%`);
+            }
             if (result.language) console.log(`   Language: ${result.language}`);
-            console.log(`   File: ${result.file_path}`);
+            console.log(`   File: ${result.file_path || 'Unknown path'}`);
             console.log();
         });
     }
@@ -328,25 +333,34 @@ async function showAudioStats(): Promise<void> {
     if (stats.avg_bpm > 0) console.log(`   Average BPM: ${stats.avg_bpm}`);
     if (stats.avg_energy > 0) console.log(`   Average Energy: ${stats.avg_energy}`);
 
-    if (Object.keys(stats.genres).length > 0) {
+    const genreEntries = safeObjectEntries(stats.genres);
+    if (genreEntries.length > 0) {
         console.log('\n🎸 Genre Distribution:');
-        const sortedGenres = Object.entries(stats.genres).sort((a, b) => b[1] - a[1]);
+        const sortedGenres = genreEntries
+            .filter(([, count]) => typeof count === 'number')
+            .sort((a, b) => (b[1] as number) - (a[1] as number));
         sortedGenres.forEach(([genre, count]) => {
             console.log(`   ${genre}: ${count} files`);
         });
     }
 
-    if (Object.keys(stats.moods).length > 0) {
+    const moodEntries = safeObjectEntries(stats.moods);
+    if (moodEntries.length > 0) {
         console.log('\n😊 Mood Distribution:');
-        const sortedMoods = Object.entries(stats.moods).sort((a, b) => b[1] - a[1]);
+        const sortedMoods = moodEntries
+            .filter(([, count]) => typeof count === 'number')
+            .sort((a, b) => (b[1] as number) - (a[1] as number));
         sortedMoods.forEach(([mood, count]) => {
             console.log(`   ${mood}: ${count} files`);
         });
     }
 
-    if (Object.keys(stats.languages).length > 0) {
+    const languageEntries = safeObjectEntries(stats.languages);
+    if (languageEntries.length > 0) {
         console.log('\n🗣️  Language Distribution:');
-        const sortedLanguages = Object.entries(stats.languages).sort((a, b) => b[1] - a[1]);
+        const sortedLanguages = languageEntries
+            .filter(([, count]) => typeof count === 'number')
+            .sort((a, b) => (b[1] as number) - (a[1] as number));
         sortedLanguages.forEach(([language, count]) => {
             console.log(`   ${language}: ${count} files`);
         });

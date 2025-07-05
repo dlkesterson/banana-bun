@@ -8,15 +8,19 @@ import { reviewExecutor } from './review_executor';
 
 export async function executeReviewTask(task: ReviewTask): Promise<{ success: boolean; outputPath?: string; error?: string }> {
     const db = getDatabase();
-    // Find the dependency task (first in dependencies list)
+    // Find the dependency task (from dependencies list or target_task_id)
     let depTaskId: string | undefined;
-    if (task.dependencies && task.dependencies.length > 0) {
+
+    if (task.target_task_id) {
+        depTaskId = task.target_task_id.toString();
+    } else if (task.dependencies && task.dependencies.length > 0) {
         depTaskId = task.dependencies[0]?.trim();
     }
+
     if (!depTaskId) {
-        const error = 'No dependency found for review task';
+        const error = 'No target task found for review task (need target_task_id or dependencies)';
         await logger.error(error + ' ' + JSON.stringify({ task }));
-        return { success: false, error };
+        return { success: false, error: 'Target task not found' };
     }
     // Get the dependency task and its output file
     const depTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(depTaskId) as DatabaseTask | undefined;

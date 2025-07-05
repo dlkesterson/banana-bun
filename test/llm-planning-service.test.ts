@@ -1,5 +1,18 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
+import { standardMockConfig } from './utils/standard-mock-config';
+
+// 1. Set up ALL mocks BEFORE any imports
+// CRITICAL: Use standardMockConfig to prevent module interference
+mock.module('../src/config', () => ({ config: standardMockConfig }));
+
+let db: Database = new Database(':memory:');
+
+mock.module('../src/db', () => ({
+    getDatabase: () => db,
+    initDatabase: mock(() => Promise.resolve()),
+    getDependencyHelper: mock(() => ({}))
+}));
 
 const mockLogger = {
     info: mock(() => Promise.resolve()),
@@ -8,31 +21,133 @@ const mockLogger = {
     debug: mock(() => Promise.resolve())
 };
 
-const mockConfig = {
-    ollama: { url: 'http://localhost:11434', model: 'test' },
-    openai: { apiKey: '' }
-};
+mock.module('../src/utils/logger', () => ({
+    logger: mockLogger
+}));
 
-let db: Database = new Database(':memory:');
-const mockGetDatabase = mock(() => db);
+// Mock fetch to prevent real HTTP requests
+const mockFetch = mock(() => Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+        response: JSON.stringify({
+            tasks: [{ type: 'shell', command: 'echo test' }],
+            dependencies: [],
+            optimization_score: 85
+        })
+    })
+}));
+global.fetch = mockFetch as any;
 
-mock.module('../src/utils/logger', () => ({ logger: mockLogger }));
-mock.module('../src/config', () => ({ config: mockConfig }));
-mock.module('../src/db', () => ({ getDatabase: mockGetDatabase }));
-mock.module('../db', () => ({ getDatabase: mockGetDatabase }));
-mock.module('../src/memory/embeddings', () => ({ embeddingManager: {} }));
+// Mock embeddings manager
+mock.module('../src/memory/embeddings', () => ({
+    embeddingManager: {
+        addTaskEmbedding: mock(() => Promise.resolve()),
+        findSimilarTasks: mock(() => Promise.resolve([]))
+    }
+}));
 
+// 2. Import AFTER mocks are set up
+import { LlmPlanningService } from '../src/services/llm-planning-service';
 import type { LlmPlanningRequest, GeneratedPlan, LogAnalysisPattern, PlanTemplate, SystemMetric } from '../src/types/llm-planning';
 
 describe('LlmPlanningService Core Functions', () => {
+    afterAll(() => {
+        mock.restore(); // REQUIRED for cleanup
+    });
+
     let service: LlmPlanningService;
 
     beforeEach(async () => {
-        db.close();
+        // Create a real in-memory database for testing
+        if (db && !db.closed) {
+            db.close();
+        }
         db = new Database(':memory:');
-        const mod = await import('../src/services/llm-planning-service');
-        service = new mod.LlmPlanningService();
-        Object.values(mockLogger).forEach(fn => 'mockClear' in fn && fn.mockClear());
+
+        // Create required tables for LlmPlanningService
+        db.run(`
+            CREATE TABLE IF NOT EXISTS analytics_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                level TEXT NOT NULL,
+                message TEXT NOT NULL,
+                metadata TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS log_analysis_patterns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                pattern_type TEXT NOT NULL,
+                pattern_description TEXT NOT NULL,
+                frequency INTEGER NOT NULL,
+                severity TEXT NOT NULL,
+                first_detected DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_detected DATETIME DEFAULT CURRENT_TIMESTAMP,
+                resolved BOOLEAN DEFAULT FALSE
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS plan_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                template_data TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                success_rate REAL DEFAULT 0.0,
+                usage_count INTEGER DEFAULT 0
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS system_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                metric_type TEXT NOT NULL,
+                metric_value REAL NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS optimization_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recommendation_type TEXT NOT NULL,
+                description TEXT NOT NULL,
+                impact_score INTEGER NOT NULL,
+                implementation_difficulty TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                implemented BOOLEAN DEFAULT FALSE,
+                llm_model_used TEXT
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS planner_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plan_id TEXT,
+                goal TEXT NOT NULL,
+                context TEXT,
+                tasks_json TEXT NOT NULL,
+                model_used TEXT NOT NULL,
+                estimated_duration INTEGER DEFAULT 0,
+                optimization_score REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        db.run(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                type TEXT,
+                description TEXT,
+                status TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        service = new LlmPlanningService();
     });
 
     afterEach(() => {
@@ -98,4 +213,8 @@ describe('LlmPlanningService Core Functions', () => {
         expect(patterns[0].pattern_description).toContain('fail connect');
         expect(patterns[0].severity).toBe('medium');
     });
+});
+
+afterAll(() => {
+    mock.restore();
 });

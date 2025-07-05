@@ -1,11 +1,24 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 
 // Mock MCP client
 const mockMcpClient = {
+    startServer: mock(() => Promise.resolve()),
     connect: mock(() => Promise.resolve()),
     disconnect: mock(() => Promise.resolve()),
+    stopAllServers: mock(() => Promise.resolve()),
     callTool: mock(() => Promise.resolve({ success: true, result: 'mocked result' })),
-    isConnected: mock(() => true)
+    isConnected: mock(() => true),
+    sendRequest: mock(() => Promise.resolve({ content: [{ text: '{"results": [], "recommendations": []}' }] })),
+    findSimilarTasks: mock(() => Promise.resolve([])),
+    getTaskRecommendations: mock(() => Promise.resolve({ recommendations: ['Use best practices', 'Consider performance'] })),
+    storeTaskEmbedding: mock(() => Promise.resolve()),
+    batchAddEmbeddings: mock(() => Promise.resolve()),
+    setupNotification: mock(() => Promise.resolve()),
+    sendNotification: mock(() => Promise.resolve()),
+    broadcastStatusUpdate: mock(() => Promise.resolve()),
+    getSystemMetrics: mock(() => Promise.resolve({ cpu: 50, memory: 60 })),
+    getDashboardInfo: mock(() => Promise.resolve({ active_tasks: 0, total_tasks: 0 })),
+    setupWebhook: mock(() => Promise.resolve())
 };
 
 // Mock logger
@@ -16,6 +29,11 @@ const mockLogger = {
     debug: mock(() => Promise.resolve())
 };
 
+// Mock embedding manager
+const mockEmbeddingManager = {
+    addTaskEmbedding: mock(() => Promise.resolve())
+};
+
 // Mock config
 const mockConfig = {
     paths: {
@@ -23,6 +41,24 @@ const mockConfig = {
             host: 'localhost',
             port: 8000,
             ssl: false
+        }
+    },
+    mcpServers: {
+        chromadb: {
+            command: 'bun',
+            args: ['run', 'mcp:chromadb'],
+            description: 'ChromaDB MCP Server'
+        },
+        monitor: {
+            command: 'bun',
+            args: ['run', 'mcp:monitor'],
+            description: 'Monitor MCP Server'
+        }
+    },
+    settings: {
+        monitor: {
+            metrics_interval_minutes: 5,
+            websocket_port: 8080
         }
     }
 };
@@ -39,6 +75,10 @@ mock.module('../src/utils/logger', () => ({
 
 mock.module('../src/config', () => ({
     config: mockConfig
+}));
+
+mock.module('../src/memory/embeddings', () => ({
+    embeddingManager: mockEmbeddingManager
 }));
 
 // Import after mocking
@@ -59,6 +99,12 @@ describe('MCP Manager', () => {
                 fn.mockClear();
             }
         });
+
+        Object.values(mockEmbeddingManager).forEach(fn => {
+            if (typeof fn === 'function' && 'mockClear' in fn) {
+                fn.mockClear();
+            }
+        });
     });
 
     afterEach(async () => {
@@ -75,22 +121,38 @@ describe('MCP Manager', () => {
         });
 
         it('should handle initialization errors gracefully', async () => {
-            mockMcpClient.connect.mockRejectedValueOnce(new Error('Connection failed'));
+            // Reset the manager state
+            await mcpManager.shutdown();
 
-            await expect(mcpManager.initialize()).rejects.toThrow();
+            // Mock the startServer to reject
+            mockMcpClient.startServer.mockImplementation(() => {
+                throw new Error('Server start failed');
+            });
 
+            await expect(mcpManager.initialize()).rejects.toThrow('Server start failed');
+
+            // Check that error was logged
             expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to initialize MCP Manager'),
-                expect.any(Object)
+                'Failed to initialize MCP Manager',
+                expect.objectContaining({
+                    error: 'Server start failed'
+                })
             );
+
+            // Reset the mock
+            mockMcpClient.startServer.mockResolvedValue(undefined);
         });
 
         it('should not initialize twice', async () => {
             await mcpManager.initialize();
+
+            // Clear the mock to reset call count
+            mockMcpClient.startServer.mockClear();
+
             await mcpManager.initialize(); // Second call should be ignored
 
-            // Should only connect once
-            expect(mockMcpClient.connect).toHaveBeenCalledTimes(1);
+            // Should not start servers again
+            expect(mockMcpClient.startServer).toHaveBeenCalledTimes(0);
         });
     });
 
@@ -107,27 +169,23 @@ describe('MCP Manager', () => {
                 status: 'pending'
             };
 
-            mockMcpClient.callTool.mockResolvedValueOnce({
-                success: true,
-                result: {
-                    similar_tasks: [
-                        { id: 'task_2', similarity: 0.85, description: 'Similar creative task' }
-                    ],
-                    recommendations: ['Use creative writing techniques', 'Consider audience']
-                }
+            mockMcpClient.getTaskRecommendations.mockResolvedValueOnce({
+                recommendations: ['Use creative writing techniques', 'Consider audience']
             });
 
             const result = await mcpManager.processTaskWithMCP(task);
 
-            expect(result.success).toBe(true);
-            expect(result.similar_tasks).toBeDefined();
-            expect(result.recommendations).toBeDefined();
-
-            expect(mockMcpClient.callTool).toHaveBeenCalledWith(
-                'find_similar_tasks',
+            expect(result).toEqual(task);
+            expect(mockMcpClient.getTaskRecommendations).toHaveBeenCalledWith(
+                task.description,
+                task.type
+            );
+            expect(mockMcpClient.broadcastStatusUpdate).toHaveBeenCalledWith(
+                task.id,
+                'running',
                 expect.objectContaining({
                     description: task.description,
-                    task_type: task.type
+                    type: task.type
                 })
             );
         });
@@ -140,16 +198,19 @@ describe('MCP Manager', () => {
                 status: 'pending'
             };
 
-            mockMcpClient.callTool.mockRejectedValueOnce(new Error('Tool call failed'));
+            mockMcpClient.getTaskRecommendations.mockRejectedValueOnce(new Error('Tool call failed'));
 
             const result = await mcpManager.processTaskWithMCP(task);
 
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('Tool call failed');
+            expect(result).toEqual(task); // Should return the original task
 
+            // Check that error was logged (the error occurs in getTaskRecommendations)
             expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining('MCP task processing failed'),
-                expect.any(Object)
+                'Failed to get task recommendations',
+                expect.objectContaining({
+                    taskId: task.id,
+                    error: 'Tool call failed'
+                })
             );
         });
 
@@ -164,13 +225,12 @@ describe('MCP Manager', () => {
                     status: 'pending'
                 };
 
-                mockMcpClient.callTool.mockResolvedValueOnce({
-                    success: true,
-                    result: { recommendations: [`${type} specific advice`] }
+                mockMcpClient.getTaskRecommendations.mockResolvedValueOnce({
+                    recommendations: [`${type} specific advice`]
                 });
 
                 const result = await mcpManager.processTaskWithMCP(task);
-                expect(result.success).toBe(true);
+                expect(result).toEqual(task);
             }
         });
     });
@@ -196,17 +256,18 @@ describe('MCP Manager', () => {
 
             await mcpManager.completeTaskWithMCP(task, executionResult);
 
-            expect(mockMcpClient.callTool).toHaveBeenCalledWith(
-                'store_task_embedding',
-                expect.objectContaining({
-                    task_id: task.id,
-                    description: task.description,
-                    task_type: task.type,
-                    success: executionResult.success,
-                    output_path: executionResult.outputPath,
-                    execution_time: executionResult.executionTime
-                })
+            expect(mockMcpClient.batchAddEmbeddings).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        taskId: task.id,
+                        description: task.description,
+                        type: task.type,
+                        status: 'completed'
+                    })
+                ])
             );
+            expect(mockMcpClient.sendNotification).toHaveBeenCalled();
+            expect(mockMcpClient.broadcastStatusUpdate).toHaveBeenCalled();
         });
 
         it('should handle completion with failure results', async () => {
@@ -225,14 +286,16 @@ describe('MCP Manager', () => {
 
             await mcpManager.completeTaskWithMCP(task, executionResult);
 
-            expect(mockMcpClient.callTool).toHaveBeenCalledWith(
-                'store_task_embedding',
-                expect.objectContaining({
-                    task_id: task.id,
-                    success: false,
-                    error: 'Command not found'
-                })
+            expect(mockMcpClient.batchAddEmbeddings).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        taskId: task.id,
+                        status: 'failed'
+                    })
+                ])
             );
+            expect(mockMcpClient.sendNotification).toHaveBeenCalled();
+            expect(mockMcpClient.broadcastStatusUpdate).toHaveBeenCalled();
         });
 
         it('should handle storage errors gracefully', async () => {
@@ -243,13 +306,13 @@ describe('MCP Manager', () => {
                 status: 'completed'
             };
 
-            mockMcpClient.callTool.mockRejectedValueOnce(new Error('Storage failed'));
+            mockMcpClient.batchAddEmbeddings.mockRejectedValueOnce(new Error('Storage failed'));
 
             // Should not throw, but log error
             await mcpManager.completeTaskWithMCP(task, { success: true });
 
             expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining('Failed to complete task with MCP'),
+                expect.stringContaining('Failed to add embedding via MCP, using fallback'),
                 expect.any(Object)
             );
         });
@@ -261,27 +324,19 @@ describe('MCP Manager', () => {
         });
 
         it('should provide live dashboard information', async () => {
-            mockMcpClient.callTool.mockResolvedValueOnce({
-                success: true,
-                result: {
-                    websocket_url: 'ws://localhost:8080',
-                    dashboard_path: '/tmp/dashboard/live.html'
-                }
-            });
-
             const dashboardInfo = await mcpManager.getLiveDashboardInfo();
 
             expect(dashboardInfo.websocketUrl).toBe('ws://localhost:8080');
-            expect(dashboardInfo.dashboardPath).toBe('/tmp/dashboard/live.html');
+            expect(dashboardInfo.dashboardPath).toContain('live-dashboard.html');
         });
 
         it('should handle dashboard info errors', async () => {
-            mockMcpClient.callTool.mockRejectedValueOnce(new Error('Dashboard unavailable'));
-
+            // This test doesn't apply since getLiveDashboardInfo doesn't make MCP calls
+            // It just returns config-based values
             const dashboardInfo = await mcpManager.getLiveDashboardInfo();
 
-            expect(dashboardInfo.websocketUrl).toBeNull();
-            expect(dashboardInfo.error).toContain('Dashboard unavailable');
+            expect(dashboardInfo.websocketUrl).toBe('ws://localhost:8080');
+            expect(dashboardInfo.dashboardPath).toContain('live-dashboard.html');
         });
     });
 
@@ -301,27 +356,24 @@ describe('MCP Manager', () => {
                 system_health: 'healthy'
             };
 
-            mockMcpClient.callTool.mockResolvedValueOnce({
-                success: true,
-                result: mockMetrics
-            });
+            mockMcpClient.getSystemMetrics.mockResolvedValueOnce(mockMetrics);
 
             const metrics = await mcpManager.getSystemMetrics(24);
 
             expect(metrics).toEqual(mockMetrics);
-            expect(mockMcpClient.callTool).toHaveBeenCalledWith(
-                'get_system_metrics',
-                { hours: 24 }
-            );
+            expect(mockMcpClient.getSystemMetrics).toHaveBeenCalledWith(24);
         });
 
         it('should handle metrics retrieval errors', async () => {
-            mockMcpClient.callTool.mockRejectedValueOnce(new Error('Metrics unavailable'));
+            mockMcpClient.getSystemMetrics.mockRejectedValueOnce(new Error('Metrics unavailable'));
 
             const metrics = await mcpManager.getSystemMetrics(24);
 
-            expect(metrics.error).toContain('Metrics unavailable');
-            expect(metrics.total_tasks).toBe(0);
+            expect(metrics).toBeNull();
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                expect.stringContaining('Failed to get system metrics'),
+                expect.any(Object)
+            );
         });
     });
 
@@ -333,29 +385,29 @@ describe('MCP Manager', () => {
         it('should setup webhook notifications', async () => {
             const webhookUrl = 'https://example.com/webhook';
 
-            mockMcpClient.callTool.mockResolvedValueOnce({
-                success: true,
-                result: { webhook_id: 'webhook_123' }
-            });
+            await mcpManager.setupWebhookNotification(webhookUrl);
 
-            const result = await mcpManager.setupWebhookNotification(webhookUrl);
-
-            expect(result.success).toBe(true);
-            expect(result.webhook_id).toBe('webhook_123');
-
-            expect(mockMcpClient.callTool).toHaveBeenCalledWith(
-                'setup_webhook',
-                { url: webhookUrl }
+            expect(mockMcpClient.setupNotification).toHaveBeenCalledWith(
+                'webhook',
+                webhookUrl,
+                undefined,
+                true
+            );
+            expect(mockLogger.info).toHaveBeenCalledWith(
+                expect.stringContaining('Webhook notification configured'),
+                expect.any(Object)
             );
         });
 
         it('should handle webhook setup errors', async () => {
-            mockMcpClient.callTool.mockRejectedValueOnce(new Error('Webhook setup failed'));
+            mockMcpClient.setupNotification.mockRejectedValueOnce(new Error('Webhook setup failed'));
 
-            const result = await mcpManager.setupWebhookNotification('https://example.com/webhook');
+            await expect(mcpManager.setupWebhookNotification('https://example.com/webhook')).rejects.toThrow();
 
-            expect(result.success).toBe(false);
-            expect(result.error).toContain('Webhook setup failed');
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                expect.stringContaining('Failed to setup webhook notification'),
+                expect.any(Object)
+            );
         });
     });
 
@@ -368,12 +420,12 @@ describe('MCP Manager', () => {
         it('should reconnect on connection loss', async () => {
             await mcpManager.initialize();
 
-            mockMcpClient.isConnected.mockReturnValueOnce(false);
-            mockMcpClient.connect.mockResolvedValueOnce(undefined);
+            // Reset the manager to simulate disconnection
+            await mcpManager.shutdown();
 
             await mcpManager.ensureConnection();
 
-            expect(mockMcpClient.connect).toHaveBeenCalled();
+            expect(mockMcpClient.startServer).toHaveBeenCalled();
         });
     });
 
@@ -382,7 +434,7 @@ describe('MCP Manager', () => {
             await mcpManager.initialize();
             await mcpManager.shutdown();
 
-            expect(mockMcpClient.disconnect).toHaveBeenCalled();
+            expect(mockMcpClient.stopAllServers).toHaveBeenCalled();
             expect(mockLogger.info).toHaveBeenCalledWith(
                 expect.stringContaining('MCP Manager shutdown')
             );
@@ -391,7 +443,7 @@ describe('MCP Manager', () => {
         it('should handle shutdown errors', async () => {
             await mcpManager.initialize();
 
-            mockMcpClient.disconnect.mockRejectedValueOnce(new Error('Disconnect failed'));
+            mockMcpClient.stopAllServers.mockRejectedValueOnce(new Error('Stop servers failed'));
 
             await mcpManager.shutdown();
 
@@ -406,4 +458,8 @@ describe('MCP Manager', () => {
             await mcpManager.shutdown();
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

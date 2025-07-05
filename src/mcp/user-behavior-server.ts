@@ -7,8 +7,8 @@ import {
     ListToolsRequestSchema,
     type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { getDatabase, initDatabase } from '../db.js';
-import { logger } from '../utils/logger.js';
+import { getDatabase, initDatabase } from '../db';
+import { logger } from '../utils/logger';
 
 interface UserInteractionPattern {
     pattern_type: string;
@@ -55,7 +55,7 @@ class UserBehaviorMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('User Behavior server database initialized');
             this.setupToolHandlers();
         } catch (error) {
@@ -238,21 +238,21 @@ class UserBehaviorMCPServer {
 
     private async analyzeUserInteractions(args: any) {
         const db = getDatabase();
-        const { 
-            user_session_id, 
-            time_range_hours = 168, 
-            interaction_types = ['search', 'view', 'tag_edit', 'feedback'], 
-            include_patterns = true 
+        const {
+            user_session_id,
+            time_range_hours = 168,
+            interaction_types = ['search', 'view', 'tag_edit', 'feedback'],
+            include_patterns = true
         } = args;
 
         const cutoffTime = new Date(Date.now() - time_range_hours * 60 * 60 * 1000).toISOString();
 
         // Analyze search patterns
         const searchPatterns = await this.analyzeSearchBehavior(db, cutoffTime, user_session_id);
-        
+
         // Analyze content interaction patterns
         const contentPatterns = await this.analyzeContentInteractions(db, cutoffTime, user_session_id);
-        
+
         // Analyze task completion patterns
         const taskPatterns = await this.analyzeTaskCompletionBehavior(db, cutoffTime, user_session_id);
 
@@ -290,7 +290,7 @@ class UserBehaviorMCPServer {
     private async analyzeSearchBehavior(db: any, cutoffTime: string, userId?: string): Promise<any> {
         // Simulate search behavior analysis
         // In real implementation, this would query actual search logs
-        
+
         const searchData = {
             total: Math.floor(Math.random() * 100) + 20,
             insights: {

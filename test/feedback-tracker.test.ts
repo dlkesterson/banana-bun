@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 
 // Mock config to use in-memory database and temporary log path
@@ -65,8 +65,16 @@ describe('FeedbackTracker', () => {
     beforeEach(async () => {
         db = new Database(':memory:');
         createTestTables(db);
-        mock.module('../src/db', () => ({ getDatabase: () => db }));
-        const mod = await import('../src/feedback-tracker');
+
+        // Clear module cache and re-mock
+        delete require.cache[require.resolve('../src/feedback-tracker')];
+        mock.module('../src/db', () => ({
+            getDatabase: () => db,
+            initDatabase: mock(() => Promise.resolve()),
+            getDependencyHelper: mock(() => ({}))
+        }));
+
+        const mod = await import('../src/feedback-tracker?t=' + Date.now());
         FeedbackTrackerClass = mod.FeedbackTracker;
         tracker = new FeedbackTrackerClass();
         Object.values(mockLogger).forEach(fn => 'mockClear' in fn && fn.mockClear());
@@ -190,4 +198,55 @@ describe('FeedbackTracker', () => {
         expect(top.length).toBe(2);
         expect(top[0].frequency >= top[1].frequency).toBe(true);
     });
+
+    it('returns false for unknown rule type', async () => {
+        db.run(`INSERT INTO learning_rules (id, rule_type, usage_count) VALUES (2, 'unknown', 0)`);
+
+        const rule = {
+            id: 2,
+            rule_type: 'unknown' as any,
+            condition: '',
+            action: '',
+            confidence: 0.5,
+            created_from_feedback: true,
+            usage_count: 0,
+            success_rate: 0
+        };
+
+        const result = await tracker.applyLearningRule(rule, 100);
+        expect(result).toBe(false);
+        const updated = db.prepare('SELECT usage_count FROM learning_rules WHERE id = 2').get() as any;
+        expect(updated.usage_count).toBe(0);
+        expect(mockLogger.info.mock.calls.length).toBe(0);
+    });
+
+    it('logs error when recordFeedback fails', async () => {
+        mock.restore();
+        const failingDb = { run: () => { throw new Error('fail'); } } as any;
+        mock.module('../src/db', () => ({
+            getDatabase: () => failingDb,
+            initDatabase: mock(() => Promise.resolve()),
+            getDependencyHelper: mock(() => ({}))
+        }));
+        delete require.cache[require.resolve('../src/feedback-tracker')];
+        const mod = await import('../src/feedback-tracker?t=' + Date.now());
+        const FT = mod.FeedbackTracker;
+        const failingTracker = new FT();
+        Object.values(mockLogger).forEach(fn => 'mockClear' in fn && fn.mockClear());
+
+        await expect(failingTracker.recordFeedback({
+            media_id: 1,
+            feedback_type: 'tag_correction',
+            original_value: 'x',
+            corrected_value: 'y',
+            source: 'ui'
+        })).rejects.toThrow('fail');
+
+        expect(mockLogger.error.mock.calls.length).toBe(1);
+    });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

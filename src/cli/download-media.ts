@@ -12,6 +12,7 @@
 import { initDatabase, getDatabase } from "../db";
 import { config } from "../config";
 import { logger } from "../utils/logger";
+import { parseCliArgument, validateRequiredArg, isValidString } from "../utils/safe-access";
 import type { MediaDownloadTask } from "../types/task";
 
 interface CliOptions {
@@ -37,33 +38,56 @@ function parseArgs(args: string[]): CliOptions {
     } else if (arg === "--simulate") {
       options.simulate = true;
     } else if (arg.startsWith("--source=")) {
-      const source = arg.split("=")[1] as CliOptions["source"];
+      const source = parseCliArgument(arg, "--source=");
+      if (!source) {
+        throw new Error("Source value is required after --source=");
+      }
       if (["torrent", "nzb", "youtube", "rss"].includes(source)) {
-        options.source = source;
+        options.source = source as CliOptions["source"];
       } else {
         throw new Error(
           `Invalid source: ${source}. Must be one of: torrent, nzb, youtube, rss`
         );
       }
     } else if (arg.startsWith("--url=")) {
-      options.url = arg.split("=")[1];
+      const url = parseCliArgument(arg, "--url=");
+      if (!url) {
+        throw new Error("URL value is required after --url=");
+      }
+      options.url = url;
     } else if (arg.startsWith("--query=")) {
-      options.query = arg.split("=")[1];
+      const query = parseCliArgument(arg, "--query=");
+      if (!query) {
+        throw new Error("Query value is required after --query=");
+      }
+      options.query = query;
     } else if (arg.startsWith("--media=")) {
-      const media = arg.split("=")[1] as CliOptions["media"];
+      const media = parseCliArgument(arg, "--media=");
+      if (!media) {
+        throw new Error("Media type value is required after --media=");
+      }
       if (["movie", "tv", "music", "video"].includes(media)) {
-        options.media = media;
+        options.media = media as CliOptions["media"];
       } else {
         throw new Error(
           `Invalid media type: ${media}. Must be one of: movie, tv, music, video`
         );
       }
     } else if (arg.startsWith("--dest=")) {
-      options.dest = arg.split("=")[1];
+      const dest = parseCliArgument(arg, "--dest=");
+      if (dest) {
+        options.dest = dest;
+      }
     } else if (arg.startsWith("--quality=")) {
-      options.quality = arg.split("=")[1];
+      const quality = parseCliArgument(arg, "--quality=");
+      if (quality) {
+        options.quality = quality;
+      }
     } else if (arg.startsWith("--format=")) {
-      options.format = arg.split("=")[1];
+      const format = parseCliArgument(arg, "--format=");
+      if (format) {
+        options.format = format;
+      }
     }
   }
 

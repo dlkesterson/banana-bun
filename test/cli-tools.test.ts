@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, afterAll, mock } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
+import { standardMockConfig } from './utils/standard-mock-config';
 
 // Mock logger
 const mockLogger = {
@@ -10,21 +11,13 @@ const mockLogger = {
     debug: mock(() => Promise.resolve())
 };
 
-// Mock config
-const mockConfig = {
-    paths: {
-        database: ':memory:',
-        tasks: '/tmp/test-tasks'
-    }
-};
-
 // Mock modules
 mock.module('../src/utils/logger', () => ({
     logger: mockLogger
 }));
 
 mock.module('../src/config', () => ({
-    config: mockConfig
+    config: standardMockConfig
 }));
 
 // Mock database functions
@@ -308,7 +301,7 @@ describe('CLI Tools', () => {
             mockDb.run('DELETE FROM task_schedules WHERE id = 1');
             
             const schedule = mockDb.query('SELECT * FROM task_schedules WHERE id = 1').get();
-            expect(schedule).toBeUndefined();
+            expect(schedule).toBeNull();
         });
 
         it('should validate cron expressions', () => {
@@ -418,4 +411,9 @@ describe('CLI Tools', () => {
             expect(validateArgs(invalidArgs)).toBe(false);
         });
     });
+});
+
+afterAll(() => {
+    // Restore all mocks after all tests in this file complete
+    mock.restore();
 });

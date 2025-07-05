@@ -48,13 +48,13 @@ export function isBaseTask(obj: any): obj is BaseTask {
 // Specific type guards for each task type
 export function isShellTask(obj: any): obj is ShellTask {
     if (!isBaseTask(obj) || obj.type !== 'shell') return false;
-    const validation = validateShellTask(obj);
+    const validation = validateShellTask(obj, true); // Use strict validation
     return validation.valid;
 }
 
 export function isLlmTask(obj: any): obj is LlmTask {
     if (!isBaseTask(obj) || obj.type !== 'llm') return false;
-    const validation = validateLlmTask(obj);
+    const validation = validateLlmTask(obj, true); // Use strict validation
     return validation.valid;
 }
 
@@ -90,7 +90,7 @@ export function isBatchTask(obj: any): obj is BatchTask {
 
 export function isToolTask(obj: any): obj is ToolTask {
     if (!isBaseTask(obj) || obj.type !== 'tool') return false;
-    const validation = validateToolTask(obj);
+    const validation = validateToolTask(obj, true); // Use strict validation
     return validation.valid;
 }
 
@@ -123,9 +123,9 @@ export function validateTaskStructure(obj: any): ValidationResult {
 
     switch (taskType) {
         case 'shell':
-            return validateShellTask(obj);
+            return validateShellTask(obj, true); // Use strict validation
         case 'llm':
-            return validateLlmTask(obj);
+            return validateLlmTask(obj, true); // Use strict validation
         case 'planner':
             return validatePlannerTask(obj);
         case 'code':
@@ -137,7 +137,7 @@ export function validateTaskStructure(obj: any): ValidationResult {
         case 'batch':
             return validateBatchTask(obj);
         case 'tool':
-            return validateToolTask(obj);
+            return validateToolTask(obj, true); // Use strict validation
         case 'youtube':
             return validateYoutubeTask(obj);
         case 'media_ingest':

@@ -24,7 +24,7 @@ interface AnalysisOptions {
     generateReport?: boolean;
 }
 
-async function parseArgs(args: string[] = process.argv.slice(2)): Promise<AnalysisOptions> {
+export async function parseArgs(args: string[] = process.argv.slice(2)): Promise<AnalysisOptions> {
     const options: AnalysisOptions = {
         action: 'correlations',
         days: 7,
@@ -172,8 +172,8 @@ async function main(): Promise<void> {
     }
 }
 
-async function analyzeCorrelations(
-    service: CrossModalIntelligenceService, 
+export async function analyzeCorrelations(
+    service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
     if (!options.mediaId) {
@@ -208,8 +208,8 @@ async function analyzeCorrelations(
     console.log(`   ${correlation.suggested_tags.join(', ')}`);
 }
 
-async function assessQuality(
-    service: CrossModalIntelligenceService, 
+export async function assessQuality(
+    service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
     if (!options.mediaId) {
@@ -236,8 +236,8 @@ async function assessQuality(
     }
 }
 
-async function generateEmbeddings(
-    service: CrossModalIntelligenceService, 
+export async function generateEmbeddings(
+    service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
     if (!options.mediaId) {
@@ -261,8 +261,8 @@ async function generateEmbeddings(
     console.log(`   [${sample.map(v => v.toFixed(3)).join(', ')}...]`);
 }
 
-async function analyzeSearchPatterns(
-    service: CrossModalIntelligenceService, 
+export async function analyzeSearchPatterns(
+    service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
     console.log(`🔍 Analyzing search patterns over the last ${options.days} days...`);
@@ -280,8 +280,8 @@ async function analyzeSearchPatterns(
     console.log(`   • Use track-search action to start collecting data`);
 }
 
-async function trackSearchBehavior(
-    service: CrossModalIntelligenceService, 
+export async function trackSearchBehavior(
+    service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
     if (!options.query || !options.sessionId) {
@@ -315,7 +315,7 @@ async function trackSearchBehavior(
     console.log(`   Interactions: ${mockInteractions.length}`);
 }
 
-async function showDashboard(
+export async function showDashboard(
     service: CrossModalIntelligenceService,
     options: AnalysisOptions
 ): Promise<void> {
@@ -346,16 +346,7 @@ async function showDashboard(
     }
 }
 
-// Export functions for testing
-export {
-    parseArgs,
-    analyzeCorrelations,
-    assessQuality,
-    generateEmbeddings,
-    analyzeSearchPatterns,
-    trackSearchBehavior,
-    showDashboard
-};
+// Functions are already exported above
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
@@ -367,6 +358,8 @@ process.on('SIGTERM', () => {
     console.log('\n👋 Shutting down cross-modal intelligence analysis...');
     process.exit(0);
 });
+
+// Functions are already exported above
 
 if (import.meta.main) {
     main();

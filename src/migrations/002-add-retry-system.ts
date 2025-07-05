@@ -100,19 +100,31 @@ export class RetrySystemMigration {
         logger.info('Adding retry columns to tasks table...');
 
         const columns = [
-            'retry_count INTEGER DEFAULT 0',
-            'max_retries INTEGER DEFAULT 3',
-            'next_retry_at DATETIME',
-            'retry_policy_id INTEGER',
-            'last_retry_error TEXT'
+            { name: 'retry_count', definition: 'retry_count INTEGER DEFAULT 0' },
+            { name: 'max_retries', definition: 'max_retries INTEGER DEFAULT 3' },
+            { name: 'next_retry_at', definition: 'next_retry_at DATETIME' },
+            { name: 'retry_policy_id', definition: 'retry_policy_id INTEGER' },
+            { name: 'last_retry_error', definition: 'last_retry_error TEXT' }
         ];
 
         for (const column of columns) {
-            try {
-                this.db.run(`ALTER TABLE tasks ADD COLUMN ${column}`);
-            } catch (error) {
-                // Column might already exist, log and continue
-                logger.debug(`Column might already exist: ${column}`, { error });
+            // Check if column already exists
+            const columnExists = this.db.query(`
+                SELECT COUNT(*) as count
+                FROM pragma_table_info('tasks')
+                WHERE name = ?
+            `).get(column.name) as { count: number };
+
+            if (columnExists.count === 0) {
+                try {
+                    this.db.run(`ALTER TABLE tasks ADD COLUMN ${column.definition}`);
+                    logger.debug(`Added column: ${column.name}`);
+                } catch (error) {
+                    logger.error(`Failed to add column ${column.name}`, { error });
+                    throw error;
+                }
+            } else {
+                logger.debug(`Column ${column.name} already exists, skipping`);
             }
         }
 

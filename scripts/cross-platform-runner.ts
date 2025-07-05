@@ -44,14 +44,25 @@ async function runScript(scriptType: string): Promise<void> {
             }
             break;
 
+        case 'check-coverage':
+            if (isWindows) {
+                command = ['powershell', '-ExecutionPolicy', 'Bypass', '-File'];
+                scriptPath = 'check-coverage.ps1';
+            } else {
+                command = ['bash'];
+                scriptPath = 'check-coverage.sh';
+            }
+            break;
+
         default:
             console.error(`Unknown script type: ${scriptType}`);
             process.exit(1);
     }
 
     try {
+        const fullScriptPath = join(process.cwd(), 'scripts', scriptPath);
         const proc = spawn({
-            cmd: [...command, scriptPath],
+            cmd: [...command, fullScriptPath],
             stdio: ['inherit', 'inherit', 'inherit'],
             cwd: process.cwd()
         });

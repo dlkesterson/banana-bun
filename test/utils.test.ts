@@ -1,16 +1,30 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { hashFile } from '../src/utils/hash';
-import { parseTaskFile } from '../src/utils/parser';
-import { convertDatabaseTasksToBaseTasks } from '../src/utils/task_converter';
-import type { DatabaseTask, BaseTask } from '../src/types';
+import type { DatabaseTask, BaseTask, ShellTask } from '../src/types';
+
+// Import parser and converter with cache busting to avoid global mocks
+let parseTaskFile: any;
+let convertDatabaseTasksToBaseTasks: any;
+
+// Import hash function directly to avoid mocks
+async function hashFile(filePath: string): Promise<string> {
+    const data = await fs.readFile(filePath);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 describe('Utility Functions', () => {
     const testDir = '/tmp/folder-watcher-test';
 
     beforeEach(async () => {
         await fs.mkdir(testDir, { recursive: true });
+
+        // Import with cache busting to avoid global mocks
+        const parserModule = await import('../src/utils/parser.ts?t=' + Date.now());
+        const converterModule = await import('../src/utils/task_converter.ts?t=' + Date.now());
+        parseTaskFile = parserModule.parseTaskFile;
+        convertDatabaseTasksToBaseTasks = converterModule.convertDatabaseTasksToBaseTasks;
     });
 
     afterEach(async () => {
@@ -72,9 +86,11 @@ This is a test task.`;
             await fs.writeFile(taskFile, taskContent);
             
             const task = await parseTaskFile(taskFile);
-            
+
             expect(task.type).toBe('shell');
-            expect(task.shell_command).toBe('echo "Hello World"');
+            if (task.type === 'shell') {
+                expect(task.shell_command).toBe('echo "Hello World"');
+            }
             expect(task.description).toBe('Test shell task');
             expect(task.status).toBe('pending');
         });
@@ -194,6 +210,10 @@ status: pending
                     error_message: null,
                     filename: 'test.yaml',
                     file_hash: 'abc123',
+                    args: null,
+                    generator: null,
+                    tool: null,
+                    validation_errors: null,
                     created_at: '2024-01-01T00:00:00Z',
                     started_at: null,
                     finished_at: null
@@ -210,6 +230,10 @@ status: pending
                     error_message: null,
                     filename: 'llm-test.yaml',
                     file_hash: 'def456',
+                    args: null,
+                    generator: null,
+                    tool: null,
+                    validation_errors: null,
                     created_at: '2024-01-01T00:00:00Z',
                     started_at: null,
                     finished_at: null
@@ -245,11 +269,13 @@ status: pending
                     error_message: null,
                     filename: 'tool-test.yaml',
                     file_hash: 'ghi789',
+                    args: JSON.stringify({ path: '/test/file.txt' }),
+                    generator: null,
+                    tool: 'read_file',
+                    validation_errors: null,
                     created_at: '2024-01-01T00:00:00Z',
                     started_at: null,
-                    finished_at: null,
-                    args: JSON.stringify({ path: '/test/file.txt' }),
-                    tool: 'read_file'
+                    finished_at: null
                 }
             ];
 
@@ -277,14 +303,17 @@ status: pending
                     error_message: null,
                     filename: 'batch-test.yaml',
                     file_hash: 'jkl012',
-                    created_at: '2024-01-01T00:00:00Z',
-                    started_at: null,
-                    finished_at: null,
+                    args: null,
                     generator: JSON.stringify({
                         type: 'folder_rename',
                         directory_path: '/test',
                         recursive: true
-                    })
+                    }),
+                    tool: null,
+                    validation_errors: null,
+                    created_at: '2024-01-01T00:00:00Z',
+                    started_at: null,
+                    finished_at: null
                 }
             ];
 

@@ -7,6 +7,16 @@ import type { DatabaseTask } from './types';
 import { reviewService } from './services/review-service';
 import { plannerService } from './services/planner-service';
 
+// HTML escaping function to prevent XSS
+function escapeHtml(unsafe: string): string {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 const statusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800',
     running: 'bg-blue-100 text-blue-800',
@@ -106,7 +116,7 @@ async function generateTaskDetailPage(taskId: number): Promise<string> {
             <h1 class="text-2xl font-bold mb-4">Task ${taskId}</h1>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <p class="text-sm"><span class="font-semibold">Description:</span> ${task.description}</p>
+                    <p class="text-sm"><span class="font-semibold">Description:</span> ${escapeHtml(task.description)}</p>
                     <p class="text-sm"><span class="font-semibold">Type:</span> ${task.type}</p>
                     <p class="text-sm"><span class="font-semibold">Status:</span> <span class="rounded px-2 py-1 ${statusColors[task.status] || ''}">${task.status}</span></p>
                     <p class="text-sm"><span class="font-semibold">Created:</span> ${task.created_at}</p>
@@ -188,7 +198,7 @@ export async function generateDashboard() {
         <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='/task/${task.id}'">
             <td class="px-2 py-1 text-xs">${task.id}</td>
             <td class="px-2 py-1 text-xs">${task.type}</td>
-            <td class="px-2 py-1 text-xs">${task.description}</td>
+            <td class="px-2 py-1 text-xs">${escapeHtml(task.description)}</td>
             <td class="px-2 py-1 text-xs"><span class="rounded px-2 py-1 ${statusColors[task.status] || ''}">${task.status}</span></td>
             <td class="px-2 py-1 text-xs">${reviewSummary.latest_review ? reviewService.getPassFailBadge(reviewSummary.latest_review.passed) : ''}</td>
             <td class="px-2 py-1 text-xs">${reviewSummary.latest_review ? reviewService.getScoreBadge(reviewSummary.latest_review.score) : ''}</td>

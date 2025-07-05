@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, afterAll } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { promises as fs } from 'fs';
 
@@ -88,6 +88,29 @@ beforeEach(async () => {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             started_at DATETIME,
             finished_at DATETIME
+        )
+    `);
+
+    // Create review_results table
+    mockDb.run(`
+        CREATE TABLE IF NOT EXISTS review_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER NOT NULL,
+            reviewer_type TEXT DEFAULT 'automated',
+            model_used TEXT,
+            passed BOOLEAN NOT NULL,
+            score INTEGER,
+            feedback TEXT,
+            suggestions TEXT,
+            review_criteria TEXT,
+            reviewed_output TEXT,
+            criteria_json TEXT,
+            passed_criteria_json TEXT,
+            failed_criteria_json TEXT,
+            recommendations_json TEXT,
+            quality_metrics_json TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES tasks (id)
         )
     `);
 
@@ -317,4 +340,8 @@ echo "Backup completed successfully"
             expect(comparison.percentile_rank).toBeDefined();
         });
     });
+});
+
+afterAll(() => {
+  mock.restore();
 });

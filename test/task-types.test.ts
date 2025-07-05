@@ -12,18 +12,26 @@ import type {
     YoutubeTask,
     MediaIngestTask
 } from '../src/types';
+import {
+    createShellTask,
+    createLlmTask,
+    createPlannerTask,
+    createCodeTask,
+    createBatchTask,
+    createToolTask,
+    createMediaIngestTask,
+    createBaseTask
+} from '../src/test-utils/task-factories';
 
 describe('Task Type System', () => {
     describe('Type Guards and Validation', () => {
         it('should create valid ShellTask', () => {
-            const shellTask: ShellTask = {
+            const shellTask = createShellTask({
                 id: 1,
-                type: 'shell',
                 shell_command: 'echo "Hello World"',
                 status: 'pending',
-                result: null,
                 description: 'Test shell command'
-            };
+            });
 
             expect(shellTask.type).toBe('shell');
             expect(shellTask.shell_command).toBeDefined();
@@ -31,13 +39,11 @@ describe('Task Type System', () => {
         });
 
         it('should create valid LlmTask', () => {
-            const llmTask: LlmTask = {
+            const llmTask = createLlmTask({
                 id: 2,
-                type: 'llm',
                 description: 'Generate a poem about TypeScript',
-                status: 'pending',
-                result: null
-            };
+                status: 'pending'
+            });
 
             expect(llmTask.type).toBe('llm');
             expect(llmTask.description).toBeDefined();
@@ -45,14 +51,12 @@ describe('Task Type System', () => {
         });
 
         it('should create valid PlannerTask', () => {
-            const plannerTask: PlannerTask = {
+            const plannerTask = createPlannerTask({
                 id: 3,
-                type: 'planner',
                 description: 'Plan a project to build a web application',
                 status: 'pending',
-                result: null,
                 goal: 'Build a web application'
-            };
+            });
 
             expect(plannerTask.type).toBe('planner');
             expect(plannerTask.description).toBeDefined();
@@ -60,13 +64,11 @@ describe('Task Type System', () => {
         });
 
         it('should create valid CodeTask', () => {
-            const codeTask: CodeTask = {
+            const codeTask = createCodeTask({
                 id: 4,
-                type: 'code',
                 description: 'Write a Python script to calculate fibonacci numbers',
-                status: 'pending',
-                result: null
-            };
+                status: 'pending'
+            });
 
             expect(codeTask.type).toBe('code');
             expect(codeTask.description).toBeDefined();
@@ -211,38 +213,53 @@ describe('Task Type System', () => {
         });
 
         it('should enable type narrowing in switch statements', () => {
-            const task: BaseTask = {
-                id: 1,
-                type: 'shell',
-                shell_command: 'echo test',
-                status: 'pending',
-                result: null
-            };
-
-            let result: string;
-
-            switch (task.type) {
-                case 'shell':
-                    // TypeScript knows this is a ShellTask
-                    result = `Shell: ${task.shell_command}`;
-                    break;
-                case 'llm':
-                    // TypeScript knows this is an LlmTask
-                    result = `LLM: ${task.description}`;
-                    break;
-                case 'tool':
-                    // TypeScript knows this is a ToolTask
-                    result = `Tool: ${task.tool}`;
-                    break;
-                case 'media_ingest':
-                    // TypeScript knows this is a MediaIngestTask
-                    result = `Media: ${task.file_path}`;
-                    break;
-                default:
-                    result = 'Unknown task type';
+            function processTask(task: BaseTask): string {
+                switch (task.type) {
+                    case 'shell':
+                        // TypeScript knows this is a ShellTask
+                        return `Shell: ${task.shell_command || 'no command'}`;
+                    case 'llm':
+                        // TypeScript knows this is an LlmTask
+                        return `LLM: ${task.description || 'no description'}`;
+                    case 'tool':
+                        // TypeScript knows this is a ToolTask
+                        return `Tool: ${task.tool || 'no tool'}`;
+                    case 'media_ingest':
+                        // TypeScript knows this is a MediaIngestTask
+                        return `Media: ${task.file_path || 'no path'}`;
+                    default:
+                        return 'Unknown task type';
+                }
             }
 
-            expect(result).toBe('Shell: echo test');
+            const shellTask = createShellTask({
+                id: 1,
+                shell_command: 'echo test',
+                status: 'pending'
+            });
+
+            const llmTask = createLlmTask({
+                id: 2,
+                description: 'Generate text',
+                status: 'pending'
+            });
+
+            const toolTask = createToolTask({
+                id: 3,
+                tool: 'read_file',
+                status: 'pending'
+            });
+
+            const mediaTask = createMediaIngestTask({
+                id: 4,
+                file_path: '/test/media.mp4',
+                status: 'pending'
+            });
+
+            expect(processTask(shellTask)).toBe('Shell: echo test');
+            expect(processTask(llmTask)).toBe('LLM: Generate text');
+            expect(processTask(toolTask)).toBe('Tool: read_file');
+            expect(processTask(mediaTask)).toBe('Media: /test/media.mp4');
         });
     });
 
@@ -312,27 +329,23 @@ describe('Task Type System', () => {
 
     describe('Complex Task Configurations', () => {
         it('should handle BatchTask with static subtasks', () => {
-            const batchTask: BatchTask = {
+            const batchTask = createBatchTask({
                 id: 1,
-                type: 'batch',
                 subtasks: [
-                    {
-                        type: 'shell',
+                    createShellTask({
+                        id: 101,
                         shell_command: 'echo "subtask 1"',
-                        status: 'pending',
-                        result: null
-                    },
-                    {
-                        type: 'shell',
+                        status: 'pending'
+                    }),
+                    createShellTask({
+                        id: 102,
                         shell_command: 'echo "subtask 2"',
-                        status: 'pending',
-                        result: null
-                    }
+                        status: 'pending'
+                    })
                 ],
                 status: 'pending',
-                result: null,
                 description: 'Batch task with static subtasks'
-            };
+            });
 
             expect(batchTask.subtasks).toHaveLength(2);
             expect(batchTask.generator).toBeUndefined();

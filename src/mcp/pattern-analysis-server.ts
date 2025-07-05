@@ -7,8 +7,8 @@ import {
     ListToolsRequestSchema,
     type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-import { getDatabase, initDatabase } from '../db.js';
-import { logger } from '../utils/logger.js';
+import { getDatabase, initDatabase } from '../db';
+import { logger } from '../utils/logger';
 
 interface ActivityPattern {
     id?: number;
@@ -49,7 +49,7 @@ class PatternAnalysisMCPServer {
 
     private async initializeAsync() {
         try {
-            await initDatabase();
+            initDatabase();
             console.error('Pattern Analysis server database initialized');
             this.setupToolHandlers();
         } catch (error) {
@@ -230,9 +230,9 @@ class PatternAnalysisMCPServer {
 
     private async analyzeUsagePatterns(args: any) {
         const db = getDatabase();
-        const { 
-            time_range_hours = 168, 
-            pattern_types = ['temporal', 'task_sequence', 'resource_usage'], 
+        const {
+            time_range_hours = 168,
+            pattern_types = ['temporal', 'task_sequence', 'resource_usage'],
             min_confidence = 0.7,
             include_predictions = true
         } = args;
@@ -241,10 +241,10 @@ class PatternAnalysisMCPServer {
 
         // Analyze temporal patterns
         const temporalPatterns = await this.analyzeTemporalPatterns(db, cutoffTime);
-        
+
         // Analyze task sequence patterns
         const sequencePatterns = await this.analyzeTaskSequencePatterns(db, cutoffTime);
-        
+
         // Analyze resource usage patterns
         const resourcePatterns = await this.analyzeResourceUsagePatterns(db, cutoffTime);
 

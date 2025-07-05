@@ -22,6 +22,7 @@ import { join, extname } from 'path';
 import { initDatabase } from '../db';
 import { mcpClient } from '../mcp/mcp-client';
 import { logger } from '../utils/logger';
+import { safeParseInt } from '../utils/safe-access';
 
 interface CliOptions {
     filePath?: string;
@@ -107,8 +108,8 @@ function parseCliArgs(args: string[]): CliOptions {
 
     let rating: number | undefined;
     if (values.rating !== undefined) {
-        rating = parseInt(values.rating);
-        if (isNaN(rating) || rating < 1 || rating > 5) {
+        rating = safeParseInt(values.rating);
+        if (rating === undefined || rating < 1 || rating > 5) {
             throw new Error('Rating must be between 1 and 5');
         }
     }
@@ -142,7 +143,7 @@ async function main() {
         }
 
         // Initialize database
-        await initDatabase();
+        initDatabase();
         console.log('🚀 Initializing MCP services...\n');
 
         if (options.recommend) {
