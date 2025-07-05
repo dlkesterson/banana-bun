@@ -18,17 +18,17 @@ import { Database } from 'bun:sqlite';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 // Import all migrations
-import { DependencyNormalizationMigration } from './001-normalize-dependencies.js';
-import { RetrySystemMigration } from './002-add-retry-system.js';
-import { PeriodicTasksMigration } from './003-add-periodic-tasks.js';
-import { ErrorMessageColumnMigration } from './004-add-error-message-column.js';
-import { migration005 } from './005-add-search-analytics.js';
-import { migration006 } from './006-add-transcription-analytics.js';
-import { migration007 } from './007-add-media-intelligence.js';
-import { migration008 } from './008-add-phase2-features.js';
-import { migration009 } from './009-add-autonomous-learning.js';
-import { migration010 } from './010-add-llm-planning.js';
-import { RuleSchedulerMigration } from './011-add-rule-scheduler.js';
+import { DependencyNormalizationMigration } from './001-normalize-dependencies';
+import { RetrySystemMigration } from './002-add-retry-system';
+import { PeriodicTasksMigration } from './003-add-periodic-tasks';
+import { ErrorMessageColumnMigration } from './004-add-error-message-column';
+import { migration005 } from './005-add-search-analytics';
+import { migration006 } from './006-add-transcription-analytics';
+import { migration007 } from './007-add-media-intelligence';
+import { migration008 } from './008-add-phase2-features';
+import { migration009 } from './009-add-autonomous-learning';
+import { migration010 } from './010-add-llm-planning';
+import { RuleSchedulerMigration } from './011-add-rule-scheduler';
 
 // Define migration list in order
 const migrations = [
