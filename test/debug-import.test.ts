@@ -43,6 +43,17 @@ describe('Debug Import Test', () => {
             const dbModule = await import('../src/db');
             console.log('✅ Successfully imported db module');
             console.log('Available exports:', Object.keys(dbModule));
+            console.log('initDatabase type:', typeof dbModule.initDatabase);
+            console.log('getDatabase type:', typeof dbModule.getDatabase);
+            console.log('getDependencyHelper type:', typeof dbModule.getDependencyHelper);
+
+            // Check if initDatabase is actually defined
+            if (dbModule.initDatabase) {
+                console.log('✅ initDatabase is defined');
+            } else {
+                console.log('❌ initDatabase is undefined');
+            }
+
             expect(dbModule).toBeDefined();
         } catch (error) {
             console.error('❌ Failed to import db module:', error);
